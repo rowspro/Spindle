@@ -71,3 +71,7 @@ dist/
 
 # macOS
 .DS_Store
+
+# Local credential/settings store (Soulseek login, AcoustID key) — never commit
+settings.json
+appsettings.local.json
