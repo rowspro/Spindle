@@ -1,0 +1,48 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>WinExe</OutputType>
+        <TargetFramework>net8.0</TargetFramework>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
+        <ApplicationManifest>app.manifest</ApplicationManifest>
+        <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+        <RootNamespace>SeekDownloader.Gui</RootNamespace>
+        <AssemblyName>Spindle</AssemblyName>
+        <Version>1.0.0</Version>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <AvaloniaResource Include="Assets/spindle_1024.png" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Avalonia" Version="11.2.3" />
+        <PackageReference Include="Avalonia.Desktop" Version="11.2.3" />
+        <PackageReference Include="Avalonia.Themes.Fluent" Version="11.2.3" />
+        <PackageReference Include="Avalonia.Fonts.Inter" Version="11.2.3" />
+        <PackageReference Include="Avalonia.Diagnostics" Version="11.2.3" Condition="'$(Configuration)' == 'Debug'" />
+    </ItemGroup>
+
+    <!-- Same packages the reused core depends on (see ..\SeekDownloader\SeekDownloader.csproj). -->
+    <ItemGroup>
+        <PackageReference Include="FuzzySharp" Version="2.0.2" />
+        <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="10.0.3" />
+        <PackageReference Include="Soulseek" Version="8.5.0" />
+        <PackageReference Include="z440.atl.core" Version="7.11.0" />
+    </ItemGroup>
+
+    <!-- Reuse the existing core logic by linking the source files; the CLI project stays untouched. -->
+    <ItemGroup>
+        <Compile Include="..\SeekDownloader\Services\DownloadService.cs" Link="Core\DownloadService.cs" />
+        <Compile Include="..\SeekDownloader\Services\FileSeekService.cs" Link="Core\FileSeekService.cs" />
+        <Compile Include="..\SeekDownloader\Models\SearchTermModel.cs" Link="Core\SearchTermModel.cs" />
+        <Compile Include="..\SeekDownloader\Enums\SearchTermType.cs" Link="Core\SearchTermType.cs" />
+        <Compile Include="..\SeekDownloader\Helpers\FuzzyHelper.cs" Link="Core\FuzzyHelper.cs" />
+        <Compile Include="..\SeekDownloader\SearchResult.cs" Link="Core\SearchResult.cs" />
+        <Compile Include="..\SeekDownloader\SearchGroup.cs" Link="Core\SearchGroup.cs" />
+        <Compile Include="..\SeekDownloader\DownloadProgress.cs" Link="Core\DownloadProgress.cs" />
+    </ItemGroup>
+
+</Project>
