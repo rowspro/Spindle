@@ -25,7 +25,7 @@ public partial class MainWindow : Window
     // Arrow keys drive the Metadata tab's step-through (but not while typing in a field).
     private void OnWindowKeyDown(object? sender, KeyEventArgs e)
     {
-        if (Vm == null || Vm.SelectedTabIndex != 4) return;
+        if (Vm == null || Vm.SelectedTabIndex != 5) return; // Metadata tab (shifted by the Organiseren tab)
         if (e.Source is TextBox) return;
         if (e.Key == Key.Left)
         {
@@ -117,6 +117,19 @@ public partial class MainWindow : Window
     {
         var path = await PickFolderAsync("Kies de doelmap");
         if (path != null && Vm != null) Vm.Sort.DestFolder = path;
+    }
+
+    // ---- Organiseren tab ----
+    private async void OnBrowseOrganizeSource(object? sender, RoutedEventArgs e)
+    {
+        var path = await PickFolderAsync("Kies de map om te organiseren");
+        if (path != null && Vm != null) Vm.Organize.SourceFolder = path;
+    }
+
+    private async void OnBrowseOrganizeDest(object? sender, RoutedEventArgs e)
+    {
+        var path = await PickFolderAsync("Kies de bibliotheek-doelmap");
+        if (path != null && Vm != null) Vm.Organize.DestFolder = path;
     }
 
     // ---- Metadata editor tab ----

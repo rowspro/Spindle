@@ -43,6 +43,8 @@ public class MainViewModel : ViewModelBase
             : (!string.IsNullOrWhiteSpace(DownloadFilePath) ? DownloadFilePath : string.Empty);
         if (string.IsNullOrWhiteSpace(AppleMusic.LibraryFolder)) AppleMusic.LibraryFolder = fallback;
         if (string.IsNullOrWhiteSpace(Sync.LibraryFolder)) Sync.LibraryFolder = fallback;
+        if (string.IsNullOrWhiteSpace(Organize.SourceFolder)) Organize.SourceFolder = DownloadFilePath;
+        if (string.IsNullOrWhiteSpace(Organize.DestFolder)) Organize.DestFolder = MusicLibrary;
 
         // Restore unfinished downloads from the previous session so they can be resumed (no re-search).
         foreach (var e in QueueStore.Load())
@@ -141,6 +143,9 @@ public class MainViewModel : ViewModelBase
     public bool MusicLibraryQuickMatch { get => _musicLibraryQuickMatch; set => SetField(ref _musicLibraryQuickMatch, value); }
     public bool InMemoryDownloads { get => _inMemoryDownloads; set => SetField(ref _inMemoryDownloads, value); }
 
+    private bool _autoOrganize;
+    public bool AutoOrganize { get => _autoOrganize; set => SetField(ref _autoOrganize, value); }
+
     // ---- Mode (0 = automatisch, 1 = handmatig per bestand, 2 = artiest → kies albums) ----
     private int _mode;
     public int Mode
@@ -193,6 +198,7 @@ public class MainViewModel : ViewModelBase
     public AlacConverterViewModel Alac { get; } = new();
     public MetadataEditorViewModel Meta { get; } = new();
     public SortViewModel Sort { get; } = new();
+    public OrganizeViewModel Organize { get; } = new();
     public DuplicatesViewModel Duplicates { get; } = new();
     public SyncViewModel Sync { get; } = new();
     public AppleMusicViewModel AppleMusic { get; }
@@ -278,7 +284,18 @@ public class MainViewModel : ViewModelBase
                 else if (t.IsFaulted)
                     StatusMessage = "Fout: " + (t.Exception?.GetBaseException().Message ?? "onbekend");
                 else
+                {
                     StatusMessage = $"Klaar — {SuccessfulDownloadsCount} gedownload, {SkippedCount} overgeslagen.";
+                    if (AutoOrganize && !string.IsNullOrWhiteSpace(DownloadFilePath) && System.IO.Directory.Exists(DownloadFilePath))
+                    {
+                        Organize.SourceFolder = DownloadFilePath;
+                        Organize.DestFolder = string.IsNullOrWhiteSpace(MusicLibrary) ? DownloadFilePath : MusicLibrary;
+                        Organize.TestMode = false;
+                        SelectedTabIndex = 3; // Organiseren-tab
+                        StatusMessage = "Klaar met downloaden — automatisch organiseren…";
+                        if (Organize.RunCommand.CanExecute(null)) Organize.RunCommand.Execute(null);
+                    }
+                }
             }, TaskScheduler.FromCurrentSynchronizationContext());
     }
 
@@ -746,6 +763,7 @@ public class MainViewModel : ViewModelBase
             SyncLibrary = Sync.LibraryFolder,
             SyncIpod = Sync.IpodFolder,
             AppleLibrary = AppleMusic.LibraryFolder,
+            AutoOrganize = AutoOrganize,
         };
 
         var extensions = SplitList(SearchFileExtensions);
@@ -795,6 +813,7 @@ public class MainViewModel : ViewModelBase
         Sync.LibraryFolder = c.SyncLibrary;
         Sync.IpodFolder = c.SyncIpod;
         AppleMusic.LibraryFolder = c.AppleLibrary;
+        AutoOrganize = c.AutoOrganize;
     }
 
     // Called when the window closes so tool folders (and other settings) survive a restart.
