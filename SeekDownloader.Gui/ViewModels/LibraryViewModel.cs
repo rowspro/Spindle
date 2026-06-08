@@ -62,8 +62,17 @@ public class LibraryViewModel : ViewModelBase
     private string _status = "Stel je muziekbieb in (Instellingen) en scan op problemen.";
     public string Status { get => _status; private set => SetField(ref _status, value); }
 
-    private string _stats = string.Empty;
-    public string Stats { get => _stats; private set => SetField(ref _stats, value); }
+    // Individual figures for the stat cards (Gezondheid).
+    private int _fileCount, _albumCount, _noTagCount, _noCoverCount, _lossyFileCount, _upgradeCount;
+    public int FileCount { get => _fileCount; private set => SetField(ref _fileCount, value); }
+    public int AlbumCount { get => _albumCount; private set => SetField(ref _albumCount, value); }
+    public int NoTagCount { get => _noTagCount; private set => SetField(ref _noTagCount, value); }
+    public int NoCoverCount { get => _noCoverCount; private set => SetField(ref _noCoverCount, value); }
+    public int LossyFileCount { get => _lossyFileCount; private set => SetField(ref _lossyFileCount, value); }
+    public int UpgradeAlbumCount { get => _upgradeCount; private set => SetField(ref _upgradeCount, value); }
+
+    private bool _hasScanned;
+    public bool HasScanned { get => _hasScanned; private set => SetField(ref _hasScanned, value); }
 
     public RelayCommand ScanCommand { get; }
     public RelayCommand RepairCoversCommand { get; }
@@ -123,13 +132,13 @@ public class LibraryViewModel : ViewModelBase
             Dispatcher.UIThread.Post(() =>
             {
                 _albums.Clear(); _albums.AddRange(albums);
-                Stats =
-                    $"Bestanden: {files.Count}\n" +
-                    $"Albums: {albums.Count}\n" +
-                    $"Zonder (volledige) tags: {noTags}\n" +
-                    $"Albums zonder albumhoes: {noCover}\n" +
-                    $"Lossy bestanden (MP3/AAC): {lossyFiles}\n" +
-                    $"Volledig-lossy albums (FLAC-upgrade mogelijk): {lossyAlbums}";
+                FileCount = files.Count;
+                AlbumCount = albums.Count;
+                NoTagCount = noTags;
+                NoCoverCount = noCover;
+                LossyFileCount = lossyFiles;
+                UpgradeAlbumCount = lossyAlbums;
+                HasScanned = true;
                 IsBusy = false;
                 RepairCoversCommand.RaiseCanExecuteChanged();
                 FindUpgradesCommand.RaiseCanExecuteChanged();

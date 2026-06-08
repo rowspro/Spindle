@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using Avalonia.Media;
 using Avalonia.Threading;
 using SeekDownloader.Models;
 using SeekDownloader.Services;
@@ -8,6 +9,8 @@ namespace SeekDownloader.Gui.ViewModels;
 public class MainViewModel : ViewModelBase
 {
     private readonly DispatcherTimer _timer;
+    private readonly DispatcherTimer _connTimer;   // keeps the sidebar connection pill in sync
+    private bool _isConnecting;
     private readonly Dictionary<string, QueueItemViewModel> _queueByKey = new();
     private readonly HashSet<string> _removedQueueKeys = new(); // queue rows the user removed; Poll won't re-add them
 
@@ -30,6 +33,10 @@ public class MainViewModel : ViewModelBase
 
         _timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
         _timer.Tick += (_, _) => Poll();
+
+        _connTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(2) };
+        _connTimer.Tick += (_, _) => UpdateConnection();
+        _connTimer.Start();
 
         AppleMusic = new AppleMusicViewModel(
             onArtist: a => { Mode = 2; SearchTerm = a; SelectedTabIndex = 0; Search(); },
@@ -62,7 +69,68 @@ public class MainViewModel : ViewModelBase
             _queueByKey[item.Key] = item;
             Queue.Add(item);
         }
+
+        UpdateConnection();
+        TryAutoConnect();
     }
+
+    // ---- Connection pill (sidebar) ----
+    private static readonly IBrush ConnGreen = new SolidColorBrush(Color.Parse("#2E7D43"));
+    private static readonly IBrush ConnAmber = new SolidColorBrush(Color.Parse("#A55600"));
+    private static readonly IBrush ConnGrey = new SolidColorBrush(Color.Parse("#737783"));
+
+    private string _connectionText = "Niet verbonden";
+    public string ConnectionText { get => _connectionText; private set => SetField(ref _connectionText, value); }
+
+    private IBrush _connectionBrush = ConnGrey;
+    public IBrush ConnectionBrush { get => _connectionBrush; private set => SetField(ref _connectionBrush, value); }
+
+    private void UpdateConnection()
+    {
+        if (_download.IsLoggedIn)
+        {
+            _isConnecting = false;
+            ConnectionText = "Verbonden met Soulseek";
+            ConnectionBrush = ConnGreen;
+        }
+        else if (_isConnecting)
+        {
+            ConnectionText = "Verbinden…";
+            ConnectionBrush = ConnAmber;
+        }
+        else
+        {
+            ConnectionText = "Niet verbonden";
+            ConnectionBrush = ConnGrey;
+        }
+    }
+
+    // Connect at startup when credentials are saved, so the pill is meaningful and the first search is faster.
+    private void TryAutoConnect()
+    {
+        if (string.IsNullOrWhiteSpace(SoulseekUsername) || string.IsNullOrWhiteSpace(SoulseekPassword)) return;
+        _isConnecting = true;
+        UpdateConnection();
+        _download.SoulSeekUsername = SoulseekUsername.Trim();
+        _download.SoulSeekPassword = SoulseekPassword;
+        _download.NicotineListenPort = (int)SoulseekListenPort;
+        Task.Run(async () =>
+        {
+            try { await _download.ConnectAsync(); } catch { }
+            Dispatcher.UIThread.Post(() => { _isConnecting = false; UpdateConnection(); });
+        });
+    }
+
+    // ---- Top bar ----
+    public string CurrentSection => SelectedTabIndex switch
+    {
+        0 => "Zoeken", 1 => "Wachtrij", 2 => "Sorteren", 3 => "Organiseren",
+        4 => "ALAC-converter", 5 => "Metadata", 6 => "Apple Music", 7 => "Artiesten",
+        8 => "Gezondheid", 9 => "Dubbele", 10 => "Overzetten", 11 => "Instellingen", _ => "Spindle"
+    };
+
+    public string UserInitial => string.IsNullOrWhiteSpace(SoulseekUsername)
+        ? "?" : SoulseekUsername.Trim().Substring(0, 1).ToUpperInvariant();
 
     // Apple Music playlist -> write its tracks to a temp search file and run the auto pipeline.
     private void QueuePlaylist(List<string> lines)
@@ -88,7 +156,7 @@ public class MainViewModel : ViewModelBase
     private string _username = string.Empty;
     private string _password = string.Empty;
     private decimal _listenPort = 12345;
-    public string SoulseekUsername { get => _username; set => SetField(ref _username, value); }
+    public string SoulseekUsername { get => _username; set { if (SetField(ref _username, value)) OnPropertyChanged(nameof(UserInitial)); } }
     public string SoulseekPassword { get => _password; set => SetField(ref _password, value); }
     public decimal SoulseekListenPort { get => _listenPort; set => SetField(ref _listenPort, value); }
 
@@ -182,7 +250,11 @@ public class MainViewModel : ViewModelBase
     public bool IsPickMode => Mode == 1 || Mode == 2; // modes with a Zoek/results step
 
     private int _selectedTabIndex;
-    public int SelectedTabIndex { get => _selectedTabIndex; set => SetField(ref _selectedTabIndex, value); }
+    public int SelectedTabIndex
+    {
+        get => _selectedTabIndex;
+        set { if (SetField(ref _selectedTabIndex, value)) OnPropertyChanged(nameof(CurrentSection)); }
+    }
 
     // ---- Manual results (per file) ----
     public ObservableCollection<ResultRowViewModel> Results { get; } = new();

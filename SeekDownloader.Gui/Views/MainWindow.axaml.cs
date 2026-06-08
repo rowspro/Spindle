@@ -41,6 +41,13 @@ public partial class MainWindow : Window
 
     private MainViewModel? Vm => DataContext as MainViewModel;
 
+    // Sidebar navigation: each nav button carries its tab index in Tag.
+    private void OnNav(object? sender, RoutedEventArgs e)
+    {
+        if (Vm != null && sender is Control c && c.Tag is string s && int.TryParse(s, out var i))
+            Vm.SelectedTabIndex = i;
+    }
+
     private async void OnBrowseDownloadFolder(object? sender, RoutedEventArgs e)
     {
         var path = await PickFolderAsync("Kies een downloadmap");

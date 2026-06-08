@@ -4,25 +4,34 @@
         x:Class="SeekDownloader.Gui.Views.MainWindow"
         x:DataType="vm:MainViewModel"
         x:CompileBindings="True"
-        Width="880" Height="820" MinWidth="720" MinHeight="620"
+        Width="1040" Height="840" MinWidth="900" MinHeight="640"
         Title="Spindle"
-        Background="#E7E1CF"
+        Background="#F9F9FB"
         FontFamily="{StaticResource InterFontFamily}">
 
     <Window.Resources>
-        <SolidColorBrush x:Key="Card" Color="#F2ECDB" />
-        <SolidColorBrush x:Key="CardBorder" Color="#C9BF9F" />
-        <SolidColorBrush x:Key="Recess" Color="#FBF8EE" />
-        <SolidColorBrush x:Key="Accent" Color="#3568C4" />
-        <SolidColorBrush x:Key="HeaderBlue" Color="#2A5DB0" />
+        <!-- Material 3 light tokens (Spindle design system) -->
+        <SolidColorBrush x:Key="Card" Color="#FFFFFF" />              <!-- surface-container-lowest -->
+        <SolidColorBrush x:Key="CardBorder" Color="#C3C6D4" />        <!-- outline-variant -->
+        <SolidColorBrush x:Key="Recess" Color="#F3F3F5" />            <!-- surface-container-low (inputs) -->
+        <SolidColorBrush x:Key="Accent" Color="#0F4FAA" />           <!-- primary -->
+        <SolidColorBrush x:Key="HeaderBlue" Color="#0F4FAA" />       <!-- primary (section headers) -->
         <SolidColorBrush x:Key="Success" Color="#2E7D43" />
-        <SolidColorBrush x:Key="ErrorBrush" Color="#B23A2E" />
-        <SolidColorBrush x:Key="TextPrimary" Color="#2A2620" />
-        <SolidColorBrush x:Key="TextSecondary" Color="#6B6552" />
-        <SolidColorBrush x:Key="TextMuted" Color="#8A8370" />
+        <SolidColorBrush x:Key="ErrorBrush" Color="#BA1A1A" />       <!-- error -->
+        <SolidColorBrush x:Key="TextPrimary" Color="#1A1C1D" />      <!-- on-surface -->
+        <SolidColorBrush x:Key="TextSecondary" Color="#434752" />    <!-- on-surface-variant -->
+        <SolidColorBrush x:Key="TextMuted" Color="#737783" />        <!-- outline -->
+        <!-- shell / accents -->
+        <SolidColorBrush x:Key="Surface" Color="#F9F9FB" />
+        <SolidColorBrush x:Key="SidebarBg" Color="#F3F3F5" />
+        <SolidColorBrush x:Key="SurfaceContainer" Color="#EEEEF0" />
+        <SolidColorBrush x:Key="SurfaceVariant" Color="#E2E2E4" />
+        <SolidColorBrush x:Key="PrimaryContainer" Color="#3568C4" />
+        <SolidColorBrush x:Key="OnPrimaryContainer" Color="#E7ECFF" />
+        <SolidColorBrush x:Key="PrimaryFixed" Color="#D8E2FF" />
         <LinearGradientBrush x:Key="AccentGradient" StartPoint="0%,0%" EndPoint="100%,0%">
-            <GradientStop Offset="0" Color="#3568C4" />
-            <GradientStop Offset="1" Color="#4A7AD4" />
+            <GradientStop Offset="0" Color="#0F4FAA" />
+            <GradientStop Offset="1" Color="#3568C4" />
         </LinearGradientBrush>
     </Window.Resources>
 
@@ -31,7 +40,7 @@
             <Setter Property="Background" Value="{StaticResource Card}" />
             <Setter Property="BorderBrush" Value="{StaticResource CardBorder}" />
             <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="CornerRadius" Value="12" />
             <Setter Property="Padding" Value="16" />
         </Style>
         <Style Selector="TextBlock.section">
@@ -50,7 +59,7 @@
             <Setter Property="Background" Value="{StaticResource Recess}" />
             <Setter Property="BorderBrush" Value="{StaticResource CardBorder}" />
             <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="CornerRadius" Value="8" />
             <Setter Property="Foreground" Value="{StaticResource TextPrimary}" />
             <Setter Property="CaretBrush" Value="{StaticResource Accent}" />
             <Setter Property="Padding" Value="10,7" />
@@ -63,7 +72,7 @@
         <Style Selector="NumericUpDown">
             <Setter Property="Background" Value="{StaticResource Recess}" />
             <Setter Property="BorderBrush" Value="{StaticResource CardBorder}" />
-            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="CornerRadius" Value="8" />
             <Setter Property="Foreground" Value="{StaticResource TextPrimary}" />
             <Setter Property="MinHeight" Value="34" />
             <Setter Property="FontSize" Value="13" />
@@ -76,28 +85,28 @@
             <Setter Property="Background" Value="{StaticResource Accent}" />
             <Setter Property="Foreground" Value="White" />
             <Setter Property="FontWeight" Value="SemiBold" />
-            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="CornerRadius" Value="8" />
             <Setter Property="Padding" Value="22,10" />
             <Setter Property="HorizontalContentAlignment" Value="Center" />
         </Style>
         <Style Selector="Button.primary:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="#4A7AD4" />
+            <Setter Property="Background" Value="#3568C4" />
         </Style>
         <Style Selector="Button.ghost">
-            <Setter Property="Background" Value="#FBF8EE" />
+            <Setter Property="Background" Value="{StaticResource Card}" />
             <Setter Property="BorderBrush" Value="{StaticResource CardBorder}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="Foreground" Value="{StaticResource TextPrimary}" />
-            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="CornerRadius" Value="8" />
             <Setter Property="Padding" Value="14,8" />
         </Style>
         <Style Selector="Button.ghost:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="#EFE8D4" />
+            <Setter Property="Background" Value="{StaticResource SurfaceVariant}" />
         </Style>
         <Style Selector="Border.chip">
-            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="CornerRadius" Value="8" />
             <Setter Property="Padding" Value="10,5" />
-            <Setter Property="Background" Value="#EFE8D4" />
+            <Setter Property="Background" Value="{StaticResource SurfaceContainer}" />
             <Setter Property="BorderBrush" Value="{StaticResource CardBorder}" />
             <Setter Property="BorderThickness" Value="1" />
         </Style>
@@ -124,21 +133,170 @@
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="BorderThickness" Value="0" />
         </Style>
+
+        <!-- Sidebar navigation items -->
+        <Style Selector="Button.nav">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Foreground" Value="{StaticResource TextSecondary}" />
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Padding" Value="12,8" />
+            <Setter Property="Margin" Value="0,1" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="HorizontalContentAlignment" Value="Left" />
+        </Style>
+        <Style Selector="Button.nav:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="{StaticResource SurfaceVariant}" />
+        </Style>
+        <Style Selector="Button.nav.active /template/ ContentPresenter">
+            <Setter Property="Background" Value="{StaticResource PrimaryContainer}" />
+        </Style>
+        <Style Selector="Button.nav.active">
+            <Setter Property="Foreground" Value="{StaticResource OnPrimaryContainer}" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+        <Style Selector="TextBlock.navGroup">
+            <Setter Property="Foreground" Value="{StaticResource TextMuted}" />
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Margin" Value="12,14,0,4" />
+        </Style>
+
+        <!-- Format badge on search results: lossless = primary tint, lossy = neutral. -->
+        <Style Selector="Border.badge">
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="Padding" Value="6,2" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Background" Value="{StaticResource SurfaceVariant}" />
+        </Style>
+        <Style Selector="Border.badge TextBlock">
+            <Setter Property="Foreground" Value="{StaticResource TextSecondary}" />
+            <Setter Property="FontSize" Value="10" />
+            <Setter Property="FontWeight" Value="Bold" />
+        </Style>
+        <Style Selector="Border.badge.lossless">
+            <Setter Property="Background" Value="{StaticResource PrimaryFixed}" />
+        </Style>
+        <Style Selector="Border.badge.lossless TextBlock">
+            <Setter Property="Foreground" Value="{StaticResource Accent}" />
+        </Style>
+
+        <!-- Glass stat cards (Gezondheid) -->
+        <Style Selector="Border.stat">
+            <Setter Property="CornerRadius" Value="12" />
+            <Setter Property="Padding" Value="18,16" />
+            <Setter Property="Margin" Value="6" />
+            <Setter Property="Background" Value="#B2FFFFFF" />
+            <Setter Property="BorderBrush" Value="#66FFFFFF" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="BoxShadow" Value="0 6 20 0 #14000000" />
+        </Style>
+        <Style Selector="Border.stat TextBlock.statNum">
+            <Setter Property="FontSize" Value="26" />
+            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="Foreground" Value="{StaticResource TextPrimary}" />
+        </Style>
+        <Style Selector="Border.stat TextBlock.statLbl">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="{StaticResource TextSecondary}" />
+            <Setter Property="Margin" Value="0,4,0,0" />
+        </Style>
+
+        <!-- Sidebar replaces the tab strip; hide the built-in headers. -->
+        <Style Selector="TabControl /template/ ItemsPresenter#PART_ItemsPresenter">
+            <Setter Property="IsVisible" Value="False" />
+        </Style>
     </Window.Styles>
 
-    <Grid RowDefinitions="Auto,*" Margin="18,16,18,16">
+    <Grid ColumnDefinitions="240,*">
 
-        <!-- ===== Header ===== -->
-        <Grid Grid.Row="0" ColumnDefinitions="Auto,*" Margin="0,0,0,12">
-            <Image Grid.Column="0" Width="38" Height="38" VerticalAlignment="Center"
-                   Source="avares://Spindle/Assets/spindle_1024.png" />
-            <StackPanel Grid.Column="1" Margin="13,0,0,0" VerticalAlignment="Center">
-                <TextBlock Text="Spindle" Foreground="{StaticResource TextPrimary}" FontSize="21" FontWeight="Bold" />
-                <TextBlock Text="Everything on one spindle." Foreground="{StaticResource TextSecondary}" FontSize="12" />
-            </StackPanel>
-        </Grid>
+        <!-- ===== Sidebar ===== -->
+        <Border Grid.Column="0" Background="{StaticResource SidebarBg}"
+                BorderBrush="{StaticResource CardBorder}" BorderThickness="0,0,1,0">
+            <Grid RowDefinitions="Auto,*,Auto" Margin="12,16,12,14">
 
-        <TabControl Grid.Row="1" SelectedIndex="{Binding SelectedTabIndex, Mode=TwoWay}" Background="Transparent">
+                <!-- Logo -->
+                <Grid Grid.Row="0" ColumnDefinitions="Auto,*" Margin="4,0,0,8">
+                    <Border Grid.Column="0" Width="40" Height="40" CornerRadius="8" ClipToBounds="True">
+                        <Image Source="avares://Spindle/Assets/spindle_1024.png" />
+                    </Border>
+                    <StackPanel Grid.Column="1" Margin="10,0,0,0" VerticalAlignment="Center">
+                        <TextBlock Text="Spindle" Foreground="{StaticResource TextPrimary}" FontSize="20" FontWeight="Bold" />
+                        <TextBlock Text="Music Manager" Foreground="{StaticResource TextMuted}" FontSize="11" />
+                    </StackPanel>
+                </Grid>
+
+                <!-- Navigation -->
+                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                    <StackPanel>
+                        <TextBlock Classes="navGroup" Text="BIBLIOTHEEK" />
+                        <Button Classes="nav" Tag="0" Click="OnNav" Content="Zoeken"
+                                Classes.active="{Binding SelectedTabIndex, Converter={x:Static vm:IntEquals.Instance}, ConverterParameter=0}" />
+                        <Button Classes="nav" Tag="1" Click="OnNav" Content="Wachtrij"
+                                Classes.active="{Binding SelectedTabIndex, Converter={x:Static vm:IntEquals.Instance}, ConverterParameter=1}" />
+                        <Button Classes="nav" Tag="7" Click="OnNav" Content="Artiesten"
+                                Classes.active="{Binding SelectedTabIndex, Converter={x:Static vm:IntEquals.Instance}, ConverterParameter=7}" />
+
+                        <TextBlock Classes="navGroup" Text="BEHEER" />
+                        <Button Classes="nav" Tag="3" Click="OnNav" Content="Organiseren"
+                                Classes.active="{Binding SelectedTabIndex, Converter={x:Static vm:IntEquals.Instance}, ConverterParameter=3}" />
+                        <Button Classes="nav" Tag="2" Click="OnNav" Content="Sorteren"
+                                Classes.active="{Binding SelectedTabIndex, Converter={x:Static vm:IntEquals.Instance}, ConverterParameter=2}" />
+                        <Button Classes="nav" Tag="5" Click="OnNav" Content="Metadata"
+                                Classes.active="{Binding SelectedTabIndex, Converter={x:Static vm:IntEquals.Instance}, ConverterParameter=5}" />
+                        <Button Classes="nav" Tag="9" Click="OnNav" Content="Dubbele"
+                                Classes.active="{Binding SelectedTabIndex, Converter={x:Static vm:IntEquals.Instance}, ConverterParameter=9}" />
+                        <Button Classes="nav" Tag="8" Click="OnNav" Content="Gezondheid"
+                                Classes.active="{Binding SelectedTabIndex, Converter={x:Static vm:IntEquals.Instance}, ConverterParameter=8}" />
+
+                        <TextBlock Classes="navGroup" Text="TOOLS" />
+                        <Button Classes="nav" Tag="4" Click="OnNav" Content="ALAC-converter"
+                                Classes.active="{Binding SelectedTabIndex, Converter={x:Static vm:IntEquals.Instance}, ConverterParameter=4}" />
+                        <Button Classes="nav" Tag="10" Click="OnNav" Content="Overzetten"
+                                Classes.active="{Binding SelectedTabIndex, Converter={x:Static vm:IntEquals.Instance}, ConverterParameter=10}" />
+                        <Button Classes="nav" Tag="6" Click="OnNav" Content="Apple Music"
+                                Classes.active="{Binding SelectedTabIndex, Converter={x:Static vm:IntEquals.Instance}, ConverterParameter=6}" />
+                    </StackPanel>
+                </ScrollViewer>
+
+                <!-- Bottom: connection + settings -->
+                <StackPanel Grid.Row="2">
+                    <Border CornerRadius="9999" Padding="12,7" Margin="0,0,0,8"
+                            Background="{StaticResource SurfaceContainer}" BorderBrush="{StaticResource CardBorder}" BorderThickness="1">
+                        <StackPanel Orientation="Horizontal">
+                            <Ellipse Width="8" Height="8" Fill="{Binding ConnectionBrush}" VerticalAlignment="Center" />
+                            <TextBlock Text="{Binding ConnectionText}" Margin="8,0,0,0" VerticalAlignment="Center"
+                                       FontSize="12" Foreground="{StaticResource TextSecondary}" />
+                        </StackPanel>
+                    </Border>
+                    <Button Classes="nav" Tag="11" Click="OnNav" Content="Instellingen"
+                            Classes.active="{Binding SelectedTabIndex, Converter={x:Static vm:IntEquals.Instance}, ConverterParameter=11}" />
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- ===== Content ===== -->
+        <Grid Grid.Column="1" RowDefinitions="Auto,*">
+
+            <!-- Sticky top bar -->
+            <Border Grid.Row="0" Height="52" Background="{StaticResource Surface}"
+                    BorderBrush="{StaticResource CardBorder}" BorderThickness="0,0,0,1">
+                <Grid ColumnDefinitions="*,Auto" Margin="24,0">
+                    <TextBlock Grid.Column="0" VerticalAlignment="Center" Text="{Binding CurrentSection}"
+                               FontSize="18" FontWeight="Bold" Foreground="{StaticResource TextPrimary}" />
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Spacing="14">
+                        <TextBlock Text="🔔" FontSize="15" VerticalAlignment="Center" Foreground="{StaticResource TextMuted}" />
+                        <Border Width="30" Height="30" CornerRadius="15" Background="{StaticResource PrimaryContainer}">
+                            <TextBlock Text="{Binding UserInitial}" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                       Foreground="White" FontSize="13" FontWeight="SemiBold" />
+                        </Border>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+        <TabControl Grid.Row="1" Margin="24,12,24,16" SelectedIndex="{Binding SelectedTabIndex, Mode=TwoWay}" Background="Transparent">
 
             <!-- ============ TAB: ZOEKEN ============ -->
             <TabItem Header="Zoeken">
@@ -170,7 +328,7 @@
                             </Border>
 
                             <!-- Album mode (auto only) -->
-                            <Border Classes="card" Background="#E3E9F4" BorderBrush="#9DB6DE" IsVisible="{Binding IsAutoMode}">
+                            <Border Classes="card" Background="#D8E2FF" BorderBrush="#AFC6FF" IsVisible="{Binding IsAutoMode}">
                                 <Grid ColumnDefinitions="*,Auto">
                                     <StackPanel Grid.Column="0">
                                         <TextBlock Text="Album-modus" Foreground="{StaticResource TextPrimary}" FontSize="14" FontWeight="SemiBold" />
@@ -195,15 +353,15 @@
                                         <ItemsControl ItemsSource="{Binding Results}">
                                             <ItemsControl.ItemTemplate>
                                                 <DataTemplate x:DataType="vm:ResultRowViewModel">
-                                                    <Border Padding="8" Margin="0,0,0,6" CornerRadius="6" Background="#FBF8EE" BorderBrush="{StaticResource CardBorder}" BorderThickness="1">
+                                                    <Border Padding="8" Margin="0,0,0,6" CornerRadius="6" Background="#F3F3F5" BorderBrush="{StaticResource CardBorder}" BorderThickness="1">
                                                         <Grid ColumnDefinitions="Auto,*,Auto">
                                                             <CheckBox Grid.Column="0" VerticalAlignment="Center" IsChecked="{Binding IsSelected}" />
                                                             <StackPanel Grid.Column="1" Margin="6,0,0,0">
                                                                 <TextBlock Text="{Binding FileName}" Foreground="{StaticResource TextPrimary}" FontSize="13" TextTrimming="CharacterEllipsis" />
                                                                 <TextBlock Text="{Binding Meta}" Foreground="{StaticResource TextMuted}" FontSize="11" Margin="0,2,0,0" />
                                                             </StackPanel>
-                                                            <Border Grid.Column="2" VerticalAlignment="Center" CornerRadius="4" Padding="6,2" Background="#E3E9F4" BorderBrush="#9DB6DE" BorderThickness="1">
-                                                                <TextBlock Text="{Binding Ext}" Foreground="{StaticResource HeaderBlue}" FontSize="10" FontWeight="Bold" />
+                                                            <Border Grid.Column="2" Classes="badge" Classes.lossless="{Binding IsLossless}">
+                                                                <TextBlock Text="{Binding Ext}" />
                                                             </Border>
                                                         </Grid>
                                                     </Border>
@@ -227,7 +385,7 @@
                                         <ItemsControl ItemsSource="{Binding Albums}">
                                             <ItemsControl.ItemTemplate>
                                                 <DataTemplate x:DataType="vm:AlbumGroupViewModel">
-                                                    <Border Padding="8" Margin="0,0,0,6" CornerRadius="6" Background="#FBF8EE" BorderBrush="{StaticResource CardBorder}" BorderThickness="1">
+                                                    <Border Padding="8" Margin="0,0,0,6" CornerRadius="6" Background="#F3F3F5" BorderBrush="{StaticResource CardBorder}" BorderThickness="1">
                                                         <Grid ColumnDefinitions="Auto,*" Opacity="{Binding CanSelect, Converter={x:Static vm:BoolOpacity.Instance}}">
                                                             <CheckBox Grid.Column="0" VerticalAlignment="Center" IsChecked="{Binding IsSelected}" IsEnabled="{Binding CanSelect}" />
                                                             <StackPanel Grid.Column="1" Margin="6,0,0,0">
@@ -287,7 +445,7 @@
                                                     Content="✕" FontSize="13" Command="{Binding RemoveCommand}" ToolTip.Tip="Uit de wachtrij verwijderen (stopt de download als die bezig is)" />
                                             <ProgressBar Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,7,10,0" Minimum="0" Maximum="100"
                                                          Value="{Binding Progress}" Height="6" CornerRadius="3"
-                                                         Background="#DDD4BA" Foreground="{StaticResource AccentGradient}" />
+                                                         Background="#E2E2E4" Foreground="{StaticResource AccentGradient}" />
                                             <TextBlock Grid.Row="1" Grid.Column="2" Margin="0,7,0,0" Foreground="{StaticResource TextSecondary}" FontSize="12"
                                                        Text="{Binding Progress, StringFormat='{}{0}%'}" />
                                         </Grid>
@@ -297,7 +455,7 @@
                         </ItemsControl>
                     </ScrollViewer>
 
-                    <Border Grid.Row="3" Margin="0,8,0,0" Padding="10" CornerRadius="6" Background="#F3DEDA" BorderBrush="#D4A39C" BorderThickness="1"
+                    <Border Grid.Row="3" Margin="0,8,0,0" Padding="10" CornerRadius="6" Background="#FFDAD6" BorderBrush="#E0B4AE" BorderThickness="1"
                             IsVisible="{Binding ErrorLog, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
                         <SelectableTextBlock Text="{Binding ErrorLog}" Foreground="{StaticResource ErrorBrush}" FontSize="12" TextWrapping="Wrap" />
                     </Border>
@@ -353,7 +511,7 @@
                             </TreeView.DataTemplates>
                         </TreeView>
                     </Border>
-                    <Border Grid.Row="5" Margin="0,10,0,0" Padding="10" CornerRadius="8" Background="#F3EFE0" BorderBrush="{StaticResource CardBorder}" BorderThickness="1"
+                    <Border Grid.Row="5" Margin="0,10,0,0" Padding="10" CornerRadius="8" Background="#EEEEF0" BorderBrush="{StaticResource CardBorder}" BorderThickness="1"
                             IsVisible="{Binding Detail, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
                         <SelectableTextBlock Text="{Binding Detail}" Foreground="{StaticResource TextPrimary}" FontSize="12" TextWrapping="Wrap" />
                     </Border>
@@ -411,7 +569,7 @@
                             </ItemsControl>
                         </ScrollViewer>
                     </Border>
-                    <Border Grid.Row="5" Margin="0,10,0,0" Padding="10" CornerRadius="8" Background="#F3EFE0" BorderBrush="{StaticResource CardBorder}" BorderThickness="1"
+                    <Border Grid.Row="5" Margin="0,10,0,0" Padding="10" CornerRadius="8" Background="#EEEEF0" BorderBrush="{StaticResource CardBorder}" BorderThickness="1"
                             IsVisible="{Binding Detail, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
                         <SelectableTextBlock Text="{Binding Detail}" Foreground="{StaticResource TextPrimary}" FontSize="12" TextWrapping="Wrap" />
                     </Border>
@@ -469,7 +627,7 @@
                             </ItemsControl>
                         </ScrollViewer>
                     </Border>
-                    <Border Grid.Row="5" Margin="0,10,0,0" Padding="10" CornerRadius="8" Background="#F3EFE0" BorderBrush="{StaticResource CardBorder}" BorderThickness="1"
+                    <Border Grid.Row="5" Margin="0,10,0,0" Padding="10" CornerRadius="8" Background="#EEEEF0" BorderBrush="{StaticResource CardBorder}" BorderThickness="1"
                             IsVisible="{Binding Detail, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
                         <SelectableTextBlock Text="{Binding Detail}" Foreground="{StaticResource TextPrimary}" FontSize="12" TextWrapping="Wrap" />
                     </Border>
@@ -507,7 +665,7 @@
                             <Grid ColumnDefinitions="110,*"><TextBlock Classes="label" Text="AcoustID-key" /><TextBox Grid.Column="1" Text="{Binding AcoustIdKey}" Watermark="optioneel — voor ongetagde bestanden (gratis via acoustid.org)" /></Grid>
                         </StackPanel>
                         <StackPanel Grid.Column="1" Width="190" Margin="16,0,0,0">
-                            <Border Width="190" Height="190" Background="#FBF8EE" BorderBrush="{StaticResource CardBorder}" BorderThickness="1" CornerRadius="6">
+                            <Border Width="190" Height="190" Background="#F3F3F5" BorderBrush="{StaticResource CardBorder}" BorderThickness="1" CornerRadius="6">
                                 <Image Source="{Binding AlbumArt}" Stretch="Uniform" />
                             </Border>
                             <Button Classes="ghost" Content="Afbeelding kiezen…" Margin="0,8,0,0" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Click="OnLoadMetaArt" />
@@ -623,9 +781,46 @@
                 <Grid x:CompileBindings="False" DataContext="{Binding Library}" RowDefinitions="Auto,*,Auto" Margin="0,12,0,0">
                     <TextBlock Grid.Row="0" Foreground="{StaticResource TextSecondary}" FontSize="12" TextWrapping="Wrap"
                                Text="Gezondheid van je bibliotheek: scant op ontbrekende tags/hoezen en lossy vs lossless. Herstel: ontbrekende albumhoezen ophalen, of FLAC-upgrades voor MP3-albums opzoeken. Muziekbieb komt uit Instellingen." />
-                    <Border Grid.Row="1" Classes="card" Margin="0,12,0,0">
-                        <SelectableTextBlock Text="{Binding Stats}" Foreground="{StaticResource TextPrimary}" FontSize="13" TextWrapping="Wrap" />
-                    </Border>
+                    <ScrollViewer Grid.Row="1" Margin="0,12,0,0" VerticalScrollBarVisibility="Auto">
+                        <UniformGrid Columns="3" VerticalAlignment="Top">
+                            <Border Classes="stat">
+                                <StackPanel>
+                                    <TextBlock Classes="statNum" Text="{Binding FileCount, StringFormat=N0}" />
+                                    <TextBlock Classes="statLbl" Text="Bestanden" />
+                                </StackPanel>
+                            </Border>
+                            <Border Classes="stat">
+                                <StackPanel>
+                                    <TextBlock Classes="statNum" Text="{Binding AlbumCount, StringFormat=N0}" />
+                                    <TextBlock Classes="statLbl" Text="Albums" />
+                                </StackPanel>
+                            </Border>
+                            <Border Classes="stat">
+                                <StackPanel>
+                                    <TextBlock Classes="statNum" Foreground="#A55600" Text="{Binding NoTagCount, StringFormat=N0}" />
+                                    <TextBlock Classes="statLbl" Text="Zonder tags" />
+                                </StackPanel>
+                            </Border>
+                            <Border Classes="stat">
+                                <StackPanel>
+                                    <TextBlock Classes="statNum" Foreground="#A55600" Text="{Binding NoCoverCount, StringFormat=N0}" />
+                                    <TextBlock Classes="statLbl" Text="Zonder hoes" />
+                                </StackPanel>
+                            </Border>
+                            <Border Classes="stat">
+                                <StackPanel>
+                                    <TextBlock Classes="statNum" Foreground="#A55600" Text="{Binding LossyFileCount, StringFormat=N0}" />
+                                    <TextBlock Classes="statLbl" Text="Lossy (MP3/AAC)" />
+                                </StackPanel>
+                            </Border>
+                            <Border Classes="stat">
+                                <StackPanel>
+                                    <TextBlock Classes="statNum" Foreground="{StaticResource Accent}" Text="{Binding UpgradeAlbumCount, StringFormat=N0}" />
+                                    <TextBlock Classes="statLbl" Text="FLAC-upgrades" />
+                                </StackPanel>
+                            </Border>
+                        </UniformGrid>
+                    </ScrollViewer>
                     <Grid Grid.Row="2" ColumnDefinitions="*,Auto,Auto,Auto,Auto" Margin="0,12,0,0">
                         <SelectableTextBlock Grid.Column="0" VerticalAlignment="Center" Foreground="{StaticResource TextSecondary}" Text="{Binding Status}" />
                         <Button Grid.Column="1" Classes="ghost" Content="Hoezen repareren" Command="{Binding RepairCoversCommand}"
@@ -664,7 +859,7 @@
                                                 </ItemsControl.ItemsPanel>
                                                 <ItemsControl.ItemTemplate>
                                                     <DataTemplate>
-                                                        <Border Width="240" Margin="0,0,8,8" Padding="10" CornerRadius="8" Background="#FBF8EE" BorderBrush="{StaticResource CardBorder}" BorderThickness="1">
+                                                        <Border Width="240" Margin="0,0,8,8" Padding="10" CornerRadius="8" Background="#F3F3F5" BorderBrush="{StaticResource CardBorder}" BorderThickness="1">
                                                             <StackPanel Spacing="3">
                                                                 <TextBlock Text="{Binding Quality}" Foreground="{StaticResource HeaderBlue}" FontSize="13" FontWeight="Bold" />
                                                                 <TextBlock Text="{Binding Album}" Foreground="{StaticResource TextSecondary}" FontSize="12" TextTrimming="CharacterEllipsis" />
@@ -751,10 +946,10 @@
                         <Button Grid.Column="3" Classes="ghost" Content="Stop" Width="90" Margin="8,0,0,0" Command="{Binding StopCommand}" HorizontalContentAlignment="Center" />
                         <Button Grid.Column="4" Classes="primary" Content="Overzetten" Margin="8,0,0,0" Command="{Binding TransferCommand}" />
                     </Grid>
-                    <Border Grid.Row="6" Margin="0,10,0,0" Padding="10" CornerRadius="8" Background="#FBEDEC" BorderBrush="#E0B4AE" BorderThickness="1"
+                    <Border Grid.Row="6" Margin="0,10,0,0" Padding="10" CornerRadius="8" Background="#FFDAD6" BorderBrush="#E0B4AE" BorderThickness="1"
                             MaxHeight="150" IsVisible="{Binding HasFailures}">
                         <DockPanel>
-                            <TextBlock DockPanel.Dock="Top" Text="Mislukt" Foreground="#B23A2E" FontWeight="SemiBold" FontSize="12" Margin="0,0,0,6" />
+                            <TextBlock DockPanel.Dock="Top" Text="Mislukt" Foreground="#BA1A1A" FontWeight="SemiBold" FontSize="12" Margin="0,0,0,6" />
                             <ScrollViewer VerticalScrollBarVisibility="Auto">
                                 <ItemsControl ItemsSource="{Binding Failures}">
                                     <ItemsControl.ItemTemplate>
@@ -907,5 +1102,6 @@
                 </ScrollViewer>
             </TabItem>
         </TabControl>
+        </Grid>
     </Grid>
 </Window>
