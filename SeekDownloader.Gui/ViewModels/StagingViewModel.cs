@@ -345,8 +345,8 @@ public class StagingViewModel : ViewModelBase
                 }
                 foreach (var d in album.SourceDirs) dirs.Add(d);
             }
-            // opruimen: lege bronmappen in 'Nieuw'
-            foreach (var d in dirs) TryRemoveIfEmpty(d);
+            // opruimen: bronmappen die helemaal leeg zijn van audio → naar prullenbak (incl. hoezen/.nfo).
+            foreach (var d in dirs) CleanConsumedSourceDir(d);
 
             Dispatcher.UIThread.Post(() =>
             {
@@ -380,14 +380,59 @@ public class StagingViewModel : ViewModelBase
         }
     }
 
-    private static void TryRemoveIfEmpty(string dir)
+    // After moving an album's audio out, a wholly-consumed source folder may still hold sidecars
+    // (folder.jpg, .nfo, .cue, .log). Move that whole folder to the trash so 'Nieuw' is left clean.
+    private void CleanConsumedSourceDir(string dir)
     {
         try
         {
             if (!Directory.Exists(dir)) return;
-            if (!Directory.EnumerateFileSystemEntries(dir).Any()) Directory.Delete(dir);
+            var nieuwFull = Path.GetFullPath(NieuwFolder).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+            var dirFull = Path.GetFullPath(dir).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+            if (string.Equals(dirFull, nieuwFull, StringComparison.OrdinalIgnoreCase)) return; // nooit de Nieuw-hoofdmap
+
+            bool audioLeft = Directory.EnumerateFiles(dir, "*.*", SearchOption.AllDirectories)
+                .Any(f => AudioExt.Contains(Path.GetExtension(f).ToLowerInvariant()) && !Path.GetFileName(f).StartsWith("._"));
+            if (audioLeft) return; // gedeelde map met een ander, niet-goedgekeurd album → laat staan
+
+            var parent = Path.GetDirectoryName(nieuwFull);
+            var trash = parent != null ? Path.Combine(parent, "_Verwijderd (Spindle)") : Path.Combine(NieuwFolder, "_Verwijderd");
+            Directory.CreateDirectory(trash);
+            var dest = Path.Combine(trash, Path.GetFileName(dirFull));
+            for (int i = 2; Directory.Exists(dest); i++) dest = Path.Combine(trash, $"{Path.GetFileName(dirFull)} ({i})");
+            try { Directory.Move(dir, dest); }
+            catch { CopyDir(dir, dest); try { Directory.Delete(dir, true); } catch { } }
+
+            CleanEmptyParents(Path.GetDirectoryName(dirFull), nieuwFull);
         }
         catch { }
+    }
+
+    // Verwijder lege oudermappen omhoog tot (maar niet incl.) de Nieuw-hoofdmap.
+    private static void CleanEmptyParents(string? dir, string stopAt)
+    {
+        try
+        {
+            while (!string.IsNullOrEmpty(dir))
+            {
+                var full = Path.GetFullPath(dir).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+                if (string.Equals(full, stopAt, StringComparison.OrdinalIgnoreCase)) break;
+                if (!Directory.Exists(full) || Directory.EnumerateFileSystemEntries(full).Any()) break;
+                var up = Path.GetDirectoryName(full);
+                Directory.Delete(full);
+                dir = up;
+            }
+        }
+        catch { }
+    }
+
+    private static void CopyDir(string src, string dest)
+    {
+        Directory.CreateDirectory(dest);
+        foreach (var f in Directory.EnumerateFiles(src))
+            File.Copy(f, Path.Combine(dest, Path.GetFileName(f)), true);
+        foreach (var d in Directory.EnumerateDirectories(src))
+            CopyDir(d, Path.Combine(dest, Path.GetFileName(d)));
     }
 
     private static HashSet<string> BuildLibraryIndex(string folder)
