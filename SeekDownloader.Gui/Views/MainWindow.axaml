@@ -412,10 +412,12 @@
                         <SelectableTextBlock Text="{Binding ErrorLog}" Foreground="{StaticResource ErrorBrush}" FontSize="12" TextWrapping="Wrap" />
                     </Border>
 
-                    <Grid Grid.Row="4" Margin="0,12,0,0" ColumnDefinitions="*,Auto,Auto">
+                    <Grid Grid.Row="4" Margin="0,12,0,0" ColumnDefinitions="*,Auto,Auto,Auto">
                         <SelectableTextBlock Grid.Column="0" VerticalAlignment="Center" Foreground="{StaticResource TextSecondary}" Text="{Binding StatusMessage}" />
-                        <Button Grid.Column="1" Classes="ghost" Content="Voltooide wissen" Command="{Binding ClearCompletedCommand}" />
-                        <Button Grid.Column="2" Classes="ghost" Content="Stop" Width="100" Margin="10,0,0,0" Command="{Binding StopCommand}" HorizontalContentAlignment="Center" />
+                        <Button Grid.Column="1" Classes="primary" Content="Hervatten" Command="{Binding ResumeCommand}"
+                                ToolTip.Tip="Zet alle onvoltooide downloads opnieuw in gang (overleeft herstart; al binnengehaalde bestanden worden overgeslagen)." />
+                        <Button Grid.Column="2" Classes="ghost" Content="Voltooide wissen" Margin="10,0,0,0" Command="{Binding ClearCompletedCommand}" />
+                        <Button Grid.Column="3" Classes="ghost" Content="Stop" Width="100" Margin="10,0,0,0" Command="{Binding StopCommand}" HorizontalContentAlignment="Center" />
                     </Grid>
                 </Grid>
             </TabItem>
