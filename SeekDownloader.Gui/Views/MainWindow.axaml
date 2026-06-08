@@ -72,6 +72,13 @@
             <Setter Property="VerticalAlignment" Value="Center" />
         </Style>
 
+        <!-- Tooltip flicker fix: place below the control instead of under the pointer
+             (pointer placement made the popup steal hit-testing → flicker + unclickable). -->
+        <Style Selector="Button, CheckBox, ToggleSwitch, ComboBox, NumericUpDown">
+            <Setter Property="ToolTip.Placement" Value="Bottom" />
+            <Setter Property="ToolTip.ShowDelay" Value="500" />
+        </Style>
+
         <Style Selector="Border.card">
             <Setter Property="Background" Value="{StaticResource Card}" />
             <Setter Property="BorderBrush" Value="{StaticResource CardBorder}" />
@@ -583,7 +590,7 @@
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate x:DataType="vm:QueueItemViewModel">
                                     <Border Padding="12,10" Margin="0,0,0,8" CornerRadius="10" Background="{StaticResource Card}" BorderBrush="{StaticResource CardBorder}" BorderThickness="1">
-                                        <Grid ColumnDefinitions="Auto,*,Auto,Auto" VerticalAlignment="Center">
+                                        <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto" VerticalAlignment="Center">
                                             <Border Grid.Column="0" Width="42" Height="42" CornerRadius="8" Background="{StaticResource SurfaceVariant}">
                                                 <TextBlock Classes="icon" FontSize="20" Text="&#xE405;" HorizontalAlignment="Center" Foreground="{StaticResource TextMuted}" />
                                             </Border>
@@ -599,6 +606,11 @@
                                                 <TextBlock Text="{Binding Status}" Foreground="{Binding StatusBrush}" FontSize="11" FontWeight="SemiBold" />
                                             </Border>
                                             <Button Grid.Column="3" Classes="ghost" Margin="8,0,0,0" Padding="8,4" VerticalAlignment="Center"
+                                                    IsVisible="{Binding IsFailed}" Command="{Binding RetryCommand}"
+                                                    ToolTip.Tip="Opnieuw proberen">
+                                                <TextBlock Classes="icon" FontSize="16" Text="&#xE5D5;" Foreground="{StaticResource Accent}" />
+                                            </Button>
+                                            <Button Grid.Column="4" Classes="ghost" Margin="8,0,0,0" Padding="8,4" VerticalAlignment="Center"
                                                     Command="{Binding RemoveCommand}" ToolTip.Tip="Uit de wachtrij verwijderen (stopt de download als die bezig is)">
                                                 <TextBlock Classes="icon" FontSize="16" Text="&#xE5C9;" />
                                             </Button>
@@ -614,12 +626,14 @@
                         <SelectableTextBlock Text="{Binding ErrorLog}" Foreground="{StaticResource ErrorBrush}" FontSize="12" TextWrapping="Wrap" />
                     </Border>
 
-                    <Grid Grid.Row="4" Margin="0,12,0,0" ColumnDefinitions="*,Auto,Auto,Auto">
+                    <Grid Grid.Row="4" Margin="0,12,0,0" ColumnDefinitions="*,Auto,Auto,Auto,Auto">
                         <SelectableTextBlock Grid.Column="0" VerticalAlignment="Center" Foreground="{StaticResource TextSecondary}" Text="{Binding StatusMessage}" />
-                        <Button Grid.Column="1" Classes="primary" Content="Hervatten" Command="{Binding ResumeCommand}"
+                        <Button Grid.Column="1" Classes="ghost" Content="Mislukte opnieuw" Command="{Binding RetryFailedCommand}"
+                                ToolTip.Tip="Probeer alle mislukte downloads opnieuw." />
+                        <Button Grid.Column="2" Classes="primary" Content="Hervatten" Margin="10,0,0,0" Command="{Binding ResumeCommand}"
                                 ToolTip.Tip="Zet alle onvoltooide downloads opnieuw in gang (overleeft herstart; al binnengehaalde bestanden worden overgeslagen)." />
-                        <Button Grid.Column="2" Classes="ghost" Content="Voltooide wissen" Margin="10,0,0,0" Command="{Binding ClearCompletedCommand}" />
-                        <Button Grid.Column="3" Classes="ghost" Content="Stop" Width="100" Margin="10,0,0,0" Command="{Binding StopCommand}" HorizontalContentAlignment="Center" />
+                        <Button Grid.Column="3" Classes="ghost" Content="Voltooide wissen" Margin="10,0,0,0" Command="{Binding ClearCompletedCommand}" />
+                        <Button Grid.Column="4" Classes="ghost" Content="Stop" Width="100" Margin="10,0,0,0" Command="{Binding StopCommand}" HorizontalContentAlignment="Center" />
                     </Grid>
                 </Grid>
             </TabItem>

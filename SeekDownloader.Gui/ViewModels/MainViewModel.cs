@@ -32,6 +32,7 @@ public class MainViewModel : ViewModelBase
         SelectNoneCommand = new RelayCommand(() => SetAllSelected(false));
         ClearCompletedCommand = new RelayCommand(ClearCompleted);
         ResumeCommand = new RelayCommand(ResumeQueue, () => !IsRunning);
+        RetryFailedCommand = new RelayCommand(RetryFailed);
 
         _timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
         _timer.Tick += (_, _) => Poll();
@@ -75,7 +76,7 @@ public class MainViewModel : ViewModelBase
         // Restore unfinished downloads from the previous session so they can be resumed (no re-search).
         foreach (var e in QueueStore.Load())
         {
-            var item = new QueueItemViewModel(e.Username, e.Filename, e.Size, RemoveQueueItem);
+            var item = new QueueItemViewModel(e.Username, e.Filename, e.Size, RemoveQueueItem, RetryItem);
             if (_queueByKey.ContainsKey(item.Key)) continue;
             _queueByKey[item.Key] = item;
             Queue.Add(item);
@@ -421,6 +422,7 @@ public class MainViewModel : ViewModelBase
     public RelayCommand SelectNoneCommand { get; }
     public RelayCommand ClearCompletedCommand { get; }
     public RelayCommand ResumeCommand { get; }
+    public RelayCommand RetryFailedCommand { get; }
 
     // ===================== AUTO MODE =====================
     private void StartAuto()
@@ -630,7 +632,7 @@ public class MainViewModel : ViewModelBase
         {
             foreach (var r in album.Tracks)
             {
-                var item = new QueueItemViewModel(r, RemoveQueueItem);
+                var item = new QueueItemViewModel(r, RemoveQueueItem, RetryItem);
                 if (_queueByKey.ContainsKey(item.Key)) continue;
                 _queueByKey[item.Key] = item;
                 Queue.Add(item);
@@ -662,7 +664,7 @@ public class MainViewModel : ViewModelBase
         var toEnqueue = new List<SearchResult>();
         foreach (var r in selected)
         {
-            var item = new QueueItemViewModel(r, RemoveQueueItem);
+            var item = new QueueItemViewModel(r, RemoveQueueItem, RetryItem);
             if (_queueByKey.ContainsKey(item.Key)) continue;
             _queueByKey[item.Key] = item;
             Queue.Add(item);
@@ -729,6 +731,65 @@ public class MainViewModel : ViewModelBase
         }
         Queue.Remove(item);
         _queueByKey.Remove(item.Key);
+        SaveQueue();
+    }
+
+    // Retry one failed (or any) item: reset it and re-enqueue for download.
+    private void RetryItem(QueueItemViewModel item)
+    {
+        if (!ValidateConnection()) return;
+        var cfg = BuildConfig();
+        Settings.Save(cfg);
+        _removedQueueKeys.Remove(item.Key);
+        item.Requeue();
+        _activeDownload = _download;
+        StartPolling();
+        SelectedTabIndex = 1;
+        StatusMessage = $"Opnieuw proberen: {item.FileName}";
+
+        var r = ToSearchResult(item);
+        Task.Run(() =>
+        {
+            try { EnsureManualSession(cfg); }
+            catch (Exception e) { Dispatcher.UIThread.Post(() => StatusMessage = "Opnieuw proberen mislukt: " + e.Message); return; }
+            _download.EnqueueDownload(new SearchGroup
+            {
+                SearchResults = new List<SearchResult> { r },
+                TargetArtistName = string.Empty,
+                TargetAlbumName = string.Empty,
+                SongNames = new List<string>()
+            });
+        });
+        SaveQueue();
+    }
+
+    private void RetryFailed()
+    {
+        var failed = Queue.Where(q => q.IsFailed).ToList();
+        if (failed.Count == 0) { StatusMessage = "Geen mislukte downloads om opnieuw te proberen."; return; }
+        if (!ValidateConnection()) return;
+        var cfg = BuildConfig();
+        Settings.Save(cfg);
+        foreach (var item in failed) { _removedQueueKeys.Remove(item.Key); item.Requeue(); }
+        _activeDownload = _download;
+        StartPolling();
+        SelectedTabIndex = 1;
+        StatusMessage = $"Opnieuw proberen: {failed.Count} mislukte downloads.";
+
+        var results = failed.Select(ToSearchResult).ToList();
+        Task.Run(() =>
+        {
+            try { EnsureManualSession(cfg); }
+            catch (Exception e) { Dispatcher.UIThread.Post(() => StatusMessage = "Opnieuw proberen mislukt: " + e.Message); return; }
+            foreach (var r in results)
+                _download.EnqueueDownload(new SearchGroup
+                {
+                    SearchResults = new List<SearchResult> { r },
+                    TargetArtistName = string.Empty,
+                    TargetAlbumName = string.Empty,
+                    SongNames = new List<string>()
+                });
+        });
         SaveQueue();
     }
 
@@ -852,7 +913,7 @@ public class MainViewModel : ViewModelBase
             if (_removedQueueKeys.Contains(key)) continue;
             if (!_queueByKey.TryGetValue(key, out var item))
             {
-                item = new QueueItemViewModel(p.Username ?? string.Empty, p.Filename, 0, RemoveQueueItem);
+                item = new QueueItemViewModel(p.Username ?? string.Empty, p.Filename, 0, RemoveQueueItem, RetryItem);
                 _queueByKey[key] = item;
                 Queue.Add(item);
             }
