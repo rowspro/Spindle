@@ -14,12 +14,14 @@ public class QueueItemViewModel : ViewModelBase
     public string Key => $"{Username}|{RemoteFilename}";
 
     private readonly Action<QueueItemViewModel>? _onRemove;
+    private readonly Action<QueueItemViewModel>? _onRetry;
     public RelayCommand RemoveCommand { get; }
+    public RelayCommand RetryCommand { get; }
 
-    public QueueItemViewModel(SearchResult source, Action<QueueItemViewModel>? onRemove = null)
-        : this(source.Username, source.Filename, source.Size, onRemove) { }
+    public QueueItemViewModel(SearchResult source, Action<QueueItemViewModel>? onRemove = null, Action<QueueItemViewModel>? onRetry = null)
+        : this(source.Username, source.Filename, source.Size, onRemove, onRetry) { }
 
-    public QueueItemViewModel(string username, string remoteFilename, long size, Action<QueueItemViewModel>? onRemove = null)
+    public QueueItemViewModel(string username, string remoteFilename, long size, Action<QueueItemViewModel>? onRemove = null, Action<QueueItemViewModel>? onRetry = null)
     {
         Username = username ?? string.Empty;
         RemoteFilename = remoteFilename ?? string.Empty;
@@ -28,7 +30,9 @@ public class QueueItemViewModel : ViewModelBase
         _status = "Wachtrij";
         SizeText = Format.Size(size);
         _onRemove = onRemove;
+        _onRetry = onRetry;
         RemoveCommand = new RelayCommand(() => _onRemove?.Invoke(this));
+        RetryCommand = new RelayCommand(() => _onRetry?.Invoke(this));
     }
 
     public string FileName => BaseFileName;
@@ -47,11 +51,23 @@ public class QueueItemViewModel : ViewModelBase
         set
         {
             if (SetField(ref _status, value))
+            {
                 OnPropertyChanged(nameof(StatusBrush));
+                OnPropertyChanged(nameof(IsFailed));
+            }
         }
     }
 
     public bool IsTerminal => Status is "Klaar" or "Mislukt";
+    public bool IsFailed => Status == "Mislukt";
+
+    /// <summary>Reset a failed/finished item so it can be re-queued.</summary>
+    public void Requeue()
+    {
+        Progress = 0;
+        Speed = string.Empty;
+        Status = "Wachtrij";
+    }
 
     public IBrush StatusBrush => Status switch
     {
