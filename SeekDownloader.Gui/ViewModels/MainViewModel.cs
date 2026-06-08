@@ -10,6 +10,8 @@ public class MainViewModel : ViewModelBase
 {
     private readonly DispatcherTimer _timer;
     private readonly DispatcherTimer _connTimer;   // keeps the sidebar connection pill in sync
+    private readonly DispatcherTimer _errorClearTimer; // auto-hides the queue error panel after 10s
+    private string _lastErrorSnapshot = string.Empty;
     private bool _isConnecting;
     private readonly Dictionary<string, QueueItemViewModel> _queueByKey = new();
     private readonly HashSet<string> _removedQueueKeys = new(); // queue rows the user removed; Poll won't re-add them
@@ -37,6 +39,9 @@ public class MainViewModel : ViewModelBase
         _connTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(2) };
         _connTimer.Tick += (_, _) => UpdateConnection();
         _connTimer.Start();
+
+        _errorClearTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(10) };
+        _errorClearTimer.Tick += (_, _) => { _errorClearTimer.Stop(); ErrorLog = string.Empty; };
 
         AppleMusic = new AppleMusicViewModel(
             onArtist: a => { Mode = 2; SearchTerm = a; SelectedTabIndex = 0; Search(); },
@@ -865,11 +870,20 @@ public class MainViewModel : ViewModelBase
         }
         if (queueChanged) SaveQueue();
 
-        var errors = dl.RecentErrors
+        var errorText = string.Join(Environment.NewLine, dl.RecentErrors
             .OrderByDescending(e => e.Value)
             .Take(5)
-            .Select(e => $"[{e.Value}x] {e.Key}");
-        ErrorLog = string.Join(Environment.NewLine, errors);
+            .Select(e => $"[{e.Value}x] {e.Key}"));
+
+        // Show the error panel only when the error set changes, and auto-dismiss it after 10s
+        // (so Poll doesn't immediately re-show the same errors every 0.5s).
+        if (errorText != _lastErrorSnapshot)
+        {
+            _lastErrorSnapshot = errorText;
+            ErrorLog = errorText;
+            _errorClearTimer.Stop();
+            if (!string.IsNullOrEmpty(errorText)) _errorClearTimer.Start();
+        }
     }
 
     // ===================== HELPERS =====================
