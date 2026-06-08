@@ -385,6 +385,7 @@ public class MetadataEditorViewModel : ViewModelBase
     private void Save()
     {
         if (!HasFile) return;
+        bool artChangedNow = _artChanged;
         try
         {
             var t = new Track(_path)
@@ -407,6 +408,42 @@ public class MetadataEditorViewModel : ViewModelBase
             t.Save();
         }
         catch (Exception e) { Status = "Opslaan mislukt: " + e.Message; }
+
+        // Album art is set per album: when the cover changed, apply it to the rest of the album.
+        if (artChangedNow) ApplyArtToAlbum(_path, _artData);
+    }
+
+    // Apply (or clear) the current cover on every other track of the same album (same folder + same Album tag).
+    private void ApplyArtToAlbum(string currentPath, byte[]? art)
+    {
+        var dir = System.IO.Path.GetDirectoryName(currentPath);
+        if (dir == null) return;
+        var wantAlbum = (Album ?? string.Empty).Trim();
+        int n = 0;
+        try
+        {
+            foreach (var f in System.IO.Directory.EnumerateFiles(dir, "*.*"))
+            {
+                if (string.Equals(f, currentPath, StringComparison.OrdinalIgnoreCase)) continue;
+                if (!AudioExts.Contains(System.IO.Path.GetExtension(f).ToLowerInvariant())) continue;
+                if (System.IO.Path.GetFileName(f).StartsWith("._")) continue;
+                try
+                {
+                    var t = new Track(f);
+                    // Skip tracks from a different album that happen to sit in the same folder.
+                    if (wantAlbum.Length > 0 && !string.Equals((t.Album ?? string.Empty).Trim(), wantAlbum, StringComparison.OrdinalIgnoreCase))
+                        continue;
+                    t.EmbeddedPictures.Clear();
+                    if (art != null) t.EmbeddedPictures.Add(PictureInfo.fromBinaryData(art));
+                    t.Save();
+                    n++;
+                }
+                catch { }
+            }
+        }
+        catch { }
+        if (n > 0)
+            Status = art != null ? $"Albumhoes toegepast op {n + 1} tracks." : $"Albumhoes verwijderd van {n + 1} tracks.";
     }
 
     private void RaiseNav()

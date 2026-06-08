@@ -1125,12 +1125,19 @@
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate DataType="vm:ProblemAlbumViewModel">
                                             <Border Padding="12,9" Margin="0,0,0,6" CornerRadius="8" Background="{StaticResource Recess}">
-                                                <Grid ColumnDefinitions="*,Auto,Auto" VerticalAlignment="Center">
+                                                <Grid ColumnDefinitions="*,Auto,Auto,Auto" VerticalAlignment="Center">
                                                     <TextBlock Grid.Column="0" Text="{Binding Title}" Classes="body" Foreground="{StaticResource TextPrimary}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
                                                     <Border Grid.Column="1" CornerRadius="9999" Padding="9,3" Margin="8,0,8,0" VerticalAlignment="Center" Background="#FFE5CC">
                                                         <TextBlock Text="{Binding Issue}" FontSize="11" FontWeight="SemiBold" Foreground="#A55600" />
                                                     </Border>
                                                     <Button Grid.Column="2" Classes="ghost" Padding="12,5" Command="{Binding FixCommand}" Content="Herstel" />
+                                                    <Button Grid.Column="3" Classes="ghost" Padding="10,5" Margin="6,0,0,0" Command="{Binding DeleteCommand}"
+                                                            ToolTip.Tip="Verplaatst dit album naar de map _Verwijderd in je bibliotheek (omkeerbaar).">
+                                                        <StackPanel Orientation="Horizontal" Spacing="6">
+                                                            <TextBlock Classes="icon" FontSize="16" Text="&#xE872;" Foreground="{StaticResource ErrorBrush}" />
+                                                            <TextBlock Text="Verwijder" VerticalAlignment="Center" Foreground="{StaticResource ErrorBrush}" />
+                                                        </StackPanel>
+                                                    </Button>
                                                 </Grid>
                                             </Border>
                                         </DataTemplate>

@@ -16,14 +16,17 @@ public class ProblemAlbumViewModel : ViewModelBase
     public string Issue { get; }
     public string Title => string.IsNullOrEmpty(Artist) ? Album : $"{Artist} — {Album}";
 
-    private readonly IReadOnlyList<string> _files;
+    public IReadOnlyList<string> Files { get; }
     private readonly Action<IReadOnlyList<string>, string> _onEdit;
     public RelayCommand FixCommand { get; }
+    public RelayCommand DeleteCommand { get; }
 
-    public ProblemAlbumViewModel(string artist, string album, string issue, IReadOnlyList<string> files, Action<IReadOnlyList<string>, string> onEdit)
+    public ProblemAlbumViewModel(string artist, string album, string issue, IReadOnlyList<string> files,
+        Action<IReadOnlyList<string>, string> onEdit, Action<ProblemAlbumViewModel> onDelete)
     {
-        Artist = artist; Album = album; Issue = issue; _files = files; _onEdit = onEdit;
-        FixCommand = new RelayCommand(() => _onEdit(_files, $"{Title} — {issue}. Vul aan / zet hoes en keur goed."));
+        Artist = artist; Album = album; Issue = issue; Files = files; _onEdit = onEdit;
+        FixCommand = new RelayCommand(() => _onEdit(Files, $"{Title} — {issue}. Vul aan / zet hoes en keur goed."));
+        DeleteCommand = new RelayCommand(() => onDelete(this));
     }
 }
 
@@ -204,7 +207,7 @@ public class LibraryViewModel : ViewModelBase
                 HealthScore = score;
                 ProblemAlbums.Clear();
                 foreach (var p in problemData)
-                    ProblemAlbums.Add(new ProblemAlbumViewModel(p.Artist, p.Name, p.issue, p.IReadOnlyList, _onEdit));
+                    ProblemAlbums.Add(new ProblemAlbumViewModel(p.Artist, p.Name, p.issue, p.IReadOnlyList, _onEdit, DeleteAlbum));
                 HasScanned = true;
                 IsBusy = false;
                 RepairCoversCommand.RaiseCanExecuteChanged();
@@ -214,6 +217,33 @@ public class LibraryViewModel : ViewModelBase
                 Status = token.IsCancellationRequested ? "Scan gestopt." : $"Scan klaar — gezondheid {score}%. Klik een kaart of album om te herstellen.";
             });
         });
+    }
+
+    // Safe delete: move the album's files to <library>/_Verwijderd (reversible), and drop it from the list.
+    private void DeleteAlbum(ProblemAlbumViewModel album)
+    {
+        var lib = LibraryFolder;
+        if (string.IsNullOrWhiteSpace(lib) || !Directory.Exists(lib)) { Status = "Geen geldige bibliotheek-map."; return; }
+        int moved = 0;
+        var trashRoot = Path.Combine(lib, "_Verwijderd");
+        foreach (var f in album.Files)
+        {
+            try
+            {
+                var rel = Path.GetRelativePath(lib, f);
+                if (rel.StartsWith("..")) rel = Path.GetFileName(f);
+                var dest = Path.Combine(trashRoot, rel);
+                Directory.CreateDirectory(Path.GetDirectoryName(dest)!);
+                if (File.Exists(dest)) File.Delete(dest);
+                File.Move(f, dest);
+                moved++;
+            }
+            catch { }
+        }
+        ProblemAlbums.Remove(album);
+        FileCount = Math.Max(0, FileCount - album.Files.Count);
+        AlbumCount = Math.Max(0, AlbumCount - 1);
+        Status = $"'{album.Title}' verplaatst naar _Verwijderd ({moved} bestanden) — omkeerbaar.";
     }
 
     private void RepairCovers()
