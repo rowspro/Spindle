@@ -60,6 +60,17 @@ public class MainViewModel : ViewModelBase
                 SelectedTabIndex = 3; // Metadata
             });
 
+        Staging = new StagingViewModel(
+            onFix: (files, status) => { Meta.LoadFiles(files, status); SelectedTabIndex = 3; }, // Metadata
+            onSortLibrary: () =>
+            {
+                Sort.SourceFolder = MusicLibrary;
+                Sort.DestFolder = string.Empty;     // in-place: sorteer de hele collectie
+                Sort.TestMode = false;
+                SelectedTabIndex = 1;               // Sorteren
+                if (Sort.SortCommand.CanExecute(null)) Sort.SortCommand.Execute(null);
+            });
+
         LoadFromConfig(Settings.Load());
 
         // Pre-fill comparison/library folders with your library/download path, but only when the
@@ -72,6 +83,8 @@ public class MainViewModel : ViewModelBase
         if (string.IsNullOrWhiteSpace(Organize.DestFolder)) Organize.DestFolder = MusicLibrary;
         if (string.IsNullOrWhiteSpace(Artists.LibraryFolder)) Artists.LibraryFolder = fallback;
         if (string.IsNullOrWhiteSpace(Library.LibraryFolder)) Library.LibraryFolder = fallback;
+        Staging.NieuwFolder = DownloadFilePath;
+        Staging.LibraryFolder = MusicLibrary;
 
         // Restore unfinished downloads from the previous session so they can be resumed (no re-search).
         foreach (var e in QueueStore.Load())
@@ -141,7 +154,7 @@ public class MainViewModel : ViewModelBase
     public string CurrentSection => SelectedTabIndex switch
     {
         0 => "Sorteren", 1 => "Organiseren", 2 => "ALAC-converter", 3 => "Metadata",
-        4 => "Gezondheid", 5 => "Dubbele", 6 => "Overzetten", 7 => "Instellingen", _ => "Spindle"
+        4 => "Gezondheid", 5 => "Dubbele", 6 => "Overzetten", 7 => "Instellingen", 8 => "Nieuw", _ => "Spindle"
     };
 
     public string UserInitial => "S";
@@ -149,6 +162,7 @@ public class MainViewModel : ViewModelBase
     // ---- Cmd+F command palette ----
     private static readonly (string Name, int Idx, string Glyph)[] PaletteSections =
     {
+        ("Nieuw", 8, ""),
         ("Organiseren", 1, ""), ("Sorteren", 0, ""), ("Metadata", 3, ""),
         ("Dubbele", 5, ""), ("Gezondheid", 4, ""), ("ALAC-converter", 2, ""),
         ("Overzetten", 6, ""), ("Instellingen", 7, ""),
@@ -222,8 +236,8 @@ public class MainViewModel : ViewModelBase
     private string _musicLibrary = string.Empty;
     private string _searchFilePath = string.Empty;
     private string _downloadArchiveFilePath = string.Empty;
-    public string DownloadFilePath { get => _downloadFilePath; set => SetField(ref _downloadFilePath, value); }
-    public string MusicLibrary { get => _musicLibrary; set { if (SetField(ref _musicLibrary, value)) OnPropertyChanged(nameof(HasMusicLibrary)); } }
+    public string DownloadFilePath { get => _downloadFilePath; set { if (SetField(ref _downloadFilePath, value)) Staging.NieuwFolder = value; } }
+    public string MusicLibrary { get => _musicLibrary; set { if (SetField(ref _musicLibrary, value)) { OnPropertyChanged(nameof(HasMusicLibrary)); Staging.LibraryFolder = value; } } }
     public bool HasMusicLibrary => !string.IsNullOrWhiteSpace(MusicLibrary);
     public string SearchFilePath { get => _searchFilePath; set => SetField(ref _searchFilePath, value); }
     public string DownloadArchiveFilePath { get => _downloadArchiveFilePath; set => SetField(ref _downloadArchiveFilePath, value); }
@@ -309,7 +323,7 @@ public class MainViewModel : ViewModelBase
     public bool IsArtistMode => Mode == 2;
     public bool IsPickMode => Mode == 1 || Mode == 2; // modes with a Zoek/results step
 
-    private int _selectedTabIndex;
+    private int _selectedTabIndex = 8; // open op 'Nieuw' (de inbox/review-gate)
     public int SelectedTabIndex
     {
         get => _selectedTabIndex;
@@ -327,6 +341,7 @@ public class MainViewModel : ViewModelBase
         {
             case 4: if (Library.ScanCommand.CanExecute(null)) { Library.ScanCommand.Execute(null); ran = true; } break; // Gezondheid
             case 6: if (Sync.ScanCommand.CanExecute(null))    { Sync.ScanCommand.Execute(null); ran = true; } break;    // Overzetten
+            case 8: if (Staging.ScanCommand.CanExecute(null)) { Staging.ScanCommand.Execute(null); ran = true; } break; // Nieuw
         }
         if (ran) _autoScanned.Add(tab);
     }
@@ -362,6 +377,7 @@ public class MainViewModel : ViewModelBase
     public AppleMusicViewModel AppleMusic { get; }
     public ArtistsViewModel Artists { get; }
     public LibraryViewModel Library { get; }
+    public StagingViewModel Staging { get; }
 
     // ---- Runtime state ----
     private bool _isRunning;

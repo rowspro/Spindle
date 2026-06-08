@@ -331,7 +331,17 @@
                 <!-- Navigation -->
                 <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
                     <StackPanel>
-                        <TextBlock Classes="navGroup" Text="BEHEER" />
+                        <TextBlock Classes="navGroup" Text="WORKFLOW" />
+                        <Button Classes="nav" Tag="8" Click="OnNav"
+                                Classes.active="{Binding SelectedTabIndex, Converter={x:Static vm:IntEquals.Instance}, ConverterParameter=8}">
+                            <StackPanel Orientation="Horizontal"><TextBlock Classes="icon" FontSize="19" Width="28" Text="&#xE168;" /><TextBlock Text="Nieuw" VerticalAlignment="Center" /></StackPanel>
+                        </Button>
+                        <Button Classes="nav" Tag="4" Click="OnNav"
+                                Classes.active="{Binding SelectedTabIndex, Converter={x:Static vm:IntEquals.Instance}, ConverterParameter=4}">
+                            <StackPanel Orientation="Horizontal"><TextBlock Classes="icon" FontSize="19" Width="28" Text="&#xEAA2;" /><TextBlock Text="Gezondheid" VerticalAlignment="Center" /></StackPanel>
+                        </Button>
+
+                        <TextBlock Classes="navGroup" Text="GEREEDSCHAP" />
                         <Button Classes="nav" Tag="1" Click="OnNav"
                                 Classes.active="{Binding SelectedTabIndex, Converter={x:Static vm:IntEquals.Instance}, ConverterParameter=1}">
                             <StackPanel Orientation="Horizontal"><TextBlock Classes="icon" FontSize="19" Width="28" Text="&#xE663;" /><TextBlock Text="Organiseren" VerticalAlignment="Center" /></StackPanel>
@@ -348,12 +358,6 @@
                                 Classes.active="{Binding SelectedTabIndex, Converter={x:Static vm:IntEquals.Instance}, ConverterParameter=5}">
                             <StackPanel Orientation="Horizontal"><TextBlock Classes="icon" FontSize="19" Width="28" Text="&#xE14D;" /><TextBlock Text="Dubbele" VerticalAlignment="Center" /></StackPanel>
                         </Button>
-                        <Button Classes="nav" Tag="4" Click="OnNav"
-                                Classes.active="{Binding SelectedTabIndex, Converter={x:Static vm:IntEquals.Instance}, ConverterParameter=4}">
-                            <StackPanel Orientation="Horizontal"><TextBlock Classes="icon" FontSize="19" Width="28" Text="&#xEAA2;" /><TextBlock Text="Gezondheid" VerticalAlignment="Center" /></StackPanel>
-                        </Button>
-
-                        <TextBlock Classes="navGroup" Text="TOOLS" />
                         <Button Classes="nav" Tag="2" Click="OnNav"
                                 Classes.active="{Binding SelectedTabIndex, Converter={x:Static vm:IntEquals.Instance}, ConverterParameter=2}">
                             <StackPanel Orientation="Horizontal"><TextBlock Classes="icon" FontSize="19" Width="28" Text="&#xE1B8;" /><TextBlock Text="ALAC-converter" VerticalAlignment="Center" /></StackPanel>
@@ -1067,6 +1071,77 @@
 
                     </StackPanel>
                 </ScrollViewer>
+            </TabItem>
+
+            <!-- ============ TAB: NIEUW (review-gate) ============ -->
+            <TabItem Header="Nieuw">
+                <Grid x:CompileBindings="False" DataContext="{Binding Staging}" RowDefinitions="Auto,Auto,*,Auto" Margin="0,12,0,0">
+                    <Grid Grid.Row="0" ColumnDefinitions="*,Auto">
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Classes="h2" Text="Nieuw — controleren &amp; goedkeuren" />
+                            <TextBlock Classes="body" Margin="0,4,0,0" TextWrapping="Wrap"
+                                       Text="Wat Nicotine+ in je 'Nieuwe muziek'-map zette, gegroepeerd per album met aandachtsvlaggen. Fix wat afwijkt, vink het goede aan en keur goed → naar de bieb + hele collectie opnieuw gesorteerd." />
+                        </StackPanel>
+                        <Button Grid.Column="1" Classes="primary" VerticalAlignment="Top" Command="{Binding ScanCommand}">
+                            <StackPanel Orientation="Horizontal" Spacing="6"><TextBlock Classes="icon" FontSize="17" Text="&#xE8B6;" /><TextBlock Text="Scan Nieuw" VerticalAlignment="Center" /></StackPanel>
+                        </Button>
+                    </Grid>
+
+                    <Grid Grid.Row="1" ColumnDefinitions="*,Auto,Auto,Auto,Auto" Margin="0,12,0,0">
+                        <TextBlock Grid.Column="0" VerticalAlignment="Center" Classes="caption" Text="{Binding Summary}" />
+                        <CheckBox Grid.Column="1" Margin="0,0,12,0" Content="Alleen aandachtspunten" IsChecked="{Binding ShowOnlyIssues}" />
+                        <Button Grid.Column="2" Classes="ghost" Content="Schoon" Command="{Binding SelectCleanCommand}" ToolTip.Tip="Selecteer alle schone albums die nog niet in de bieb staan." />
+                        <Button Grid.Column="3" Classes="ghost" Content="Alles" Margin="6,0,0,0" Command="{Binding SelectAllCommand}" />
+                        <Button Grid.Column="4" Classes="ghost" Content="Geen" Margin="6,0,0,0" Command="{Binding SelectNoneCommand}" />
+                    </Grid>
+
+                    <ScrollViewer Grid.Row="2" Margin="0,12,0,0" VerticalScrollBarVisibility="Auto">
+                        <ItemsControl ItemsSource="{Binding Albums}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Classes="card" Margin="0,0,0,8" Padding="12">
+                                        <Grid ColumnDefinitions="Auto,Auto,*,Auto" VerticalAlignment="Center">
+                                            <CheckBox Grid.Column="0" VerticalAlignment="Center" IsChecked="{Binding IsSelected}" />
+                                            <Border Grid.Column="1" Width="44" Height="44" CornerRadius="8" Margin="4,0,0,0" Background="{StaticResource SurfaceVariant}">
+                                                <TextBlock Classes="icon" FontSize="22" Text="&#xE019;" HorizontalAlignment="Center" Foreground="{StaticResource TextMuted}" />
+                                            </Border>
+                                            <StackPanel Grid.Column="2" Margin="12,0,0,0" VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding Title}" Classes="title" FontSize="14" TextTrimming="CharacterEllipsis" />
+                                                <TextBlock Text="{Binding Sub}" Classes="caption" />
+                                                <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                                                    <Border CornerRadius="9999" Padding="9,3" Background="#DCEBDF" IsVisible="{Binding IsClean}">
+                                                        <TextBlock Text="✓ schoon" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource Success}" />
+                                                    </Border>
+                                                    <ItemsControl ItemsSource="{Binding Flags}">
+                                                        <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                                                        <ItemsControl.ItemTemplate>
+                                                            <DataTemplate>
+                                                                <Border CornerRadius="9999" Padding="9,3" Margin="0,0,6,0" Background="#FFE5CC">
+                                                                    <TextBlock Text="{Binding}" FontSize="11" FontWeight="SemiBold" Foreground="#A55600" />
+                                                                </Border>
+                                                            </DataTemplate>
+                                                        </ItemsControl.ItemTemplate>
+                                                    </ItemsControl>
+                                                </StackPanel>
+                                            </StackPanel>
+                                            <Button Grid.Column="3" Classes="ghost" VerticalAlignment="Center" Command="{Binding FixCommand}" IsVisible="{Binding HasFlags}">
+                                                <StackPanel Orientation="Horizontal" Spacing="6"><TextBlock Classes="icon" FontSize="16" Text="&#xE892;" /><TextBlock Text="Fix" VerticalAlignment="Center" /></StackPanel>
+                                            </Button>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+
+                    <Grid Grid.Row="3" ColumnDefinitions="*,Auto" Margin="0,12,0,0">
+                        <SelectableTextBlock Grid.Column="0" VerticalAlignment="Center" Foreground="{StaticResource TextSecondary}" Text="{Binding Status}" />
+                        <Button Grid.Column="1" Classes="primary" Command="{Binding ApproveCommand}"
+                                ToolTip.Tip="Verplaats de aangevinkte albums naar je muziekbieb en sorteer de hele collectie opnieuw.">
+                            <StackPanel Orientation="Horizontal" Spacing="8"><TextBlock Classes="icon" FontSize="18" Text="&#xE161;" /><TextBlock Text="Goedkeuren → bieb" VerticalAlignment="Center" /></StackPanel>
+                        </Button>
+                    </Grid>
+                </Grid>
             </TabItem>
         </TabControl>
         </Grid>
