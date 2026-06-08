@@ -15,6 +15,7 @@
 
     <ItemGroup>
         <AvaloniaResource Include="Assets/spindle_1024.png" />
+        <AvaloniaResource Include="Assets/MaterialIcons.ttf" />
     </ItemGroup>
 
     <ItemGroup>
