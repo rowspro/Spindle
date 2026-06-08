@@ -26,6 +26,7 @@ public class MainViewModel : ViewModelBase
         SelectAllCommand = new RelayCommand(() => SetAllSelected(true));
         SelectNoneCommand = new RelayCommand(() => SetAllSelected(false));
         ClearCompletedCommand = new RelayCommand(ClearCompleted);
+        ResumeCommand = new RelayCommand(ResumeQueue, () => !IsRunning);
 
         _timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
         _timer.Tick += (_, _) => Poll();
@@ -42,6 +43,17 @@ public class MainViewModel : ViewModelBase
             : (!string.IsNullOrWhiteSpace(DownloadFilePath) ? DownloadFilePath : string.Empty);
         if (string.IsNullOrWhiteSpace(AppleMusic.LibraryFolder)) AppleMusic.LibraryFolder = fallback;
         if (string.IsNullOrWhiteSpace(Sync.LibraryFolder)) Sync.LibraryFolder = fallback;
+        if (string.IsNullOrWhiteSpace(Organize.SourceFolder)) Organize.SourceFolder = DownloadFilePath;
+        if (string.IsNullOrWhiteSpace(Organize.DestFolder)) Organize.DestFolder = MusicLibrary;
+
+        // Restore unfinished downloads from the previous session so they can be resumed (no re-search).
+        foreach (var e in QueueStore.Load())
+        {
+            var item = new QueueItemViewModel(e.Username, e.Filename, e.Size, RemoveQueueItem);
+            if (_queueByKey.ContainsKey(item.Key)) continue;
+            _queueByKey[item.Key] = item;
+            Queue.Add(item);
+        }
     }
 
     // Apple Music playlist -> write its tracks to a temp search file and run the auto pipeline.
@@ -131,6 +143,9 @@ public class MainViewModel : ViewModelBase
     public bool MusicLibraryQuickMatch { get => _musicLibraryQuickMatch; set => SetField(ref _musicLibraryQuickMatch, value); }
     public bool InMemoryDownloads { get => _inMemoryDownloads; set => SetField(ref _inMemoryDownloads, value); }
 
+    private bool _autoOrganize;
+    public bool AutoOrganize { get => _autoOrganize; set => SetField(ref _autoOrganize, value); }
+
     // ---- Mode (0 = automatisch, 1 = handmatig per bestand, 2 = artiest → kies albums) ----
     private int _mode;
     public int Mode
@@ -183,6 +198,7 @@ public class MainViewModel : ViewModelBase
     public AlacConverterViewModel Alac { get; } = new();
     public MetadataEditorViewModel Meta { get; } = new();
     public SortViewModel Sort { get; } = new();
+    public OrganizeViewModel Organize { get; } = new();
     public DuplicatesViewModel Duplicates { get; } = new();
     public SyncViewModel Sync { get; } = new();
     public AppleMusicViewModel AppleMusic { get; }
@@ -198,6 +214,7 @@ public class MainViewModel : ViewModelBase
             {
                 OnPropertyChanged(nameof(IsNotRunning));
                 StartCommand.RaiseCanExecuteChanged();
+                ResumeCommand.RaiseCanExecuteChanged();
             }
         }
     }
@@ -231,6 +248,7 @@ public class MainViewModel : ViewModelBase
     public RelayCommand SelectAllCommand { get; }
     public RelayCommand SelectNoneCommand { get; }
     public RelayCommand ClearCompletedCommand { get; }
+    public RelayCommand ResumeCommand { get; }
 
     // ===================== AUTO MODE =====================
     private void StartAuto()
@@ -266,7 +284,18 @@ public class MainViewModel : ViewModelBase
                 else if (t.IsFaulted)
                     StatusMessage = "Fout: " + (t.Exception?.GetBaseException().Message ?? "onbekend");
                 else
+                {
                     StatusMessage = $"Klaar — {SuccessfulDownloadsCount} gedownload, {SkippedCount} overgeslagen.";
+                    if (AutoOrganize && !string.IsNullOrWhiteSpace(DownloadFilePath) && System.IO.Directory.Exists(DownloadFilePath))
+                    {
+                        Organize.SourceFolder = DownloadFilePath;
+                        Organize.DestFolder = string.IsNullOrWhiteSpace(MusicLibrary) ? DownloadFilePath : MusicLibrary;
+                        Organize.TestMode = false;
+                        SelectedTabIndex = 3; // Organiseren-tab
+                        StatusMessage = "Klaar met downloaden — automatisch organiseren…";
+                        if (Organize.RunCommand.CanExecute(null)) Organize.RunCommand.Execute(null);
+                    }
+                }
             }, TaskScheduler.FromCurrentSynchronizationContext());
     }
 
@@ -446,6 +475,7 @@ public class MainViewModel : ViewModelBase
         StatusMessage = $"{selectedAlbums.Count} albums ({toEnqueue.Count} tracks) toegevoegd aan de wachtrij.";
 
         EnqueueAll(toEnqueue);
+        SaveQueue();
     }
 
     private void AddSelectedFiles()
@@ -479,6 +509,7 @@ public class MainViewModel : ViewModelBase
         StatusMessage = $"{toEnqueue.Count} toegevoegd aan de wachtrij.";
 
         EnqueueAll(toEnqueue);
+        SaveQueue();
     }
 
     // EnqueueDownload blocks while the thread pool is full, so run it off the UI thread.
@@ -513,6 +544,7 @@ public class MainViewModel : ViewModelBase
             Queue.Remove(item);
             _queueByKey.Remove(item.Key);
         }
+        SaveQueue();
     }
 
     // Remove a single item: pending is skipped before it starts, an active download is cancelled.
@@ -525,6 +557,67 @@ public class MainViewModel : ViewModelBase
         }
         Queue.Remove(item);
         _queueByKey.Remove(item.Key);
+        SaveQueue();
+    }
+
+    // Persist the unfinished queue so it survives a restart.
+    private void SaveQueue()
+        => QueueStore.Save(Queue.Where(q => !q.IsTerminal)
+            .Select(q => new QueueEntry { Username = q.Username, Filename = q.RemoteFilename, Size = q.Size }));
+
+    private static SearchResult ToSearchResult(QueueItemViewModel q) => new SearchResult
+    {
+        Username = q.Username,
+        Filename = q.RemoteFilename,
+        Size = q.Size,
+        HasFreeUploadSlot = true,
+        UploadSpeed = 0,
+        PotentialArtistMatch = 0,
+        PotentialAlbumMatch = 0,
+        PotentialTrackMatch = 0,
+        PotentialTrackWithoutVersionMatch = 0
+    };
+
+    // Re-queue every unfinished item (e.g. after a restart). Already-present files are skipped by the core.
+    private void ResumeQueue()
+    {
+        if (IsRunning) return;
+        if (!ValidateConnection()) return;
+        var pending = Queue.Where(q => !q.IsTerminal).ToList();
+        if (pending.Count == 0) { StatusMessage = "Niets te hervatten."; return; }
+
+        var cfg = BuildConfig();
+        Settings.Save(cfg);
+        var results = pending.Select(ToSearchResult).ToList();
+        foreach (var item in pending) item.Status = "Wachtrij";
+
+        _activeDownload = _download;
+        StartPolling();
+        SelectedTabIndex = 1;
+        StatusMessage = $"Hervatten… {pending.Count} downloads.";
+
+        Task.Run(() =>
+        {
+            try
+            {
+                EnsureManualSession(cfg);
+            }
+            catch (Exception e)
+            {
+                Dispatcher.UIThread.Post(() => StatusMessage = "Hervatten mislukt: " + e.Message);
+                return;
+            }
+            foreach (var r in results)
+            {
+                _download.EnqueueDownload(new SearchGroup
+                {
+                    SearchResults = new List<SearchResult> { r },
+                    TargetArtistName = string.Empty,
+                    TargetAlbumName = string.Empty,
+                    SongNames = new List<string>()
+                });
+            }
+        });
     }
 
     private void EnsureManualSession(SeekConfig cfg)
@@ -593,12 +686,14 @@ public class MainViewModel : ViewModelBase
 
         var completed = new HashSet<string>(dl.CompletedFileNames, StringComparer.OrdinalIgnoreCase);
         var failed = new HashSet<string>(dl.FailedFileNames, StringComparer.OrdinalIgnoreCase);
+        bool queueChanged = false;
         foreach (var item in Queue)
         {
             if (item.IsTerminal) continue;
-            if (completed.Contains(item.BaseFileName)) item.MarkDone();
-            else if (failed.Contains(item.BaseFileName)) item.MarkFailed();
+            if (completed.Contains(item.BaseFileName)) { item.MarkDone(); queueChanged = true; }
+            else if (failed.Contains(item.BaseFileName)) { item.MarkFailed(); queueChanged = true; }
         }
+        if (queueChanged) SaveQueue();
 
         var errors = dl.RecentErrors
             .OrderByDescending(e => e.Value)
@@ -668,6 +763,7 @@ public class MainViewModel : ViewModelBase
             SyncLibrary = Sync.LibraryFolder,
             SyncIpod = Sync.IpodFolder,
             AppleLibrary = AppleMusic.LibraryFolder,
+            AutoOrganize = AutoOrganize,
         };
 
         var extensions = SplitList(SearchFileExtensions);
@@ -717,6 +813,7 @@ public class MainViewModel : ViewModelBase
         Sync.LibraryFolder = c.SyncLibrary;
         Sync.IpodFolder = c.SyncIpod;
         AppleMusic.LibraryFolder = c.AppleLibrary;
+        AutoOrganize = c.AutoOrganize;
     }
 
     // Called when the window closes so tool folders (and other settings) survive a restart.

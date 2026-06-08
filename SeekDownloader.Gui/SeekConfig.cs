@@ -54,4 +54,7 @@ public class SeekConfig
     public string SyncLibrary { get; set; } = string.Empty;
     public string SyncIpod { get; set; } = string.Empty;
     public string AppleLibrary { get; set; } = string.Empty;
+
+    // Run the Organiseren-pijplijn automatically on the download folder after an auto-download finishes.
+    public bool AutoOrganize { get; set; }
 }

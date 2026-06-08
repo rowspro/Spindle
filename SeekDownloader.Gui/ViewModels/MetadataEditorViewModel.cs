@@ -400,52 +400,10 @@ public class MetadataEditorViewModel : ViewModelBase
         OnPropertyChanged(nameof(Position));
     }
 
-    private const string ArtistSplitPattern =
-        @"\s*(?:;|/|,|&|\bfeat\.?\b|\bft\.?\b|\bfeaturing\b|\bwith\b|\bvs\.?\b|\bx\b)\s*";
-
-    // The primary (first) credited artist — used as Album-artiest so collabs land under one artist.
-    private static string PrimaryArtist(string artist)
-    {
-        if (string.IsNullOrWhiteSpace(artist)) return artist;
-        foreach (var p in Regex.Split(artist, ArtistSplitPattern, RegexOptions.IgnoreCase))
-            if (p.Trim().Length > 0) return p.Trim();
-        return artist.Trim();
-    }
-
-    private static string AppleFormat(string artist)
-    {
-        if (string.IsNullOrWhiteSpace(artist)) return artist;
-        var parts = Regex.Split(artist, ArtistSplitPattern, RegexOptions.IgnoreCase)
-            .Select(p => p.Trim()).Where(p => p.Length > 0).ToList();
-        var dedup = new List<string>();
-        foreach (var p in parts)
-            if (!dedup.Any(x => string.Equals(x, p, StringComparison.OrdinalIgnoreCase))) dedup.Add(p);
-        if (dedup.Count == 0) return artist;
-        if (dedup.Count == 1) return dedup[0];
-        return string.Join(", ", dedup.Take(dedup.Count - 1)) + " & " + dedup[^1];
-    }
-
-    // Apple-style title casing: capitalize words, keep small words lowercase (not first/last).
-    private static readonly HashSet<string> SmallWords = new(StringComparer.OrdinalIgnoreCase)
-    {
-        "a", "an", "and", "as", "at", "but", "by", "for", "from", "in", "into", "nor", "of",
-        "on", "onto", "or", "over", "the", "to", "up", "vs", "via", "with", "feat", "ft"
-    };
-
-    private static string AppleTitle(string s)
-    {
-        if (string.IsNullOrWhiteSpace(s)) return s;
-        var words = s.Split(' ');
-        for (int i = 0; i < words.Length; i++)
-        {
-            var w = words[i];
-            if (w.Length == 0) continue;
-            bool keepLower = i != 0 && i != words.Length - 1 && SmallWords.Contains(w);
-            words[i] = keepLower ? w.ToLowerInvariant() : char.ToUpper(w[0]) + w.Substring(1);
-        }
-        return string.Join(" ", words);
-    }
-
+    // Shared formatting (see TextFormat / GenreFormat) so the editor and the organize pipeline agree.
+    private static string PrimaryArtist(string artist) => TextFormat.PrimaryArtist(artist);
+    private static string AppleFormat(string artist) => TextFormat.AppleArtist(artist);
+    private static string AppleTitle(string s) => TextFormat.Title(s);
     private static string AppleGenre(string s) => GenreFormat.Normalize(s);
 
     private static Bitmap? BitmapFrom(byte[]? data)
