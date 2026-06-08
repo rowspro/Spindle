@@ -1132,7 +1132,7 @@
                                                     </Border>
                                                     <Button Grid.Column="2" Classes="ghost" Padding="12,5" Command="{Binding FixCommand}" Content="Herstel" />
                                                     <Button Grid.Column="3" Classes="ghost" Padding="10,5" Margin="6,0,0,0" Command="{Binding DeleteCommand}"
-                                                            ToolTip.Tip="Verplaatst dit album naar de map _Verwijderd in je bibliotheek (omkeerbaar).">
+                                                            ToolTip.Tip="Verplaatst dit album naar '_Verwijderd (Spindle)' náást je bibliotheek (buiten de bieb, omkeerbaar) — zodat sorteren/organiseren het niet terugzet.">
                                                         <StackPanel Orientation="Horizontal" Spacing="6">
                                                             <TextBlock Classes="icon" FontSize="16" Text="&#xE872;" Foreground="{StaticResource ErrorBrush}" />
                                                             <TextBlock Text="Verwijder" VerticalAlignment="Center" Foreground="{StaticResource ErrorBrush}" />

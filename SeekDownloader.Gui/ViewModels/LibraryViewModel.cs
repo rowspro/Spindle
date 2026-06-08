@@ -219,19 +219,27 @@ public class LibraryViewModel : ViewModelBase
         });
     }
 
-    // Safe delete: move the album's files to <library>/_Verwijderd (reversible), and drop it from the list.
+    // Safe delete: move the album's files to a trash folder OUTSIDE the library (a sibling on the same
+    // volume), so re-organising/sorting the library never picks them back up. Reversible: move them back.
     private void DeleteAlbum(ProblemAlbumViewModel album)
     {
         var lib = LibraryFolder;
         if (string.IsNullOrWhiteSpace(lib) || !Directory.Exists(lib)) { Status = "Geen geldige bibliotheek-map."; return; }
+
+        var libFull = Path.GetFullPath(lib).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        var parent = Path.GetDirectoryName(libFull);
+        // Sibling of the library (same volume → File.Move works, and it's outside any library scan).
+        var trashRoot = parent != null
+            ? Path.Combine(parent, "_Verwijderd (Spindle)")
+            : Path.Combine(libFull, "_Verwijderd");
+
         int moved = 0;
-        var trashRoot = Path.Combine(lib, "_Verwijderd");
         foreach (var f in album.Files)
         {
             try
             {
-                var rel = Path.GetRelativePath(lib, f);
-                if (rel.StartsWith("..")) rel = Path.GetFileName(f);
+                var rel = Path.GetRelativePath(libFull, f);
+                if (rel.StartsWith("..") || Path.IsPathRooted(rel)) rel = Path.GetFileName(f);
                 var dest = Path.Combine(trashRoot, rel);
                 Directory.CreateDirectory(Path.GetDirectoryName(dest)!);
                 if (File.Exists(dest)) File.Delete(dest);
@@ -243,7 +251,7 @@ public class LibraryViewModel : ViewModelBase
         ProblemAlbums.Remove(album);
         FileCount = Math.Max(0, FileCount - album.Files.Count);
         AlbumCount = Math.Max(0, AlbumCount - 1);
-        Status = $"'{album.Title}' verplaatst naar _Verwijderd ({moved} bestanden) — omkeerbaar.";
+        Status = $"'{album.Title}' verplaatst naar '{trashRoot}' ({moved} bestanden) — buiten de bieb, omkeerbaar.";
     }
 
     private void RepairCovers()
