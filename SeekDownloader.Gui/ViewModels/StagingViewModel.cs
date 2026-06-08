@@ -8,6 +8,32 @@ using ATL;
 
 namespace SeekDownloader.Gui.ViewModels;
 
+/// <summary>One file inside a staging album, with its tags shown so you can read what it actually is.</summary>
+public class StagingFileViewModel : ViewModelBase
+{
+    public string Path { get; }
+    public string FileName { get; }
+    public string Format { get; }
+    public string Meta { get; }
+    public List<string> Issues { get; }
+    public bool HasIssues => Issues.Count > 0;
+    public RelayCommand DeleteCommand { get; }
+
+    public StagingFileViewModel(string path, string fileName, string format, string meta, List<string> issues, Action<StagingFileViewModel> onDelete)
+    {
+        Path = path; FileName = fileName; Format = format; Meta = meta; Issues = issues;
+        DeleteCommand = new RelayCommand(() => onDelete(this));
+    }
+}
+
+/// <summary>A set of duplicate files within one staging folder (same title).</summary>
+public class StagingDupGroup
+{
+    public string Title { get; }
+    public List<StagingFileViewModel> Files { get; }
+    public StagingDupGroup(string title, List<StagingFileViewModel> files) { Title = title; Files = files; }
+}
+
 /// <summary>One album found in the "Nieuw" staging folder, with the quality flags that need attention.</summary>
 public class StagingAlbumViewModel : ViewModelBase
 {
@@ -65,6 +91,107 @@ public class StagingViewModel : ViewModelBase
         SelectAllCommand = new RelayCommand(() => SetSelection(_ => true));
         SelectNoneCommand = new RelayCommand(() => SetSelection(_ => false));
         SelectCleanCommand = new RelayCommand(() => SetSelection(a => a.IsClean && !a.AlreadyInLibrary));
+        BackCommand = new RelayCommand(() => ShowDetail = false);
+        EditInMetadataCommand = new RelayCommand(
+            () => { if (_detailAlbum != null) _onFix(_detailAlbum.Files, $"{_detailAlbum.Title} — tags/hoes bewerken."); },
+            () => _detailAlbum != null);
+    }
+
+    // ---- Map-inspecteur (klik 'Fix' op een album) ----
+    private StagingAlbumViewModel? _detailAlbum;
+
+    private bool _showDetail;
+    public bool ShowDetail
+    {
+        get => _showDetail;
+        private set { if (SetField(ref _showDetail, value)) OnPropertyChanged(nameof(ShowAlbumList)); }
+    }
+    public bool ShowAlbumList => !_showDetail;
+
+    private string _detailTitle = string.Empty;
+    public string DetailTitle { get => _detailTitle; private set => SetField(ref _detailTitle, value); }
+
+    public ObservableCollection<StagingFileViewModel> DetailFiles { get; } = new();
+    public ObservableCollection<StagingDupGroup> DetailDuplicates { get; } = new();
+
+    private bool _hasDuplicates;
+    public bool HasDuplicates { get => _hasDuplicates; private set => SetField(ref _hasDuplicates, value); }
+
+    public RelayCommand BackCommand { get; }
+    public RelayCommand EditInMetadataCommand { get; }
+
+    private void OpenDetail(StagingAlbumViewModel album)
+    {
+        _detailAlbum = album;
+        DetailTitle = album.Title;
+        EditInMetadataCommand.RaiseCanExecuteChanged();
+        var files = album.Files.ToList();
+        Status = "Map inlezen…";
+        Task.Run(() =>
+        {
+            var rows = new List<StagingFileViewModel>();
+            foreach (var f in files)
+            {
+                string fmt, meta; var issues = new List<string>(); string title = "";
+                try
+                {
+                    var t = new Track(f);
+                    title = t.Title ?? "";
+                    var artist = !string.IsNullOrWhiteSpace(t.Artist) ? t.Artist : (t.AlbumArtist ?? "");
+                    fmt = Path.GetExtension(f).TrimStart('.').ToUpperInvariant();
+                    var parts = new List<string>();
+                    if (!string.IsNullOrWhiteSpace(title)) parts.Add(title); else parts.Add("(geen titel)");
+                    if (!string.IsNullOrWhiteSpace(artist)) parts.Add(artist);
+                    var tn = t.TrackNumber ?? 0; if (tn > 0) parts.Add($"#{tn}");
+                    if (t.Year > 0) parts.Add(t.Year.ToString());
+                    if (!string.IsNullOrWhiteSpace(t.Genre)) parts.Add(t.Genre);
+                    meta = string.Join("  ·  ", parts);
+                    if (!Lossless.Contains(Path.GetExtension(f).ToLowerInvariant())) issues.Add("lossy");
+                    if (string.IsNullOrWhiteSpace(title) || string.IsNullOrWhiteSpace(artist)) issues.Add("geen tags");
+                    if (t.EmbeddedPictures.Count == 0) issues.Add("geen hoes");
+                }
+                catch { fmt = Path.GetExtension(f).TrimStart('.').ToUpperInvariant(); meta = "(kon niet lezen)"; }
+                rows.Add(new StagingFileViewModel(f, Path.GetFileName(f), fmt, meta, issues, DeleteDetailFile) { });
+                // keep title for dup grouping via a parallel map
+                _detailTitles[rows[^1]] = title;
+            }
+            Dispatcher.UIThread.Post(() =>
+            {
+                DetailFiles.Clear();
+                foreach (var r in rows.OrderBy(r => r.FileName, StringComparer.OrdinalIgnoreCase)) DetailFiles.Add(r);
+                RebuildDuplicates();
+                ShowDetail = true;
+                Status = $"{DetailFiles.Count} nummers in '{album.Title}'.";
+            });
+        });
+    }
+
+    private readonly Dictionary<StagingFileViewModel, string> _detailTitles = new();
+
+    private void RebuildDuplicates()
+    {
+        DetailDuplicates.Clear();
+        foreach (var grp in DetailFiles
+                     .Where(f => !string.IsNullOrWhiteSpace(_detailTitles.GetValueOrDefault(f)))
+                     .GroupBy(f => Norm(_detailTitles[f]))
+                     .Where(g => g.Count() > 1))
+            DetailDuplicates.Add(new StagingDupGroup(_detailTitles[grp.First()], grp.ToList()));
+        HasDuplicates = DetailDuplicates.Count > 0;
+    }
+
+    private void DeleteDetailFile(StagingFileViewModel file)
+    {
+        try
+        {
+            var parent = Path.GetDirectoryName(Path.GetFullPath(NieuwFolder).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
+            var trash = parent != null ? Path.Combine(parent, "_Verwijderd (Spindle)") : Path.Combine(NieuwFolder, "_Verwijderd");
+            MoveInto(file.Path, trash);
+        }
+        catch { try { File.Delete(file.Path); } catch { } }
+        DetailFiles.Remove(file);
+        _detailTitles.Remove(file);
+        RebuildDuplicates();
+        Status = $"'{file.FileName}' verwijderd (naar _Verwijderd, omkeerbaar).";
     }
 
     private string _nieuwFolder = string.Empty;
@@ -109,6 +236,7 @@ public class StagingViewModel : ViewModelBase
         var nieuw = NieuwFolder;
         if (!Directory.Exists(nieuw)) { Status = "De map 'Nieuwe muziek' bestaat niet."; return; }
         IsBusy = true;
+        ShowDetail = false;
         _cts = new CancellationTokenSource();
         var token = _cts.Token;
         Status = "Nieuw scannen…";
@@ -167,7 +295,7 @@ public class StagingViewModel : ViewModelBase
                 if (already) flags.Add("al in bieb");
                 var sub = $"{g.Files.Count} nummers" + (string.IsNullOrEmpty(g.Year) ? "" : $"  ·  {g.Year}");
                 albums.Add(new StagingAlbumViewModel(g.Artist, g.Album, g.Year, g.Files, g.Dirs.ToList(),
-                    flags, clean, already, sub, a => _onFix(a.Files, $"{a.Title} — controleer/fix en keur goed.")));
+                    flags, clean, already, sub, OpenDetail));
             }
 
             Dispatcher.UIThread.Post(() =>
