@@ -378,14 +378,16 @@
 
                 <!-- Bottom: connection + settings -->
                 <StackPanel Grid.Row="2">
-                    <Border CornerRadius="9999" Padding="12,7" Margin="0,0,0,8"
-                            Background="{StaticResource SurfaceContainer}" BorderBrush="{StaticResource CardBorder}" BorderThickness="1">
+                    <Button Margin="0,0,0,8" Padding="12,7" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
+                            CornerRadius="9999" Background="{StaticResource SurfaceContainer}"
+                            BorderBrush="{StaticResource CardBorder}" BorderThickness="1" Cursor="Hand"
+                            Command="{Binding ReconnectCommand}" ToolTip.Tip="Klik om (opnieuw) te verbinden met Soulseek">
                         <StackPanel Orientation="Horizontal">
                             <Ellipse Width="8" Height="8" Fill="{Binding ConnectionBrush}" VerticalAlignment="Center" />
                             <TextBlock Text="{Binding ConnectionText}" Margin="8,0,0,0" VerticalAlignment="Center"
                                        FontSize="12" Foreground="{StaticResource TextSecondary}" />
                         </StackPanel>
-                    </Border>
+                    </Button>
                     <Button Classes="nav" Tag="11" Click="OnNav"
                             Classes.active="{Binding SelectedTabIndex, Converter={x:Static vm:IntEquals.Instance}, ConverterParameter=11}">
                         <StackPanel Orientation="Horizontal"><TextBlock Classes="icon" FontSize="19" Width="28" Text="&#xE8B8;" /><TextBlock Text="Instellingen" VerticalAlignment="Center" /></StackPanel>
@@ -980,6 +982,25 @@
                                    Text="Scant je muziekbieb op ontbrekende tags/hoezen en lossy vs lossless. Klik een gemarkeerde kaart om die nummers meteen te herstellen." />
                     </StackPanel>
                     <ScrollViewer Grid.Row="1" Margin="0,16,0,0" VerticalScrollBarVisibility="Auto">
+                      <StackPanel Spacing="14">
+                        <!-- Health score hero -->
+                        <Border Classes="card" Padding="20">
+                            <Grid ColumnDefinitions="Auto,*" VerticalAlignment="Center">
+                                <StackPanel Grid.Column="0">
+                                    <TextBlock Classes="caption" Text="GEZONDHEIDSSCORE" />
+                                    <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
+                                        <TextBlock Text="{Binding HealthScore}" FontSize="44" FontWeight="Bold" Foreground="{StaticResource Accent}" />
+                                        <TextBlock Text="%" FontSize="22" FontWeight="SemiBold" Foreground="{StaticResource Accent}" VerticalAlignment="Bottom" Margin="2,0,0,8" />
+                                    </StackPanel>
+                                </StackPanel>
+                                <StackPanel Grid.Column="1" Margin="24,0,0,0" VerticalAlignment="Center">
+                                    <ProgressBar Minimum="0" Maximum="100" Value="{Binding HealthScore}" Height="10" CornerRadius="5"
+                                                 Background="{StaticResource SurfaceVariant}" Foreground="{StaticResource Accent}" />
+                                    <TextBlock Classes="caption" Margin="0,8,0,0" Text="Gewogen op volledige tags, albumhoezen en lossless-aandeel." />
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+
                         <UniformGrid Columns="3" VerticalAlignment="Top">
                             <Border Classes="stat">
                                 <Grid RowDefinitions="Auto,Auto">
@@ -1048,8 +1069,9 @@
                                     </StackPanel>
                                 </Grid>
                             </Button>
-                            <Border Classes="stat">
-                                <Grid RowDefinitions="Auto,Auto">
+                            <Button Classes="statbtn" Command="{Binding FindUpgradesCommand}"
+                                    ToolTip.Tip="Zet de volledig-lossy albums in de wachtrij om ze in FLAC opnieuw te zoeken.">
+                                <Grid RowDefinitions="Auto,Auto,Auto">
                                     <Grid Grid.Row="0" ColumnDefinitions="*,Auto">
                                         <TextBlock Grid.Column="0" Classes="statNum" Foreground="#A55600" Text="{Binding LossyFileCount, StringFormat=N0}" />
                                         <Border Grid.Column="1" Width="38" Height="38" CornerRadius="10" Background="#FFE5CC">
@@ -1057,9 +1079,37 @@
                                         </Border>
                                     </Grid>
                                     <TextBlock Grid.Row="1" Classes="statLbl" Text="Lossy (MP3/AAC)" />
+                                    <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,8,0,0">
+                                        <TextBlock Text="Upgraden" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource Accent}" VerticalAlignment="Center" />
+                                        <TextBlock Classes="icon" FontSize="16" Text="&#xF0FB;" Margin="2,0,0,0" Foreground="{StaticResource Accent}" />
+                                    </StackPanel>
                                 </Grid>
-                            </Border>
+                            </Button>
                         </UniformGrid>
+
+                        <!-- Problematische albums -->
+                        <Border Classes="card">
+                            <StackPanel>
+                                <TextBlock Classes="title" Text="Problematische albums" />
+                                <TextBlock Classes="caption" Margin="0,2,0,10" Text="Klik 'Herstel' om de nummers van dat album in Metadata te openen." />
+                                <ItemsControl ItemsSource="{Binding ProblemAlbums}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate DataType="vm:ProblemAlbumViewModel">
+                                            <Border Padding="12,9" Margin="0,0,0,6" CornerRadius="8" Background="{StaticResource Recess}">
+                                                <Grid ColumnDefinitions="*,Auto,Auto" VerticalAlignment="Center">
+                                                    <TextBlock Grid.Column="0" Text="{Binding Title}" Classes="body" Foreground="{StaticResource TextPrimary}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                                    <Border Grid.Column="1" CornerRadius="9999" Padding="9,3" Margin="8,0,8,0" VerticalAlignment="Center" Background="#FFE5CC">
+                                                        <TextBlock Text="{Binding Issue}" FontSize="11" FontWeight="SemiBold" Foreground="#A55600" />
+                                                    </Border>
+                                                    <Button Grid.Column="2" Classes="ghost" Padding="12,5" Command="{Binding FixCommand}" Content="Herstel" />
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </Border>
+                      </StackPanel>
                     </ScrollViewer>
                     <Grid Grid.Row="2" ColumnDefinitions="*,Auto,Auto,Auto,Auto" Margin="0,12,0,0">
                         <SelectableTextBlock Grid.Column="0" VerticalAlignment="Center" Foreground="{StaticResource TextSecondary}" Text="{Binding Status}" />

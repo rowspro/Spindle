@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Collections.ObjectModel;
 using System.IO;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -6,6 +7,25 @@ using Avalonia.Threading;
 using ATL;
 
 namespace SeekDownloader.Gui.ViewModels;
+
+/// <summary>One album with a quality issue, shown in the "Problematische albums" table (Gezondheid).</summary>
+public class ProblemAlbumViewModel : ViewModelBase
+{
+    public string Artist { get; }
+    public string Album { get; }
+    public string Issue { get; }
+    public string Title => string.IsNullOrEmpty(Artist) ? Album : $"{Artist} — {Album}";
+
+    private readonly IReadOnlyList<string> _files;
+    private readonly Action<IReadOnlyList<string>, string> _onEdit;
+    public RelayCommand FixCommand { get; }
+
+    public ProblemAlbumViewModel(string artist, string album, string issue, IReadOnlyList<string> files, Action<IReadOnlyList<string>, string> onEdit)
+    {
+        Artist = artist; Album = album; Issue = issue; _files = files; _onEdit = onEdit;
+        FixCommand = new RelayCommand(() => _onEdit(_files, $"{Title} — {issue}. Vul aan / zet hoes en keur goed."));
+    }
+}
 
 /// <summary>
 /// Library health: scans your music for issues (missing tags, no cover art, lossy vs lossless) and
@@ -24,6 +44,7 @@ public class LibraryViewModel : ViewModelBase
         public List<string> Files = new();
         public bool HasCover;
         public bool AllLossy;
+        public int Untagged;
         public string Query => $"{Artist} - {Name}";
     }
 
@@ -84,6 +105,11 @@ public class LibraryViewModel : ViewModelBase
     private bool _hasScanned;
     public bool HasScanned { get => _hasScanned; private set => SetField(ref _hasScanned, value); }
 
+    private int _healthScore;
+    public int HealthScore { get => _healthScore; private set => SetField(ref _healthScore, value); }
+
+    public ObservableCollection<ProblemAlbumViewModel> ProblemAlbums { get; } = new();
+
     public RelayCommand ScanCommand { get; }
     public RelayCommand RepairCoversCommand { get; }
     public RelayCommand FindUpgradesCommand { get; }
@@ -119,7 +145,8 @@ public class LibraryViewModel : ViewModelBase
                     var t = new Track(f);
                     var artist = !string.IsNullOrWhiteSpace(t.AlbumArtist) ? t.AlbumArtist : (t.Artist ?? "");
                     var album = t.Album ?? "";
-                    if (string.IsNullOrWhiteSpace(t.Title) || string.IsNullOrWhiteSpace(artist)) { Interlocked.Increment(ref noTags); noTagBag.Add(f); }
+                    bool untagged = string.IsNullOrWhiteSpace(t.Title) || string.IsNullOrWhiteSpace(artist);
+                    if (untagged) { Interlocked.Increment(ref noTags); noTagBag.Add(f); }
                     bool lossy = !Lossless.Contains(Path.GetExtension(f).ToLowerInvariant());
                     if (lossy) Interlocked.Increment(ref lossyFiles);
                     bool hasCover = t.EmbeddedPictures.Count > 0;
@@ -131,6 +158,7 @@ public class LibraryViewModel : ViewModelBase
                         a.Files.Add(f);
                         if (hasCover) a.HasCover = true;
                         if (!lossy) a.AllLossy = false;
+                        if (untagged) a.Untagged++;
                     }
                 }
                 catch { }
@@ -144,6 +172,24 @@ public class LibraryViewModel : ViewModelBase
             var noCoverFiles = albums.Where(a => !a.HasCover).SelectMany(a => a.Files).ToList();
             var noTagFiles = noTagBag.ToList();
 
+            var problemData = albums
+                .Select(a => (a.Artist, a.Name, a.Files, IReadOnlyList: (IReadOnlyList<string>)a.Files,
+                              sev: (a.HasCover ? 0 : 1) + (a.AllLossy ? 1 : 0) + (a.Untagged > 0 ? 1 : 0),
+                              issue: string.Join(" · ", new[]
+                              {
+                                  a.HasCover ? null : "geen hoes",
+                                  a.AllLossy ? "volledig lossy" : null,
+                                  a.Untagged > 0 ? $"{a.Untagged} zonder tags" : null
+                              }.Where(s => s != null))))
+                .Where(x => x.sev > 0)
+                .OrderByDescending(x => x.sev).ThenByDescending(x => x.Files.Count)
+                .Take(40).ToList();
+
+            double tagFrac = files.Count > 0 ? (double)noTags / files.Count : 0;
+            double lossyFrac = files.Count > 0 ? (double)lossyFiles / files.Count : 0;
+            double coverFrac = albums.Count > 0 ? (double)noCover / albums.Count : 0;
+            int score = albums.Count == 0 ? 0 : Math.Clamp((int)Math.Round(100 * (1 - 0.4 * tagFrac - 0.3 * coverFrac - 0.3 * lossyFrac)), 0, 100);
+
             Dispatcher.UIThread.Post(() =>
             {
                 _albums.Clear(); _albums.AddRange(albums);
@@ -155,13 +201,17 @@ public class LibraryViewModel : ViewModelBase
                 NoCoverCount = noCover;
                 LossyFileCount = lossyFiles;
                 UpgradeAlbumCount = lossyAlbums;
+                HealthScore = score;
+                ProblemAlbums.Clear();
+                foreach (var p in problemData)
+                    ProblemAlbums.Add(new ProblemAlbumViewModel(p.Artist, p.Name, p.issue, p.IReadOnlyList, _onEdit));
                 HasScanned = true;
                 IsBusy = false;
                 RepairCoversCommand.RaiseCanExecuteChanged();
                 FindUpgradesCommand.RaiseCanExecuteChanged();
                 EditNoTagsCommand.RaiseCanExecuteChanged();
                 EditNoCoverCommand.RaiseCanExecuteChanged();
-                Status = token.IsCancellationRequested ? "Scan gestopt." : "Scan klaar. Klik een kaart om te herstellen.";
+                Status = token.IsCancellationRequested ? "Scan gestopt." : $"Scan klaar — gezondheid {score}%. Klik een kaart of album om te herstellen.";
             });
         });
     }

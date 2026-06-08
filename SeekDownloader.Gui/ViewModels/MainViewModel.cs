@@ -111,10 +111,17 @@ public class MainViewModel : ViewModelBase
         }
     }
 
+    public RelayCommand ReconnectCommand => _reconnectCommand ??= new RelayCommand(() => { if (!_isConnecting) TryAutoConnect(); });
+    private RelayCommand? _reconnectCommand;
+
     // Connect at startup when credentials are saved, so the pill is meaningful and the first search is faster.
     private void TryAutoConnect()
     {
-        if (string.IsNullOrWhiteSpace(SoulseekUsername) || string.IsNullOrWhiteSpace(SoulseekPassword)) return;
+        if (string.IsNullOrWhiteSpace(SoulseekUsername) || string.IsNullOrWhiteSpace(SoulseekPassword))
+        {
+            ConnectionText = "Geen inloggegevens";
+            return;
+        }
         _isConnecting = true;
         UpdateConnection();
         _download.SoulSeekUsername = SoulseekUsername.Trim();
@@ -259,7 +266,23 @@ public class MainViewModel : ViewModelBase
     public int SelectedTabIndex
     {
         get => _selectedTabIndex;
-        set { if (SetField(ref _selectedTabIndex, value)) OnPropertyChanged(nameof(CurrentSection)); }
+        set { if (SetField(ref _selectedTabIndex, value)) { OnPropertyChanged(nameof(CurrentSection)); MaybeAutoScan(value); } }
+    }
+
+    // Open a menu → start its scan once per session, but only the safe read-only library scans
+    // (no folder picked / network-heavy MusicBrainz / destructive previews are skipped).
+    private readonly HashSet<int> _autoScanned = new();
+    private void MaybeAutoScan(int tab)
+    {
+        if (_autoScanned.Contains(tab)) return;
+        bool ran = false;
+        switch (tab)
+        {
+            case 8:  if (Library.ScanCommand.CanExecute(null))    { Library.ScanCommand.Execute(null); ran = true; } break;     // Gezondheid
+            case 10: if (Sync.ScanCommand.CanExecute(null))       { Sync.ScanCommand.Execute(null); ran = true; } break;        // Overzetten
+            case 6:  if (AppleMusic.RefreshCommand.CanExecute(null)) { AppleMusic.RefreshCommand.Execute(null); ran = true; } break; // Apple Music
+        }
+        if (ran) _autoScanned.Add(tab);
     }
 
     // ---- Manual results (per file) ----
