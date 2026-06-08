@@ -25,7 +25,29 @@ public partial class MainWindow : Window
     // Arrow keys drive the Metadata tab's step-through (but not while typing in a field).
     private void OnWindowKeyDown(object? sender, KeyEventArgs e)
     {
-        if (Vm == null || Vm.SelectedTabIndex != 5) return; // Metadata tab (shifted by the Organiseren tab)
+        if (Vm == null) return;
+
+        // Cmd+F: open the command palette from anywhere.
+        if (e.Key == Key.F && e.KeyModifiers.HasFlag(KeyModifiers.Meta))
+        {
+            Vm.OpenPalette();
+            var box = this.FindControl<TextBox>("PaletteBox");
+            Avalonia.Threading.Dispatcher.UIThread.Post(() => box?.Focus());
+            e.Handled = true;
+            return;
+        }
+        if (Vm.IsPaletteOpen)
+        {
+            switch (e.Key)
+            {
+                case Key.Escape: Vm.ClosePalette(); e.Handled = true; return;
+                case Key.Enter: Vm.RunSelectedPalette(); e.Handled = true; return;
+                case Key.Down: Vm.MovePaletteSelection(1); e.Handled = true; return;
+                case Key.Up: Vm.MovePaletteSelection(-1); e.Handled = true; return;
+            }
+        }
+
+        if (Vm.SelectedTabIndex != 5) return; // Metadata tab (shifted by the Organiseren tab)
         if (e.Source is TextBox) return;
         if (e.Key == Key.Left)
         {
@@ -40,6 +62,8 @@ public partial class MainWindow : Window
     }
 
     private MainViewModel? Vm => DataContext as MainViewModel;
+
+    private void OnPaletteBackdrop(object? sender, Avalonia.Input.PointerPressedEventArgs e) => Vm?.ClosePalette();
 
     // Sidebar navigation: each nav button carries its tab index in Tag.
     private void OnNav(object? sender, RoutedEventArgs e)

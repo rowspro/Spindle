@@ -145,6 +145,53 @@ public class MainViewModel : ViewModelBase
     public string UserInitial => string.IsNullOrWhiteSpace(SoulseekUsername)
         ? "?" : SoulseekUsername.Trim().Substring(0, 1).ToUpperInvariant();
 
+    // ---- Cmd+F command palette ----
+    private static readonly (string Name, int Idx, string Glyph)[] PaletteSections =
+    {
+        ("Zoeken", 0, ""), ("Wachtrij", 1, ""), ("Artiesten", 7, ""),
+        ("Organiseren", 3, ""), ("Sorteren", 2, ""), ("Metadata", 5, ""),
+        ("Dubbele", 9, ""), ("Gezondheid", 8, ""), ("ALAC-converter", 4, ""),
+        ("Overzetten", 10, ""), ("Apple Music", 6, ""), ("Instellingen", 11, ""),
+    };
+
+    private bool _isPaletteOpen;
+    public bool IsPaletteOpen { get => _isPaletteOpen; set => SetField(ref _isPaletteOpen, value); }
+
+    private string _paletteQuery = string.Empty;
+    public string PaletteQuery { get => _paletteQuery; set { if (SetField(ref _paletteQuery, value)) RebuildPalette(); } }
+
+    public ObservableCollection<PaletteItem> PaletteResults { get; } = new();
+
+    private PaletteItem? _selectedPaletteItem;
+    public PaletteItem? SelectedPaletteItem { get => _selectedPaletteItem; set => SetField(ref _selectedPaletteItem, value); }
+
+    public void OpenPalette() { PaletteQuery = string.Empty; RebuildPalette(); IsPaletteOpen = true; }
+    public void ClosePalette() => IsPaletteOpen = false;
+
+    private void RebuildPalette()
+    {
+        PaletteResults.Clear();
+        var q = (PaletteQuery ?? string.Empty).Trim();
+        if (q.Length > 0)
+            PaletteResults.Add(new PaletteItem($"Zoek “{q}” op Soulseek", "Open Zoeken met deze term", "",
+                () => { SearchTerm = q; SelectedTabIndex = 0; ClosePalette(); }));
+        foreach (var s in PaletteSections)
+            if (q.Length == 0 || s.Name.Contains(q, StringComparison.OrdinalIgnoreCase))
+                PaletteResults.Add(new PaletteItem(s.Name, "Ga naar " + s.Name, s.Glyph,
+                    () => { SelectedTabIndex = s.Idx; ClosePalette(); }));
+        SelectedPaletteItem = PaletteResults.Count > 0 ? PaletteResults[0] : null;
+    }
+
+    public void MovePaletteSelection(int delta)
+    {
+        if (PaletteResults.Count == 0) return;
+        int i = SelectedPaletteItem != null ? PaletteResults.IndexOf(SelectedPaletteItem) : -1;
+        i = Math.Clamp(i + delta, 0, PaletteResults.Count - 1);
+        SelectedPaletteItem = PaletteResults[i];
+    }
+
+    public void RunSelectedPalette() => SelectedPaletteItem?.RunCommand.Execute(null);
+
     // Apple Music playlist -> write its tracks to a temp search file and run the auto pipeline.
     private void QueuePlaylist(List<string> lines)
     {
@@ -351,6 +398,9 @@ public class MainViewModel : ViewModelBase
     public int IncorrectTagsCount { get => _incorrectTagsCount; private set => SetField(ref _incorrectTagsCount, value); }
     public int SuccessfulDownloadsCount { get => _successfulDownloadsCount; private set => SetField(ref _successfulDownloadsCount, value); }
     public int ActiveDownloadsCount { get => _activeDownloadsCount; private set => SetField(ref _activeDownloadsCount, value); }
+
+    private string _totalSpeedText = "0 KB/s";
+    public string TotalSpeedText { get => _totalSpeedText; private set => SetField(ref _totalSpeedText, value); }
 
     private string _errorLog = string.Empty;
     public string ErrorLog { get => _errorLog; private set => SetField(ref _errorLog, value); }
@@ -784,6 +834,9 @@ public class MainViewModel : ViewModelBase
 
         var active = dl.ActiveDownloads.Where(p => p.Progress < 100 && !string.IsNullOrEmpty(p.Filename)).ToList();
         ActiveDownloadsCount = active.Count;
+
+        double totalKb = active.Sum(p => p.AverageDownloadSpeed) / 1000.0;
+        TotalSpeedText = totalKb >= 1000 ? $"{totalKb / 1000.0:0.0} MB/s" : $"{(int)totalKb} KB/s";
 
         foreach (var p in active)
         {

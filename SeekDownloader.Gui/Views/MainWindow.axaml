@@ -554,34 +554,54 @@
             <!-- ============ TAB: WACHTRIJ ============ -->
             <TabItem Header="Wachtrij">
                 <Grid RowDefinitions="Auto,Auto,*,Auto,Auto" Margin="0,12,0,0">
-                    <WrapPanel Grid.Row="0">
-                        <Border Classes="chip" Margin="0,0,8,8"><StackPanel Orientation="Horizontal"><TextBlock Classes="k" Text="Gezocht"/><TextBlock Classes="v" Text="{Binding SeekedText}"/></StackPanel></Border>
-                        <Border Classes="chip" Margin="0,0,8,8"><StackPanel Orientation="Horizontal"><TextBlock Classes="k" Text="Wachtrij"/><TextBlock Classes="v" Text="{Binding QueueCount}"/></StackPanel></Border>
-                        <Border Classes="chip" Margin="0,0,8,8"><StackPanel Orientation="Horizontal"><TextBlock Classes="k" Text="Actief"/><TextBlock Classes="v" Text="{Binding ActiveDownloadsCount}"/></StackPanel></Border>
-                        <Border Classes="chip" Margin="0,0,8,8" Background="#DCEBDF" BorderBrush="#9CC6A6"><StackPanel Orientation="Horizontal"><TextBlock Classes="k" Text="Gedownload"/><TextBlock Classes="v" Foreground="{StaticResource Success}" Text="{Binding SuccessfulDownloadsCount}"/></StackPanel></Border>
-                        <Border Classes="chip" Margin="0,0,8,8"><StackPanel Orientation="Horizontal"><TextBlock Classes="k" Text="Overgeslagen"/><TextBlock Classes="v" Text="{Binding SkippedCount}"/></StackPanel></Border>
-                        <Border Classes="chip" Margin="0,0,8,8"><StackPanel Orientation="Horizontal"><TextBlock Classes="k" Text="Foute tags"/><TextBlock Classes="v" Text="{Binding IncorrectTagsCount}"/></StackPanel></Border>
-                    </WrapPanel>
+                    <StackPanel Grid.Row="0">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <TextBlock Grid.Column="0" Classes="h2" Text="Wachtrij" VerticalAlignment="Center" />
+                            <Border Grid.Column="1" CornerRadius="9999" Padding="12,5" Background="{StaticResource PrimaryFixed}"
+                                    IsVisible="{Binding ActiveDownloadsCount}">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Classes="icon" FontSize="16" Text="&#xE1B8;" Foreground="{StaticResource Accent}" VerticalAlignment="Center" />
+                                    <TextBlock Text="{Binding TotalSpeedText}" Margin="6,0,0,0" FontSize="13" FontWeight="SemiBold" Foreground="{StaticResource Accent}" VerticalAlignment="Center" />
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+                        <WrapPanel Margin="0,12,0,0">
+                            <Border Classes="chip" Margin="0,0,8,8"><StackPanel Orientation="Horizontal"><TextBlock Classes="k" Text="Gezocht"/><TextBlock Classes="v" Text="{Binding SeekedText}"/></StackPanel></Border>
+                            <Border Classes="chip" Margin="0,0,8,8"><StackPanel Orientation="Horizontal"><TextBlock Classes="k" Text="Wachtrij"/><TextBlock Classes="v" Text="{Binding QueueCount}"/></StackPanel></Border>
+                            <Border Classes="chip" Margin="0,0,8,8"><StackPanel Orientation="Horizontal"><TextBlock Classes="k" Text="Actief"/><TextBlock Classes="v" Text="{Binding ActiveDownloadsCount}"/></StackPanel></Border>
+                            <Border Classes="chip" Margin="0,0,8,8" Background="#DCEBDF" BorderBrush="#9CC6A6"><StackPanel Orientation="Horizontal"><TextBlock Classes="k" Text="Gedownload"/><TextBlock Classes="v" Foreground="{StaticResource Success}" Text="{Binding SuccessfulDownloadsCount}"/></StackPanel></Border>
+                            <Border Classes="chip" Margin="0,0,8,8"><StackPanel Orientation="Horizontal"><TextBlock Classes="k" Text="Overgeslagen"/><TextBlock Classes="v" Text="{Binding SkippedCount}"/></StackPanel></Border>
+                            <Border Classes="chip" Margin="0,0,8,8"><StackPanel Orientation="Horizontal"><TextBlock Classes="k" Text="Foute tags"/><TextBlock Classes="v" Text="{Binding IncorrectTagsCount}"/></StackPanel></Border>
+                        </WrapPanel>
+                    </StackPanel>
 
-                    <TextBlock Grid.Row="1" Margin="2,2,0,8" Foreground="{StaticResource TextMuted}" FontSize="12"
+                    <TextBlock Grid.Row="1" Margin="2,4,0,8" Foreground="{StaticResource TextMuted}" FontSize="12"
                                Text="{Binding CurrentlySeeking, StringFormat='Bezig met zoeken: {0}'}" />
 
                     <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
                         <ItemsControl ItemsSource="{Binding Queue}">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate x:DataType="vm:QueueItemViewModel">
-                                    <Border Padding="12,9" Margin="0,0,0,7" CornerRadius="8" Background="{StaticResource Card}" BorderBrush="{StaticResource CardBorder}" BorderThickness="1">
-                                        <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="*,Auto,Auto,Auto">
-                                            <TextBlock Grid.Row="0" Grid.Column="0" Text="{Binding FileName}" Foreground="{StaticResource TextPrimary}" FontSize="13" TextTrimming="CharacterEllipsis" />
-                                            <TextBlock Grid.Row="0" Grid.Column="1" Margin="10,0,0,0" Foreground="{StaticResource TextMuted}" FontSize="12" Text="{Binding Speed}" />
-                                            <TextBlock Grid.Row="0" Grid.Column="2" Margin="10,0,0,0" Foreground="{Binding StatusBrush}" FontSize="12" FontWeight="SemiBold" Text="{Binding Status}" />
-                                            <Button Grid.Row="0" Grid.RowSpan="2" Grid.Column="3" Classes="ghost" Margin="10,0,0,0" Padding="8,2" VerticalAlignment="Center"
-                                                    Content="✕" FontSize="13" Command="{Binding RemoveCommand}" ToolTip.Tip="Uit de wachtrij verwijderen (stopt de download als die bezig is)" />
-                                            <ProgressBar Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,7,10,0" Minimum="0" Maximum="100"
-                                                         Value="{Binding Progress}" Height="6" CornerRadius="3"
-                                                         Background="#E2E2E4" Foreground="{StaticResource AccentGradient}" />
-                                            <TextBlock Grid.Row="1" Grid.Column="2" Margin="0,7,0,0" Foreground="{StaticResource TextSecondary}" FontSize="12"
-                                                       Text="{Binding Progress, StringFormat='{}{0}%'}" />
+                                    <Border Padding="12,10" Margin="0,0,0,8" CornerRadius="10" Background="{StaticResource Card}" BorderBrush="{StaticResource CardBorder}" BorderThickness="1">
+                                        <Grid ColumnDefinitions="Auto,*,Auto,Auto" VerticalAlignment="Center">
+                                            <Border Grid.Column="0" Width="42" Height="42" CornerRadius="8" Background="{StaticResource SurfaceVariant}">
+                                                <TextBlock Classes="icon" FontSize="20" Text="&#xE405;" HorizontalAlignment="Center" Foreground="{StaticResource TextMuted}" />
+                                            </Border>
+                                            <StackPanel Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding FileName}" Classes="title" FontSize="13" TextTrimming="CharacterEllipsis" />
+                                                <Grid ColumnDefinitions="*,Auto" Margin="0,6,0,0">
+                                                    <ProgressBar Grid.Column="0" Minimum="0" Maximum="100" Value="{Binding Progress}" Height="6" CornerRadius="3"
+                                                                 Background="#E2E2E4" Foreground="{StaticResource AccentGradient}" VerticalAlignment="Center" />
+                                                    <TextBlock Grid.Column="1" Margin="10,0,0,0" Foreground="{StaticResource TextMuted}" FontSize="11" Text="{Binding Speed}" VerticalAlignment="Center" />
+                                                </Grid>
+                                            </StackPanel>
+                                            <Border Grid.Column="2" CornerRadius="9999" Padding="10,4" Margin="12,0,0,0" VerticalAlignment="Center" Background="{StaticResource SurfaceContainer}">
+                                                <TextBlock Text="{Binding Status}" Foreground="{Binding StatusBrush}" FontSize="11" FontWeight="SemiBold" />
+                                            </Border>
+                                            <Button Grid.Column="3" Classes="ghost" Margin="8,0,0,0" Padding="8,4" VerticalAlignment="Center"
+                                                    Command="{Binding RemoveCommand}" ToolTip.Tip="Uit de wachtrij verwijderen (stopt de download als die bezig is)">
+                                                <TextBlock Classes="icon" FontSize="16" Text="&#xE5C9;" />
+                                            </Button>
                                         </Grid>
                                     </Border>
                                 </DataTemplate>
@@ -607,8 +627,11 @@
             <!-- ============ TAB: SORTEREN ============ -->
             <TabItem Header="Sorteren">
                 <Grid x:CompileBindings="False" DataContext="{Binding Sort}" RowDefinitions="Auto,Auto,Auto,Auto,*,Auto,Auto" Margin="0,12,0,0">
-                    <TextBlock Grid.Row="0" Foreground="{StaticResource TextSecondary}" FontSize="12" TextWrapping="Wrap"
-                               Text="Ordent een map op basis van de tags naar: Artiest / Album (Jaar) / 'hoofdartiest - album - ## titel'. Compilaties komen onder 'Various Artists'. Gebruikt de album-artiest, splitst geen namen. 'Genre opschonen' zet het genre om naar één canonieke waarde." />
+                    <StackPanel Grid.Row="0">
+                        <TextBlock Classes="h2" Text="Sorteren" />
+                        <TextBlock Classes="body" Margin="0,4,0,0" TextWrapping="Wrap"
+                                   Text="Ordent een map op basis van de tags naar: Artiest / Album (Jaar) / 'hoofdartiest - album - ## titel'. Compilaties komen onder 'Various Artists'. Gebruikt de album-artiest, splitst geen namen. 'Genre opschonen' zet het genre om naar één canonieke waarde." />
+                    </StackPanel>
                     <Grid Grid.Row="1" ColumnDefinitions="Auto,*,Auto" Margin="0,12,0,0">
                         <TextBlock Grid.Column="0" Classes="label" Text="Map" />
                         <TextBox Grid.Column="1" Text="{Binding SourceFolder}" Watermark="Map om te sorteren" />
@@ -661,8 +684,11 @@
             <!-- ============ TAB: ORGANISEREN ============ -->
             <TabItem Header="Organiseren">
                 <Grid x:CompileBindings="False" DataContext="{Binding Organize}" RowDefinitions="Auto,Auto,Auto,Auto,*,Auto,Auto" Margin="0,12,0,0">
-                    <TextBlock Grid.Row="0" Foreground="{StaticResource TextSecondary}" FontSize="12" TextWrapping="Wrap"
-                               Text="Alles-in-één: matcht elk album tegen MusicBrainz, vult/poetst de tags (Apple-artiest, hoofdartiest als album-artiest, canonieke genre, albumhoes) en sorteert daarna in Artiest / Album (Jaar) / 'hoofdartiest - album - ## titel'. 'Alleen tonen' laat alles zien zonder iets te wijzigen." />
+                    <StackPanel Grid.Row="0">
+                        <TextBlock Classes="h2" Text="Organiseren" />
+                        <TextBlock Classes="body" Margin="0,4,0,0" TextWrapping="Wrap"
+                                   Text="Alles-in-één: matcht elk album tegen MusicBrainz, vult/poetst de tags (Apple-artiest, hoofdartiest als album-artiest, canonieke genre, albumhoes) en sorteert daarna in Artiest / Album (Jaar) / 'hoofdartiest - album - ## titel'. 'Alleen tonen' laat alles zien zonder iets te wijzigen." />
+                    </StackPanel>
                     <Grid Grid.Row="1" ColumnDefinitions="Auto,*,Auto" Margin="0,12,0,0">
                         <TextBlock Grid.Column="0" Classes="label" Text="Map" />
                         <TextBox Grid.Column="1" Text="{Binding SourceFolder}" Watermark="Map om te organiseren (bijv. je downloadmap)" />
@@ -720,8 +746,11 @@
             <!-- ============ TAB: ALAC-CONVERTER ============ -->
             <TabItem Header="ALAC-converter">
                 <Grid x:CompileBindings="False" DataContext="{Binding Alac}" RowDefinitions="Auto,Auto,Auto,Auto,*,Auto,Auto" Margin="0,12,0,0">
-                    <TextBlock Grid.Row="0" Foreground="{StaticResource TextSecondary}" FontSize="12" TextWrapping="Wrap"
-                               Text="Converteert een muziekmap (FLAC/WAV/AIFF) naar Apple Lossless (ALAC, .m4a) in een doelmap (bijv. je iPod-map). Bestanden die er al staan worden overgeslagen. Tags en albumhoes gaan mee." />
+                    <StackPanel Grid.Row="0">
+                        <TextBlock Classes="h2" Text="ALAC-converter" />
+                        <TextBlock Classes="body" Margin="0,4,0,0" TextWrapping="Wrap"
+                                   Text="Converteert een muziekmap (FLAC/WAV/AIFF) naar Apple Lossless (ALAC, .m4a) in een doelmap (bijv. je iPod-map). Bestanden die er al staan worden overgeslagen. Tags en albumhoes gaan mee." />
+                    </StackPanel>
                     <Grid Grid.Row="1" ColumnDefinitions="Auto,*,Auto" Margin="0,12,0,0">
                         <TextBlock Grid.Column="0" Classes="label" Text="Bronmap" />
                         <TextBox Grid.Column="1" Text="{Binding SourceFolder}" Watermark="Muziekmap met FLAC/WAV" />
@@ -1126,8 +1155,11 @@
             <!-- ============ TAB: DUBBELE ============ -->
             <TabItem Header="Dubbele">
                 <Grid x:CompileBindings="False" DataContext="{Binding Duplicates}" RowDefinitions="Auto,Auto,Auto,*,Auto" Margin="0,12,0,0">
-                    <TextBlock Grid.Row="0" Foreground="{StaticResource TextSecondary}" FontSize="12" TextWrapping="Wrap"
-                               Text="Vindt tracks met dezelfde artiest + titel en toont de kopieën naast elkaar. Kies per set welke je houdt; de rest gaat naar de map '_Dubbele_verwijderd' (omkeerbaar)." />
+                    <StackPanel Grid.Row="0">
+                        <TextBlock Classes="h2" Text="Dubbele opsporen" />
+                        <TextBlock Classes="body" Margin="0,4,0,0" TextWrapping="Wrap"
+                                   Text="Vindt tracks met dezelfde artiest + titel en toont de kopieën naast elkaar. Kies per set welke je houdt; de rest gaat naar de map '_Dubbele_verwijderd' (omkeerbaar)." />
+                    </StackPanel>
                     <Grid Grid.Row="1" ColumnDefinitions="Auto,*,Auto,Auto" Margin="0,12,0,0">
                         <TextBlock Grid.Column="0" Classes="label" Text="Map" />
                         <TextBox Grid.Column="1" Text="{Binding Folder}" Watermark="Map om te doorzoeken (incl. submappen)" />
@@ -1179,8 +1211,21 @@
             <!-- ============ TAB: OVERZETTEN ============ -->
             <TabItem Header="Overzetten">
                 <Grid x:CompileBindings="False" DataContext="{Binding Sync}" RowDefinitions="Auto,Auto,Auto,*,Auto,Auto,Auto" Margin="0,12,0,0">
-                    <TextBlock Grid.Row="0" Foreground="{StaticResource TextSecondary}" FontSize="12" TextWrapping="Wrap"
-                               Text="Kies wat je naar je (Rockbox-)iPod kopieert: scan je bibliotheek, filter op genre/zoekterm, vink albums aan. Optioneel meteen omzetten naar ALAC. Al aanwezige bestanden worden overgeslagen." />
+                    <Border Grid.Row="0" Classes="card" Padding="16,14">
+                        <Grid ColumnDefinitions="Auto,*">
+                            <Border Grid.Column="0" Width="48" Height="48" CornerRadius="12" Background="{StaticResource SurfaceVariant}">
+                                <TextBlock Classes="icon" FontSize="26" Text="&#xE32C;" HorizontalAlignment="Center" Foreground="{StaticResource TextSecondary}" />
+                            </Border>
+                            <StackPanel Grid.Column="1" Margin="14,0,0,0" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding DeviceText}" Classes="title" FontSize="15" />
+                                <Grid ColumnDefinitions="*,Auto" Margin="0,8,0,0" IsVisible="{Binding HasDevice}">
+                                    <ProgressBar Grid.Column="0" Minimum="0" Maximum="100" Value="{Binding UsedPercent}" Height="8" CornerRadius="4"
+                                                 Background="{StaticResource SurfaceVariant}" Foreground="{StaticResource Accent}" VerticalAlignment="Center" />
+                                    <TextBlock Grid.Column="1" Margin="10,0,0,0" Text="{Binding UsedPercent, StringFormat='{}{0}% vol'}" Classes="caption" VerticalAlignment="Center" />
+                                </Grid>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
                     <Grid Grid.Row="1" ColumnDefinitions="Auto,*,Auto,Auto" Margin="0,12,0,0">
                         <TextBlock Grid.Column="0" Classes="label" Text="Bibliotheek" />
                         <TextBox Grid.Column="1" Text="{Binding LibraryFolder}" Watermark="Map met je muziek" />
@@ -1258,6 +1303,11 @@
             <TabItem Header="Instellingen">
                 <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="0,8,0,0">
                     <StackPanel Spacing="12" Margin="0,0,6,0">
+
+                        <StackPanel Margin="0,0,0,2">
+                            <TextBlock Classes="h2" Text="Instellingen" />
+                            <TextBlock Classes="body" Margin="0,4,0,0" Text="Verbinding, mappen en het downloadgedrag van Spindle." />
+                        </StackPanel>
 
                         <Border Classes="card">
                             <StackPanel>
@@ -1392,6 +1442,43 @@
                 </ScrollViewer>
             </TabItem>
         </TabControl>
+        </Grid>
+
+        <!-- ===== Cmd+F command palette ===== -->
+        <Grid Grid.Column="0" Grid.ColumnSpan="2" ZIndex="100" IsVisible="{Binding IsPaletteOpen}">
+            <Border Background="#33000000" PointerPressed="OnPaletteBackdrop" />
+            <Border VerticalAlignment="Top" HorizontalAlignment="Center" Width="560" Margin="0,90,0,0"
+                    Background="{StaticResource Card}" BorderBrush="{StaticResource CardBorder}" BorderThickness="1"
+                    CornerRadius="14" Padding="8" BoxShadow="0 20 50 0 #44000000">
+                <StackPanel>
+                    <Grid ColumnDefinitions="Auto,*" Margin="8,4">
+                        <TextBlock Classes="icon" FontSize="20" Text="&#xE8B6;" Foreground="{StaticResource TextMuted}" VerticalAlignment="Center" />
+                        <TextBox x:Name="PaletteBox" Grid.Column="1" Margin="8,0,0,0" Text="{Binding PaletteQuery}"
+                                 Background="Transparent" BorderThickness="0" FontSize="16"
+                                 Watermark="Spring naar een scherm… of zoek op Soulseek" />
+                    </Grid>
+                    <Border Height="1" Background="{StaticResource CardBorder}" Margin="0,6" />
+                    <ListBox MaxHeight="360" ItemsSource="{Binding PaletteResults}" SelectedItem="{Binding SelectedPaletteItem}"
+                             Background="Transparent" BorderThickness="0">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate x:DataType="vm:PaletteItem">
+                                <Button Command="{Binding RunCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
+                                        Background="Transparent" BorderThickness="0" Padding="8,6">
+                                    <Grid ColumnDefinitions="Auto,*">
+                                        <Border Grid.Column="0" Width="34" Height="34" CornerRadius="8" Background="{StaticResource Recess}">
+                                            <TextBlock Classes="icon" FontSize="18" Text="{Binding Glyph}" HorizontalAlignment="Center" Foreground="{StaticResource TextSecondary}" />
+                                        </Border>
+                                        <StackPanel Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding Title}" Classes="title" FontSize="14" />
+                                            <TextBlock Text="{Binding Subtitle}" Classes="caption" />
+                                        </StackPanel>
+                                    </Grid>
+                                </Button>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </StackPanel>
+            </Border>
         </Grid>
     </Grid>
 </Window>
