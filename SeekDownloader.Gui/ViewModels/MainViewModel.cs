@@ -46,7 +46,13 @@ public class MainViewModel : ViewModelBase
             onDownload: QueuePlaylist,
             topArtists: () => AppleMusicService.GetTopArtists(50).Select(a => a.Name).ToList());
 
-        Library = new LibraryViewModel(onDownload: QueuePlaylist);
+        Library = new LibraryViewModel(
+            onDownload: QueuePlaylist,
+            onEdit: (files, status) =>
+            {
+                Meta.LoadFiles(files, status);
+                SelectedTabIndex = 5; // Metadata
+            });
 
         LoadFromConfig(Settings.Load());
 

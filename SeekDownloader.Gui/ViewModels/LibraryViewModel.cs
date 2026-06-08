@@ -28,16 +28,26 @@ public class LibraryViewModel : ViewModelBase
     }
 
     private readonly Action<List<string>> _onDownload;
+    private readonly Action<IReadOnlyList<string>, string> _onEdit;
     private readonly List<Album> _albums = new();
+    private List<string> _noTagFiles = new();
+    private List<string> _noCoverFiles = new();
     private CancellationTokenSource? _cts;
 
-    public LibraryViewModel(Action<List<string>> onDownload)
+    public LibraryViewModel(Action<List<string>> onDownload, Action<IReadOnlyList<string>, string> onEdit)
     {
         _onDownload = onDownload;
+        _onEdit = onEdit;
         ScanCommand = new RelayCommand(Scan, () => !IsBusy && !string.IsNullOrWhiteSpace(LibraryFolder));
         RepairCoversCommand = new RelayCommand(RepairCovers, () => !IsBusy && _albums.Count > 0);
         FindUpgradesCommand = new RelayCommand(FindUpgrades, () => !IsBusy && _albums.Count > 0);
         StopCommand = new RelayCommand(() => _cts?.Cancel(), () => IsBusy);
+        EditNoTagsCommand = new RelayCommand(
+            () => _onEdit(_noTagFiles, $"{_noTagFiles.Count} nummers zonder (volledige) tags — vul aan en keur goed."),
+            () => _noTagFiles.Count > 0);
+        EditNoCoverCommand = new RelayCommand(
+            () => _onEdit(_noCoverFiles, $"{_noCoverFiles.Count} nummers uit albums zonder hoes — zet een hoes (of Auto-fill) en keur goed."),
+            () => _noCoverFiles.Count > 0);
     }
 
     private string _libraryFolder = string.Empty;
@@ -78,6 +88,8 @@ public class LibraryViewModel : ViewModelBase
     public RelayCommand RepairCoversCommand { get; }
     public RelayCommand FindUpgradesCommand { get; }
     public RelayCommand StopCommand { get; }
+    public RelayCommand EditNoTagsCommand { get; }
+    public RelayCommand EditNoCoverCommand { get; }
 
     private void Scan()
     {
@@ -96,6 +108,7 @@ public class LibraryViewModel : ViewModelBase
                 .ToList();
 
             int noTags = 0, lossyFiles = 0;
+            var noTagBag = new ConcurrentBag<string>();
             var groups = new ConcurrentDictionary<string, Album>();
             int scanned = 0;
 
@@ -106,7 +119,7 @@ public class LibraryViewModel : ViewModelBase
                     var t = new Track(f);
                     var artist = !string.IsNullOrWhiteSpace(t.AlbumArtist) ? t.AlbumArtist : (t.Artist ?? "");
                     var album = t.Album ?? "";
-                    if (string.IsNullOrWhiteSpace(t.Title) || string.IsNullOrWhiteSpace(artist)) Interlocked.Increment(ref noTags);
+                    if (string.IsNullOrWhiteSpace(t.Title) || string.IsNullOrWhiteSpace(artist)) { Interlocked.Increment(ref noTags); noTagBag.Add(f); }
                     bool lossy = !Lossless.Contains(Path.GetExtension(f).ToLowerInvariant());
                     if (lossy) Interlocked.Increment(ref lossyFiles);
                     bool hasCover = t.EmbeddedPictures.Count > 0;
@@ -128,10 +141,14 @@ public class LibraryViewModel : ViewModelBase
             var albums = groups.Values.Where(a => a.Files.Count > 0).ToList();
             int noCover = albums.Count(a => !a.HasCover);
             int lossyAlbums = albums.Count(a => a.AllLossy);
+            var noCoverFiles = albums.Where(a => !a.HasCover).SelectMany(a => a.Files).ToList();
+            var noTagFiles = noTagBag.ToList();
 
             Dispatcher.UIThread.Post(() =>
             {
                 _albums.Clear(); _albums.AddRange(albums);
+                _noTagFiles = noTagFiles;
+                _noCoverFiles = noCoverFiles;
                 FileCount = files.Count;
                 AlbumCount = albums.Count;
                 NoTagCount = noTags;
@@ -142,7 +159,9 @@ public class LibraryViewModel : ViewModelBase
                 IsBusy = false;
                 RepairCoversCommand.RaiseCanExecuteChanged();
                 FindUpgradesCommand.RaiseCanExecuteChanged();
-                Status = token.IsCancellationRequested ? "Scan gestopt." : "Scan klaar. Kies een herstelactie.";
+                EditNoTagsCommand.RaiseCanExecuteChanged();
+                EditNoCoverCommand.RaiseCanExecuteChanged();
+                Status = token.IsCancellationRequested ? "Scan gestopt." : "Scan klaar. Klik een kaart om te herstellen.";
             });
         });
     }

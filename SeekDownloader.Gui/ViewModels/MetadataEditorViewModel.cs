@@ -112,6 +112,27 @@ public class MetadataEditorViewModel : ViewModelBase
         }
     }
 
+    /// <summary>Load an explicit set of files (e.g. the "no tags" / "no cover" lists from Gezondheid) and step through them.</summary>
+    public void LoadFiles(IReadOnlyList<string> files, string? context = null)
+    {
+        _files = files.ToList();
+        _allFiles = _files.ToList();
+        _folderLoaded = true;            // batch Auto-fill / Apple-format run over this set
+        _reviewNotes.Clear();
+        if (_files.Count == 0)
+        {
+            _path = string.Empty;
+            OnPropertyChanged(nameof(HasFile));
+            OnPropertyChanged(nameof(Position));
+            RaiseNav();
+            Status = "Geen bestanden om te bewerken.";
+            return;
+        }
+        _index = 0;
+        Load(_files[0]);
+        Status = context ?? $"{_files.Count} nummers geladen.";
+    }
+
     private void ApproveNext()
     {
         if (IsBusy) return;

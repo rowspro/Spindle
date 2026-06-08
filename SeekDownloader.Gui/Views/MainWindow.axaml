@@ -261,20 +261,36 @@
 
         <!-- Glass stat cards (Gezondheid) -->
         <Style Selector="Border.stat">
-            <Setter Property="CornerRadius" Value="12" />
+            <Setter Property="CornerRadius" Value="14" />
             <Setter Property="Padding" Value="18,16" />
             <Setter Property="Margin" Value="6" />
-            <Setter Property="Background" Value="#B2FFFFFF" />
-            <Setter Property="BorderBrush" Value="#66FFFFFF" />
+            <Setter Property="Background" Value="{StaticResource Card}" />
+            <Setter Property="BorderBrush" Value="{StaticResource CardBorder}" />
             <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="BoxShadow" Value="0 6 20 0 #14000000" />
+            <Setter Property="BoxShadow" Value="0 2 8 0 #14000000" />
         </Style>
-        <Style Selector="Border.stat TextBlock.statNum">
-            <Setter Property="FontSize" Value="26" />
+        <!-- Clickable stat (navigates to a repair flow) -->
+        <Style Selector="Button.statbtn">
+            <Setter Property="CornerRadius" Value="14" />
+            <Setter Property="Padding" Value="18,16" />
+            <Setter Property="Margin" Value="6" />
+            <Setter Property="Background" Value="{StaticResource Card}" />
+            <Setter Property="BorderBrush" Value="{StaticResource CardBorder}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="Cursor" Value="Hand" />
+        </Style>
+        <Style Selector="Button.statbtn:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="{StaticResource PrimaryHover}" />
+            <Setter Property="BorderBrush" Value="{StaticResource PrimaryContainer}" />
+        </Style>
+        <Style Selector="TextBlock.statNum">
+            <Setter Property="FontSize" Value="28" />
             <Setter Property="FontWeight" Value="Bold" />
             <Setter Property="Foreground" Value="{StaticResource TextPrimary}" />
         </Style>
-        <Style Selector="Border.stat TextBlock.statLbl">
+        <Style Selector="TextBlock.statLbl">
             <Setter Property="FontSize" Value="12" />
             <Setter Property="FontWeight" Value="SemiBold" />
             <Setter Property="Foreground" Value="{StaticResource TextSecondary}" />
@@ -854,40 +870,103 @@
             <!-- ============ TAB: ARTIESTEN ============ -->
             <TabItem Header="Artiesten">
                 <Grid x:CompileBindings="False" DataContext="{Binding Artists}" RowDefinitions="Auto,Auto,Auto,*,Auto" Margin="0,12,0,0">
-                    <TextBlock Grid.Row="0" Foreground="{StaticResource TextSecondary}" FontSize="12" TextWrapping="Wrap"
-                               Text="Volg artiesten en zie hun volledige studio-discografie (MusicBrainz) afgezet tegen je bibliotheek: welke albums je nog mist. Vink de ontbrekende aan en download ze. De muziekbieb komt uit Instellingen." />
-                    <Grid Grid.Row="1" ColumnDefinitions="*,Auto,Auto,Auto" Margin="0,12,0,0">
+                    <!-- Header -->
+                    <StackPanel Grid.Row="0">
+                        <TextBlock Classes="h2" Text="Artiesten volgen" />
+                        <TextBlock Classes="body" Margin="0,4,0,0" TextWrapping="Wrap"
+                                   Text="Volg artiesten en zie hun studio-discografie (MusicBrainz) afgezet tegen je bieb. Bestel ontbrekende albums los, of in bulk." />
+                    </StackPanel>
+
+                    <!-- Follow input -->
+                    <Grid Grid.Row="1" ColumnDefinitions="*,Auto,Auto,Auto" Margin="0,14,0,0">
                         <TextBox Grid.Column="0" Text="{Binding ArtistInput}" Watermark="Artiest om te volgen…" />
-                        <Button Grid.Column="1" Classes="ghost" Content="Volgen" Margin="8,0,0,0" Command="{Binding AddCommand}" />
+                        <Button Grid.Column="1" Classes="ghost" Margin="8,0,0,0" Command="{Binding AddCommand}">
+                            <StackPanel Orientation="Horizontal" Spacing="6"><TextBlock Classes="icon" FontSize="17" Text="&#xE145;" /><TextBlock Text="Volgen" VerticalAlignment="Center" /></StackPanel>
+                        </Button>
                         <Button Grid.Column="2" Classes="ghost" Content="Top uit Apple Music" Margin="6,0,0,0" Command="{Binding ImportTopCommand}" />
                         <Button Grid.Column="3" Classes="primary" Content="Controleer" Margin="8,0,0,0" Command="{Binding CheckCommand}" />
                     </Grid>
-                    <Grid Grid.Row="2" ColumnDefinitions="*,Auto" Margin="0,8,0,0">
-                        <ListBox Grid.Column="0" Height="78" ItemsSource="{Binding Watchlist}" SelectedItem="{Binding SelectedArtist}" />
-                        <Button Grid.Column="1" Classes="ghost" Content="Verwijder" Margin="8,0,0,0" VerticalAlignment="Top" Command="{Binding RemoveCommand}" />
-                    </Grid>
-                    <Border Grid.Row="3" Classes="card" Margin="0,12,0,0">
-                        <TreeView ItemsSource="{Binding Results}">
-                            <TreeView.DataTemplates>
-                                <TreeDataTemplate DataType="vm:ArtistDiscViewModel" ItemsSource="{Binding Albums}">
-                                    <StackPanel Orientation="Horizontal">
-                                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="13" Foreground="{StaticResource TextPrimary}" />
-                                        <TextBlock Text="{Binding Summary}" FontSize="11" Foreground="{StaticResource TextMuted}" VerticalAlignment="Center" Margin="8,0,0,0" />
-                                    </StackPanel>
-                                </TreeDataTemplate>
-                                <DataTemplate DataType="vm:DiscAlbumViewModel">
-                                    <Grid ColumnDefinitions="Auto,*,Auto" Margin="0,1,0,1">
-                                        <CheckBox Grid.Column="0" VerticalAlignment="Center" IsChecked="{Binding Selected}" IsEnabled="{Binding !Have}" />
-                                        <TextBlock Grid.Column="1" Margin="6,0,0,0" VerticalAlignment="Center" Text="{Binding Display}" Foreground="{StaticResource TextPrimary}" FontSize="12" TextTrimming="CharacterEllipsis" />
-                                        <TextBlock Grid.Column="2" Margin="8,0,4,0" VerticalAlignment="Center" Text="{Binding Mark}" Foreground="{Binding MarkBrush}" FontSize="11" FontWeight="SemiBold" />
-                                    </Grid>
-                                </DataTemplate>
-                            </TreeView.DataTemplates>
-                        </TreeView>
+
+                    <!-- Library status bar + followed-artist chips -->
+                    <Border Grid.Row="2" Classes="card" Margin="0,12,0,0" Padding="16,12">
+                        <StackPanel>
+                            <Grid ColumnDefinitions="Auto,*,Auto" VerticalAlignment="Center">
+                                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                                    <TextBlock Classes="title" Text="Gevolgde artiesten" VerticalAlignment="Center" />
+                                    <Border Margin="10,0,0,0" CornerRadius="9999" Padding="10,3" Background="{StaticResource PrimaryFixed}">
+                                        <TextBlock Text="{Binding ArtistCount}" FontSize="12" FontWeight="Bold" Foreground="{StaticResource Accent}" />
+                                    </Border>
+                                </StackPanel>
+                                <Button Grid.Column="2" Classes="ghost" Command="{Binding RemoveCommand}" ToolTip.Tip="Verwijder de geselecteerde artiest uit de lijst.">
+                                    <StackPanel Orientation="Horizontal" Spacing="6"><TextBlock Classes="icon" FontSize="17" Text="&#xE5C9;" /><TextBlock Text="Verwijder selectie" VerticalAlignment="Center" /></StackPanel>
+                                </Button>
+                            </Grid>
+                            <ListBox Margin="0,10,0,0" MaxHeight="92" ItemsSource="{Binding Watchlist}" SelectedItem="{Binding SelectedArtist}">
+                                <ListBox.ItemsPanel>
+                                    <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+                                </ListBox.ItemsPanel>
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border CornerRadius="9999" Padding="12,5" Margin="0,0,6,6" Background="{StaticResource SurfaceContainer}" BorderBrush="{StaticResource CardBorder}" BorderThickness="1">
+                                            <TextBlock Text="{Binding}" FontSize="12" Foreground="{StaticResource TextSecondary}" />
+                                        </Border>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                        </StackPanel>
                     </Border>
+
+                    <!-- Artist cards -->
+                    <ScrollViewer Grid.Row="3" Margin="0,12,0,0" VerticalScrollBarVisibility="Auto">
+                        <ItemsControl ItemsSource="{Binding Results}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate DataType="vm:ArtistDiscViewModel">
+                                    <Border Classes="card" Margin="0,0,0,12" Padding="16">
+                                        <StackPanel>
+                                            <!-- Artist header -->
+                                            <Grid ColumnDefinitions="Auto,*,Auto" Margin="0,0,0,12">
+                                                <Border Grid.Column="0" Width="44" Height="44" CornerRadius="22" Background="{StaticResource SurfaceVariant}">
+                                                    <TextBlock Classes="icon" FontSize="22" Text="&#xE029;" HorizontalAlignment="Center" Foreground="{StaticResource TextSecondary}" />
+                                                </Border>
+                                                <StackPanel Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center">
+                                                    <TextBlock Text="{Binding Name}" Classes="title" FontSize="16" />
+                                                    <Grid ColumnDefinitions="120,*" Margin="0,6,0,0" VerticalAlignment="Center">
+                                                        <ProgressBar Grid.Column="0" Minimum="0" Maximum="{Binding Total}" Value="{Binding Owned}"
+                                                                     Height="6" CornerRadius="3" Background="{StaticResource SurfaceVariant}" Foreground="{StaticResource Accent}" VerticalAlignment="Center" />
+                                                        <TextBlock Grid.Column="1" Margin="10,0,0,0" Text="{Binding Summary}" Classes="caption" VerticalAlignment="Center" />
+                                                    </Grid>
+                                                </StackPanel>
+                                            </Grid>
+                                            <!-- Album rows -->
+                                            <ItemsControl ItemsSource="{Binding Albums}">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate DataType="vm:DiscAlbumViewModel">
+                                                        <Border Padding="10,8" Margin="0,0,0,4" CornerRadius="8" Background="{StaticResource Recess}">
+                                                            <Grid ColumnDefinitions="Auto,*,Auto,Auto" VerticalAlignment="Center">
+                                                                <CheckBox Grid.Column="0" VerticalAlignment="Center" IsChecked="{Binding Selected}" IsEnabled="{Binding !Have}" IsVisible="{Binding !Have}" />
+                                                                <TextBlock Grid.Column="1" Margin="6,0,0,0" VerticalAlignment="Center" Text="{Binding Display}" Classes="body" Foreground="{StaticResource TextPrimary}" TextTrimming="CharacterEllipsis" />
+                                                                <Border Grid.Column="2" CornerRadius="9999" Padding="9,3" Margin="8,0,0,0" VerticalAlignment="Center"
+                                                                        Background="{Binding MarkBg}">
+                                                                    <TextBlock Text="{Binding Mark}" FontSize="11" FontWeight="SemiBold" Foreground="{Binding MarkBrush}" />
+                                                                </Border>
+                                                                <Button Grid.Column="3" Classes="primary" Margin="8,0,0,0" Padding="14,6" Command="{Binding BestelCommand}" IsVisible="{Binding !Have}" Content="Bestel" />
+                                                            </Grid>
+                                                        </Border>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+
                     <Grid Grid.Row="4" ColumnDefinitions="*,Auto" Margin="0,12,0,0">
                         <SelectableTextBlock Grid.Column="0" VerticalAlignment="Center" Foreground="{StaticResource TextSecondary}" Text="{Binding Status}" />
-                        <Button Grid.Column="1" Classes="primary" Content="Download ontbrekende" Command="{Binding DownloadMissingCommand}" />
+                        <Button Grid.Column="1" Classes="primary" Command="{Binding DownloadMissingCommand}">
+                            <StackPanel Orientation="Horizontal" Spacing="8"><TextBlock Classes="icon" FontSize="18" Text="&#xF090;" /><TextBlock Text="Download ontbrekende" VerticalAlignment="Center" /></StackPanel>
+                        </Button>
                     </Grid>
                 </Grid>
             </TabItem>
@@ -895,45 +974,90 @@
             <!-- ============ TAB: BIBLIOTHEEK ============ -->
             <TabItem Header="Bibliotheek">
                 <Grid x:CompileBindings="False" DataContext="{Binding Library}" RowDefinitions="Auto,*,Auto" Margin="0,12,0,0">
-                    <TextBlock Grid.Row="0" Foreground="{StaticResource TextSecondary}" FontSize="12" TextWrapping="Wrap"
-                               Text="Gezondheid van je bibliotheek: scant op ontbrekende tags/hoezen en lossy vs lossless. Herstel: ontbrekende albumhoezen ophalen, of FLAC-upgrades voor MP3-albums opzoeken. Muziekbieb komt uit Instellingen." />
-                    <ScrollViewer Grid.Row="1" Margin="0,12,0,0" VerticalScrollBarVisibility="Auto">
+                    <StackPanel Grid.Row="0">
+                        <TextBlock Classes="h2" Text="Bibliotheek-gezondheid" />
+                        <TextBlock Classes="body" Margin="0,4,0,0" TextWrapping="Wrap"
+                                   Text="Scant je muziekbieb op ontbrekende tags/hoezen en lossy vs lossless. Klik een gemarkeerde kaart om die nummers meteen te herstellen." />
+                    </StackPanel>
+                    <ScrollViewer Grid.Row="1" Margin="0,16,0,0" VerticalScrollBarVisibility="Auto">
                         <UniformGrid Columns="3" VerticalAlignment="Top">
                             <Border Classes="stat">
-                                <StackPanel>
-                                    <TextBlock Classes="statNum" Text="{Binding FileCount, StringFormat=N0}" />
-                                    <TextBlock Classes="statLbl" Text="Bestanden" />
-                                </StackPanel>
+                                <Grid RowDefinitions="Auto,Auto">
+                                    <Grid Grid.Row="0" ColumnDefinitions="*,Auto">
+                                        <TextBlock Grid.Column="0" Classes="statNum" Text="{Binding FileCount, StringFormat=N0}" />
+                                        <Border Grid.Column="1" Width="38" Height="38" CornerRadius="10" Background="{StaticResource SurfaceVariant}">
+                                            <TextBlock Classes="icon" Text="&#xE030;" HorizontalAlignment="Center" Foreground="{StaticResource TextSecondary}" />
+                                        </Border>
+                                    </Grid>
+                                    <TextBlock Grid.Row="1" Classes="statLbl" Text="Bestanden" />
+                                </Grid>
                             </Border>
                             <Border Classes="stat">
-                                <StackPanel>
-                                    <TextBlock Classes="statNum" Text="{Binding AlbumCount, StringFormat=N0}" />
-                                    <TextBlock Classes="statLbl" Text="Albums" />
-                                </StackPanel>
+                                <Grid RowDefinitions="Auto,Auto">
+                                    <Grid Grid.Row="0" ColumnDefinitions="*,Auto">
+                                        <TextBlock Grid.Column="0" Classes="statNum" Text="{Binding AlbumCount, StringFormat=N0}" />
+                                        <Border Grid.Column="1" Width="38" Height="38" CornerRadius="10" Background="{StaticResource SurfaceVariant}">
+                                            <TextBlock Classes="icon" Text="&#xE019;" HorizontalAlignment="Center" Foreground="{StaticResource TextSecondary}" />
+                                        </Border>
+                                    </Grid>
+                                    <TextBlock Grid.Row="1" Classes="statLbl" Text="Albums" />
+                                </Grid>
                             </Border>
                             <Border Classes="stat">
-                                <StackPanel>
-                                    <TextBlock Classes="statNum" Foreground="#A55600" Text="{Binding NoTagCount, StringFormat=N0}" />
-                                    <TextBlock Classes="statLbl" Text="Zonder tags" />
-                                </StackPanel>
+                                <Grid RowDefinitions="Auto,Auto">
+                                    <Grid Grid.Row="0" ColumnDefinitions="*,Auto">
+                                        <TextBlock Grid.Column="0" Classes="statNum" Foreground="{StaticResource Accent}" Text="{Binding UpgradeAlbumCount, StringFormat=N0}" />
+                                        <Border Grid.Column="1" Width="38" Height="38" CornerRadius="10" Background="{StaticResource PrimaryFixed}">
+                                            <TextBlock Classes="icon" Text="&#xF0FB;" HorizontalAlignment="Center" Foreground="{StaticResource Accent}" />
+                                        </Border>
+                                    </Grid>
+                                    <TextBlock Grid.Row="1" Classes="statLbl" Text="FLAC-upgrades mogelijk" />
+                                </Grid>
                             </Border>
+
+                            <!-- Clickable: jump to Metadata with the affected files -->
+                            <Button Classes="statbtn" Command="{Binding EditNoTagsCommand}"
+                                    ToolTip.Tip="Open deze nummers in Metadata om de tags aan te vullen.">
+                                <Grid RowDefinitions="Auto,Auto,Auto">
+                                    <Grid Grid.Row="0" ColumnDefinitions="*,Auto">
+                                        <TextBlock Grid.Column="0" Classes="statNum" Foreground="#A55600" Text="{Binding NoTagCount, StringFormat=N0}" />
+                                        <Border Grid.Column="1" Width="38" Height="38" CornerRadius="10" Background="#FFE5CC">
+                                            <TextBlock Classes="icon" Text="&#xE892;" HorizontalAlignment="Center" Foreground="#A55600" />
+                                        </Border>
+                                    </Grid>
+                                    <TextBlock Grid.Row="1" Classes="statLbl" Text="Zonder tags" />
+                                    <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,8,0,0">
+                                        <TextBlock Text="Herstellen" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource Accent}" VerticalAlignment="Center" />
+                                        <TextBlock Classes="icon" FontSize="16" Text="&#xE5C8;" Margin="2,0,0,0" Foreground="{StaticResource Accent}" />
+                                    </StackPanel>
+                                </Grid>
+                            </Button>
+                            <Button Classes="statbtn" Command="{Binding EditNoCoverCommand}"
+                                    ToolTip.Tip="Open de nummers uit albums zonder hoes in Metadata om een hoes te zetten.">
+                                <Grid RowDefinitions="Auto,Auto,Auto">
+                                    <Grid Grid.Row="0" ColumnDefinitions="*,Auto">
+                                        <TextBlock Grid.Column="0" Classes="statNum" Foreground="#A55600" Text="{Binding NoCoverCount, StringFormat=N0}" />
+                                        <Border Grid.Column="1" Width="38" Height="38" CornerRadius="10" Background="#FFE5CC">
+                                            <TextBlock Classes="icon" Text="&#xE3AD;" HorizontalAlignment="Center" Foreground="#A55600" />
+                                        </Border>
+                                    </Grid>
+                                    <TextBlock Grid.Row="1" Classes="statLbl" Text="Albums zonder hoes" />
+                                    <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,8,0,0">
+                                        <TextBlock Text="Herstellen" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource Accent}" VerticalAlignment="Center" />
+                                        <TextBlock Classes="icon" FontSize="16" Text="&#xE5C8;" Margin="2,0,0,0" Foreground="{StaticResource Accent}" />
+                                    </StackPanel>
+                                </Grid>
+                            </Button>
                             <Border Classes="stat">
-                                <StackPanel>
-                                    <TextBlock Classes="statNum" Foreground="#A55600" Text="{Binding NoCoverCount, StringFormat=N0}" />
-                                    <TextBlock Classes="statLbl" Text="Zonder hoes" />
-                                </StackPanel>
-                            </Border>
-                            <Border Classes="stat">
-                                <StackPanel>
-                                    <TextBlock Classes="statNum" Foreground="#A55600" Text="{Binding LossyFileCount, StringFormat=N0}" />
-                                    <TextBlock Classes="statLbl" Text="Lossy (MP3/AAC)" />
-                                </StackPanel>
-                            </Border>
-                            <Border Classes="stat">
-                                <StackPanel>
-                                    <TextBlock Classes="statNum" Foreground="{StaticResource Accent}" Text="{Binding UpgradeAlbumCount, StringFormat=N0}" />
-                                    <TextBlock Classes="statLbl" Text="FLAC-upgrades" />
-                                </StackPanel>
+                                <Grid RowDefinitions="Auto,Auto">
+                                    <Grid Grid.Row="0" ColumnDefinitions="*,Auto">
+                                        <TextBlock Grid.Column="0" Classes="statNum" Foreground="#A55600" Text="{Binding LossyFileCount, StringFormat=N0}" />
+                                        <Border Grid.Column="1" Width="38" Height="38" CornerRadius="10" Background="#FFE5CC">
+                                            <TextBlock Classes="icon" Text="&#xE1B8;" HorizontalAlignment="Center" Foreground="#A55600" />
+                                        </Border>
+                                    </Grid>
+                                    <TextBlock Grid.Row="1" Classes="statLbl" Text="Lossy (MP3/AAC)" />
+                                </Grid>
                             </Border>
                         </UniformGrid>
                     </ScrollViewer>
