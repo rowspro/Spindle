@@ -30,6 +30,34 @@ public class ProblemAlbumViewModel : ViewModelBase
     }
 }
 
+/// <summary>One album row in a Gezondheid detail list (FLAC-upgrades / Lossy) with a "replace with FLAC" action.</summary>
+public class HealthAlbumViewModel : ViewModelBase
+{
+    public string Title { get; }
+    public string Detail { get; }
+    public RelayCommand UpgradeCommand { get; }
+    public HealthAlbumViewModel(string title, string detail, Action onUpgrade)
+    {
+        Title = title; Detail = detail; UpgradeCommand = new RelayCommand(onUpgrade);
+    }
+}
+
+/// <summary>Album node in the "Alle albums" tree (children are track filenames).</summary>
+public class HealthAlbumNode
+{
+    public string Header { get; }
+    public List<string> Tracks { get; }
+    public HealthAlbumNode(string header, List<string> tracks) { Header = header; Tracks = tracks; }
+}
+
+/// <summary>Artist node in the "Alle albums" tree (children are albums).</summary>
+public class HealthArtistNode
+{
+    public string Name { get; }
+    public List<HealthAlbumNode> Albums { get; }
+    public HealthArtistNode(string name, List<HealthAlbumNode> albums) { Name = name; Albums = albums; }
+}
+
 /// <summary>
 /// Library health: scans your music for issues (missing tags, no cover art, lossy vs lossless) and
 /// offers repair actions — fetch missing album covers (MusicBrainz/Cover Art Archive) and queue FLAC
@@ -48,6 +76,7 @@ public class LibraryViewModel : ViewModelBase
         public bool HasCover;
         public bool AllLossy;
         public int Untagged;
+        public int LossyCount;
         public string Query => $"{Artist} - {Name}";
     }
 
@@ -72,6 +101,104 @@ public class LibraryViewModel : ViewModelBase
         EditNoCoverCommand = new RelayCommand(
             () => _onEdit(_noCoverFiles, $"{_noCoverFiles.Count} nummers uit albums zonder hoes — zet een hoes (of Auto-fill) en keur goed."),
             () => _noCoverFiles.Count > 0);
+        ShowFilesCommand = new RelayCommand(ShowFiles);
+        ShowAlbumsCommand = new RelayCommand(ShowAlbums);
+        ShowUpgradesCommand = new RelayCommand(ShowUpgrades);
+        ShowLossyCommand = new RelayCommand(ShowLossy);
+        CloseDetailCommand = new RelayCommand(() => DetailKind = string.Empty);
+    }
+
+    // ---- Detail drill-down (clicking a stat box) ----
+    public ObservableCollection<string> DetailFiles { get; } = new();
+    public ObservableCollection<HealthArtistNode> AlbumTree { get; } = new();
+    public ObservableCollection<HealthAlbumViewModel> DetailAlbums { get; } = new();
+
+    private string _detailKind = string.Empty;     // "", "files", "albums", "list"
+    public string DetailKind
+    {
+        get => _detailKind;
+        private set
+        {
+            if (SetField(ref _detailKind, value))
+            {
+                OnPropertyChanged(nameof(ShowDetail));
+                OnPropertyChanged(nameof(ShowDashboard));
+                OnPropertyChanged(nameof(ShowFilesPanel));
+                OnPropertyChanged(nameof(ShowAlbumsPanel));
+                OnPropertyChanged(nameof(ShowListPanel));
+            }
+        }
+    }
+    public bool ShowDetail => _detailKind.Length > 0;
+    public bool ShowDashboard => _detailKind.Length == 0;
+    public bool ShowFilesPanel => _detailKind == "files";
+    public bool ShowAlbumsPanel => _detailKind == "albums";
+    public bool ShowListPanel => _detailKind == "list";
+
+    private string _detailTitle = string.Empty;
+    public string DetailTitle { get => _detailTitle; private set => SetField(ref _detailTitle, value); }
+
+    public RelayCommand ShowFilesCommand { get; }
+    public RelayCommand ShowAlbumsCommand { get; }
+    public RelayCommand ShowUpgradesCommand { get; }
+    public RelayCommand ShowLossyCommand { get; }
+    public RelayCommand CloseDetailCommand { get; }
+
+    private void ShowFiles()
+    {
+        DetailFiles.Clear();
+        foreach (var a in _albums.OrderBy(a => a.Artist).ThenBy(a => a.Name))
+            foreach (var f in a.Files.OrderBy(x => x))
+                DetailFiles.Add(RelativeOrName(f));
+        DetailTitle = $"Alle bestanden ({DetailFiles.Count})";
+        DetailKind = "files";
+    }
+
+    private void ShowAlbums()
+    {
+        AlbumTree.Clear();
+        foreach (var g in _albums.GroupBy(a => a.Artist).OrderBy(g => g.Key))
+        {
+            var albums = g.OrderBy(a => a.Name)
+                .Select(a => new HealthAlbumNode($"{a.Name}  ·  {a.Files.Count} nummers",
+                    a.Files.Select(x => Path.GetFileName(x) ?? x).OrderBy(x => x).ToList()))
+                .ToList();
+            AlbumTree.Add(new HealthArtistNode(string.IsNullOrWhiteSpace(g.Key) ? "(onbekend)" : g.Key, albums));
+        }
+        DetailTitle = $"Alle albums ({_albums.Count})";
+        DetailKind = "albums";
+    }
+
+    private void ShowUpgrades()
+    {
+        DetailAlbums.Clear();
+        foreach (var a in _albums.Where(a => a.AllLossy).OrderBy(a => a.Artist).ThenBy(a => a.Name))
+        {
+            var q = a.Query; var name = a.Name;
+            DetailAlbums.Add(new HealthAlbumViewModel($"{a.Artist} — {a.Name}", $"{a.Files.Count} nummers · volledig lossy",
+                () => { Status = $"'{name}' naar FLAC-upgrade…"; _onDownload(new List<string> { q }); }));
+        }
+        DetailTitle = $"FLAC-upgrades mogelijk ({DetailAlbums.Count})";
+        DetailKind = "list";
+    }
+
+    private void ShowLossy()
+    {
+        DetailAlbums.Clear();
+        foreach (var a in _albums.Where(a => a.LossyCount > 0).OrderByDescending(a => a.LossyCount).ThenBy(a => a.Artist))
+        {
+            var q = a.Query; var name = a.Name;
+            DetailAlbums.Add(new HealthAlbumViewModel($"{a.Artist} — {a.Name}", $"{a.LossyCount} lossy bestand(en)",
+                () => { Status = $"'{name}' opnieuw in FLAC zoeken…"; _onDownload(new List<string> { q }); }));
+        }
+        DetailTitle = $"Lossy bestanden ({LossyFileCount})";
+        DetailKind = "list";
+    }
+
+    private string RelativeOrName(string f)
+    {
+        try { var rel = Path.GetRelativePath(LibraryFolder, f); return rel.StartsWith("..") ? Path.GetFileName(f) : rel; }
+        catch { return Path.GetFileName(f); }
     }
 
     private string _libraryFolder = string.Empty;
@@ -126,6 +253,7 @@ public class LibraryViewModel : ViewModelBase
         var lib = LibraryFolder;
         if (!Directory.Exists(lib)) { Status = "Bibliotheek-map bestaat niet."; return; }
         IsBusy = true;
+        DetailKind = string.Empty; // terug naar het overzicht bij (her)scannen
         _cts = new CancellationTokenSource();
         var token = _cts.Token;
         Status = "Bibliotheek scannen…";
@@ -161,6 +289,7 @@ public class LibraryViewModel : ViewModelBase
                         a.Files.Add(f);
                         if (hasCover) a.HasCover = true;
                         if (!lossy) a.AllLossy = false;
+                        if (lossy) a.LossyCount++;
                         if (untagged) a.Untagged++;
                     }
                 }

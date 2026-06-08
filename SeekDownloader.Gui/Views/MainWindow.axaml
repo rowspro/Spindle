@@ -1048,7 +1048,7 @@
                         <TextBlock Classes="body" Margin="0,4,0,0" TextWrapping="Wrap"
                                    Text="Scant je muziekbieb op ontbrekende tags/hoezen en lossy vs lossless. Klik een gemarkeerde kaart om die nummers meteen te herstellen." />
                     </StackPanel>
-                    <ScrollViewer Grid.Row="1" Margin="0,16,0,0" VerticalScrollBarVisibility="Auto">
+                    <ScrollViewer Grid.Row="1" Margin="0,16,0,0" VerticalScrollBarVisibility="Auto" IsVisible="{Binding ShowDashboard}">
                       <StackPanel Spacing="14">
                         <!-- Health score hero -->
                         <Border Classes="card" Padding="20">
@@ -1069,8 +1069,8 @@
                         </Border>
 
                         <UniformGrid Columns="3" VerticalAlignment="Top">
-                            <Border Classes="stat">
-                                <Grid RowDefinitions="Auto,Auto">
+                            <Button Classes="statbtn" Command="{Binding ShowFilesCommand}" ToolTip.Tip="Bekijk alle bestanden in je bibliotheek.">
+                                <Grid RowDefinitions="Auto,Auto,Auto">
                                     <Grid Grid.Row="0" ColumnDefinitions="*,Auto">
                                         <TextBlock Grid.Column="0" Classes="statNum" Text="{Binding FileCount, StringFormat=N0}" />
                                         <Border Grid.Column="1" Width="38" Height="38" CornerRadius="10" Background="{StaticResource SurfaceVariant}">
@@ -1078,10 +1078,14 @@
                                         </Border>
                                     </Grid>
                                     <TextBlock Grid.Row="1" Classes="statLbl" Text="Bestanden" />
+                                    <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,8,0,0">
+                                        <TextBlock Text="Bekijken" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource Accent}" VerticalAlignment="Center" />
+                                        <TextBlock Classes="icon" FontSize="16" Text="&#xE5C8;" Margin="2,0,0,0" Foreground="{StaticResource Accent}" />
+                                    </StackPanel>
                                 </Grid>
-                            </Border>
-                            <Border Classes="stat">
-                                <Grid RowDefinitions="Auto,Auto">
+                            </Button>
+                            <Button Classes="statbtn" Command="{Binding ShowAlbumsCommand}" ToolTip.Tip="Bekijk alle albums; klap een album uit voor de nummers.">
+                                <Grid RowDefinitions="Auto,Auto,Auto">
                                     <Grid Grid.Row="0" ColumnDefinitions="*,Auto">
                                         <TextBlock Grid.Column="0" Classes="statNum" Text="{Binding AlbumCount, StringFormat=N0}" />
                                         <Border Grid.Column="1" Width="38" Height="38" CornerRadius="10" Background="{StaticResource SurfaceVariant}">
@@ -1089,10 +1093,14 @@
                                         </Border>
                                     </Grid>
                                     <TextBlock Grid.Row="1" Classes="statLbl" Text="Albums" />
+                                    <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,8,0,0">
+                                        <TextBlock Text="Bekijken" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource Accent}" VerticalAlignment="Center" />
+                                        <TextBlock Classes="icon" FontSize="16" Text="&#xE5C8;" Margin="2,0,0,0" Foreground="{StaticResource Accent}" />
+                                    </StackPanel>
                                 </Grid>
-                            </Border>
-                            <Border Classes="stat">
-                                <Grid RowDefinitions="Auto,Auto">
+                            </Button>
+                            <Button Classes="statbtn" Command="{Binding ShowUpgradesCommand}" ToolTip.Tip="Bekijk welke albums naar FLAC te upgraden zijn en upgrade ze.">
+                                <Grid RowDefinitions="Auto,Auto,Auto">
                                     <Grid Grid.Row="0" ColumnDefinitions="*,Auto">
                                         <TextBlock Grid.Column="0" Classes="statNum" Foreground="{StaticResource Accent}" Text="{Binding UpgradeAlbumCount, StringFormat=N0}" />
                                         <Border Grid.Column="1" Width="38" Height="38" CornerRadius="10" Background="{StaticResource PrimaryFixed}">
@@ -1100,8 +1108,12 @@
                                         </Border>
                                     </Grid>
                                     <TextBlock Grid.Row="1" Classes="statLbl" Text="FLAC-upgrades mogelijk" />
+                                    <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,8,0,0">
+                                        <TextBlock Text="Bekijken" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource Accent}" VerticalAlignment="Center" />
+                                        <TextBlock Classes="icon" FontSize="16" Text="&#xE5C8;" Margin="2,0,0,0" Foreground="{StaticResource Accent}" />
+                                    </StackPanel>
                                 </Grid>
-                            </Border>
+                            </Button>
 
                             <!-- Clickable: jump to Metadata with the affected files -->
                             <Button Classes="statbtn" Command="{Binding EditNoTagsCommand}"
@@ -1136,8 +1148,8 @@
                                     </StackPanel>
                                 </Grid>
                             </Button>
-                            <Button Classes="statbtn" Command="{Binding FindUpgradesCommand}"
-                                    ToolTip.Tip="Zet de volledig-lossy albums in de wachtrij om ze in FLAC opnieuw te zoeken.">
+                            <Button Classes="statbtn" Command="{Binding ShowLossyCommand}"
+                                    ToolTip.Tip="Bekijk de lossy bestanden en vervang ze door FLAC.">
                                 <Grid RowDefinitions="Auto,Auto,Auto">
                                     <Grid Grid.Row="0" ColumnDefinitions="*,Auto">
                                         <TextBlock Grid.Column="0" Classes="statNum" Foreground="#A55600" Text="{Binding LossyFileCount, StringFormat=N0}" />
@@ -1147,8 +1159,8 @@
                                     </Grid>
                                     <TextBlock Grid.Row="1" Classes="statLbl" Text="Lossy (MP3/AAC)" />
                                     <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,8,0,0">
-                                        <TextBlock Text="Upgraden" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource Accent}" VerticalAlignment="Center" />
-                                        <TextBlock Classes="icon" FontSize="16" Text="&#xF0FB;" Margin="2,0,0,0" Foreground="{StaticResource Accent}" />
+                                        <TextBlock Text="Bekijken" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource Accent}" VerticalAlignment="Center" />
+                                        <TextBlock Classes="icon" FontSize="16" Text="&#xE5C8;" Margin="2,0,0,0" Foreground="{StaticResource Accent}" />
                                     </StackPanel>
                                 </Grid>
                             </Button>
@@ -1185,6 +1197,61 @@
                         </Border>
                       </StackPanel>
                     </ScrollViewer>
+
+                    <!-- Detail drill-down (clicking a stat box) -->
+                    <Grid Grid.Row="1" Margin="0,16,0,0" RowDefinitions="Auto,*" IsVisible="{Binding ShowDetail}">
+                        <Grid Grid.Row="0" ColumnDefinitions="Auto,*" Margin="0,0,0,12">
+                            <Button Grid.Column="0" Classes="ghost" Command="{Binding CloseDetailCommand}">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <TextBlock Classes="icon" FontSize="17" Text="&#xE5C4;" />
+                                    <TextBlock Text="Overzicht" VerticalAlignment="Center" />
+                                </StackPanel>
+                            </Button>
+                            <TextBlock Grid.Column="1" Margin="14,0,0,0" Classes="h2" Text="{Binding DetailTitle}" VerticalAlignment="Center" />
+                        </Grid>
+                        <Border Grid.Row="1" Classes="card" Padding="8">
+                            <Grid>
+                                <!-- Bestanden -->
+                                <ListBox IsVisible="{Binding ShowFilesPanel}" ItemsSource="{Binding DetailFiles}" Background="Transparent" BorderThickness="0">
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding}" FontSize="13" Foreground="{StaticResource TextPrimary}" Padding="6,3" TextTrimming="CharacterEllipsis" />
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+                                <!-- Albums (tree) -->
+                                <TreeView IsVisible="{Binding ShowAlbumsPanel}" ItemsSource="{Binding AlbumTree}" Background="Transparent">
+                                    <TreeView.DataTemplates>
+                                        <TreeDataTemplate DataType="vm:HealthArtistNode" ItemsSource="{Binding Albums}">
+                                            <TextBlock Text="{Binding Name}" Classes="title" FontSize="14" />
+                                        </TreeDataTemplate>
+                                        <TreeDataTemplate DataType="vm:HealthAlbumNode" ItemsSource="{Binding Tracks}">
+                                            <TextBlock Text="{Binding Header}" FontSize="13" Foreground="{StaticResource TextSecondary}" FontWeight="SemiBold" />
+                                        </TreeDataTemplate>
+                                    </TreeView.DataTemplates>
+                                </TreeView>
+                                <!-- Upgrades / Lossy list -->
+                                <ScrollViewer IsVisible="{Binding ShowListPanel}" VerticalScrollBarVisibility="Auto">
+                                    <ItemsControl ItemsSource="{Binding DetailAlbums}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Border Padding="10,8" Margin="2,2,2,6" CornerRadius="8" Background="{StaticResource Recess}">
+                                                    <Grid ColumnDefinitions="*,Auto" VerticalAlignment="Center">
+                                                        <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                                            <TextBlock Text="{Binding Title}" Classes="title" FontSize="13" TextTrimming="CharacterEllipsis" />
+                                                            <TextBlock Text="{Binding Detail}" Classes="caption" />
+                                                        </StackPanel>
+                                                        <Button Grid.Column="1" Classes="primary" Padding="14,6" Command="{Binding UpgradeCommand}" Content="Vervang met FLAC" />
+                                                    </Grid>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </ScrollViewer>
+                            </Grid>
+                        </Border>
+                    </Grid>
+
                     <Grid Grid.Row="2" ColumnDefinitions="*,Auto,Auto,Auto,Auto" Margin="0,12,0,0">
                         <SelectableTextBlock Grid.Column="0" VerticalAlignment="Center" Foreground="{StaticResource TextSecondary}" Text="{Binding Status}" />
                         <Button Grid.Column="1" Classes="ghost" Content="Hoezen repareren" Command="{Binding RepairCoversCommand}"
