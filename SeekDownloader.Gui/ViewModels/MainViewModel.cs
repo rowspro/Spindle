@@ -234,6 +234,9 @@ public class MainViewModel : ViewModelBase
     private string _filenameTemplate = NameTemplate.Default;
     public string FilenameTemplate { get => _filenameTemplate; set => SetField(ref _filenameTemplate, value); }
 
+    private string _discogsToken = string.Empty;
+    public string DiscogsToken { get => _discogsToken; set { if (SetField(ref _discogsToken, value)) Meta.DiscogsToken = value ?? string.Empty; } }
+
     // ---- Search ----
     private string _searchTerm = string.Empty;
     private string _searchDelimeter = "-";
@@ -921,6 +924,7 @@ public class MainViewModel : ViewModelBase
             InMemoryDownloads = InMemoryDownloads,
             SaveInUploaderSubfolder = SaveInUploaderSubfolder,
             AcoustIdKey = Meta.AcoustIdKey,
+            DiscogsToken = DiscogsToken.Trim(),
             FilterOutFileNames = SplitList(FilterOutFileNames),
             SortSource = Sort.SourceFolder,
             SortDest = Sort.DestFolder,
@@ -983,6 +987,7 @@ public class MainViewModel : ViewModelBase
         AppleMusic.LibraryFolder = c.AppleLibrary;
         AutoOrganize = c.AutoOrganize;
         FilenameTemplate = string.IsNullOrWhiteSpace(c.FilenameTemplate) ? NameTemplate.Default : c.FilenameTemplate;
+        DiscogsToken = c.DiscogsToken ?? string.Empty;
     }
 
     // Called when the window closes so tool folders (and other settings) survive a restart.
