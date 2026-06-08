@@ -27,6 +27,7 @@ public class OrganizeViewModel : ViewModelBase
     {
         RunCommand = new RelayCommand(Run, () => !IsBusy && !string.IsNullOrWhiteSpace(SourceFolder));
         StopCommand = new RelayCommand(() => _cts?.Cancel(), () => IsBusy);
+        UndoCommand = new RelayCommand(() => { var n = MoveLog.UndoLast(); Status = n > 0 ? $"{n} bestand(en) teruggezet." : "Niets om ongedaan te maken."; }, () => !IsBusy);
     }
 
     private string _sourceFolder = string.Empty;
@@ -50,6 +51,11 @@ public class OrganizeViewModel : ViewModelBase
     private bool _replayGain;
     public bool ReplayGain { get => _replayGain; set => SetField(ref _replayGain, value); }
 
+    private bool _lyrics;
+    public bool Lyrics { get => _lyrics; set => SetField(ref _lyrics, value); }
+
+    private string _template = NameTemplate.Default;
+
     private bool _isBusy;
     public bool IsBusy
     {
@@ -66,6 +72,7 @@ public class OrganizeViewModel : ViewModelBase
 
     public RelayCommand RunCommand { get; }
     public RelayCommand StopCommand { get; }
+    public RelayCommand UndoCommand { get; }
 
     private record FileRec(string Path, string Artist, string Album, string Title, int Track, bool HasArt);
 
@@ -85,6 +92,8 @@ public class OrganizeViewModel : ViewModelBase
         var cover = FetchCover;
         var genre = CleanGenre;
         var rg = ReplayGain && ReplayGainService.Available;
+        _template = Settings.Load().FilenameTemplate;
+        if (!test) MoveLog.StartBatch();
 
         Task.Run(async () =>
         {
@@ -214,17 +223,18 @@ public class OrganizeViewModel : ViewModelBase
             }
             t.Save();
             if (rg) ReplayGainService.AnalyzeAndTag(rec.Path, token);
+            if (_lyrics)
+            {
+                try { LyricsService.FetchLrc(rec.Path, albumArtist, newTitle, newAlbum, (int)t.Duration, token).GetAwaiter().GetResult(); } catch { }
+            }
         }
 
-        // Destination path: Artiest / Album (Jaar) / hoofdartiest - album - ## titel
+        // Destination path: Artiest / Album (Jaar) / <bestandsnaam-template>
         var ext = Path.GetExtension(rec.Path);
         var artistDir = Clean(string.IsNullOrEmpty(albumArtist) ? "Unknown Artist" : albumArtist);
         var albumDir = string.IsNullOrEmpty(newAlbum) ? "Singles" : Clean(year.Length > 0 ? $"{newAlbum} ({year})" : newAlbum);
-        var trackNum = newTrack > 0 ? $"{newTrack:00} " : "";
-        var nameParts = new List<string> { Clean(string.IsNullOrEmpty(albumArtist) ? "Unknown Artist" : albumArtist) };
-        if (!string.IsNullOrEmpty(newAlbum)) nameParts.Add(Clean(newAlbum));
-        nameParts.Add(Clean($"{trackNum}{newTitle}"));
-        var fileName = string.Join(" - ", nameParts) + ext;
+        var fileArtist = string.IsNullOrEmpty(albumArtist) ? "Unknown Artist" : albumArtist;
+        var fileName = NameTemplate.Build(_template, fileArtist, newAlbum, newTitle, newTrack, year, Clean) + ext;
         var targetDir = Path.Combine(dest, artistDir, albumDir);
         var target = Unique(Path.Combine(targetDir, fileName), taken);
         var targetRel = Path.GetRelativePath(dest, target);
@@ -236,6 +246,7 @@ public class OrganizeViewModel : ViewModelBase
 
         Directory.CreateDirectory(targetDir);
         File.Move(rec.Path, target);
+        MoveLog.Record(target, rec.Path);
         return ("Verplaatst", targetRel, "");
     }
 

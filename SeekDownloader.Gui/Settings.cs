@@ -48,6 +48,13 @@ public static class Settings
         Save(c);
     }
 
+    public static void SaveWatchlist(List<string> list)
+    {
+        var c = Load();
+        c.Watchlist = list;
+        Save(c);
+    }
+
     public static void Save(SeekConfig config)
     {
         try

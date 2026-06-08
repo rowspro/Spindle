@@ -57,4 +57,10 @@ public class SeekConfig
 
     // Run the Organiseren-pijplijn automatically on the download folder after an auto-download finishes.
     public bool AutoOrganize { get; set; }
+
+    // Filename template for sort/organize (tokens: {artist} {album} {title} {track} {year}).
+    public string FilenameTemplate { get; set; } = "{artist} - {album} - {track} {title}";
+
+    // Followed artists for the discography/watchlist tab.
+    public List<string> Watchlist { get; set; } = new();
 }

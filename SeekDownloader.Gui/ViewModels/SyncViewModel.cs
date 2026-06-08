@@ -35,6 +35,7 @@ public class SyncViewModel : ViewModelBase
         SelectAllCommand = new RelayCommand(() => { foreach (var n in ArtistTree) foreach (var a in n.Albums) a.Selected = true; });
         SelectNoneCommand = new RelayCommand(() => { foreach (var a in _all) a.Selected = false; });
         TransferCommand = new RelayCommand(Transfer, () => !IsBusy && !string.IsNullOrWhiteSpace(IpodFolder));
+        MakePlaylistsCommand = new RelayCommand(MakePlaylists, () => !IsBusy && !string.IsNullOrWhiteSpace(IpodFolder));
         Failures.CollectionChanged += (_, _) => OnPropertyChanged(nameof(HasFailures));
     }
 
@@ -52,6 +53,7 @@ public class SyncViewModel : ViewModelBase
             if (SetField(ref _ipodFolder, value))
             {
                 TransferCommand.RaiseCanExecuteChanged();
+                MakePlaylistsCommand.RaiseCanExecuteChanged();
                 if (_all.Count > 0) MarkIpodPresence();
             }
         }
@@ -82,6 +84,7 @@ public class SyncViewModel : ViewModelBase
                 ScanCommand.RaiseCanExecuteChanged();
                 StopCommand.RaiseCanExecuteChanged();
                 TransferCommand.RaiseCanExecuteChanged();
+                MakePlaylistsCommand.RaiseCanExecuteChanged();
             }
         }
     }
@@ -94,6 +97,36 @@ public class SyncViewModel : ViewModelBase
     public RelayCommand SelectAllCommand { get; }
     public RelayCommand SelectNoneCommand { get; }
     public RelayCommand TransferCommand { get; }
+    public RelayCommand MakePlaylistsCommand { get; }
+
+    // Write a Rockbox-friendly .m3u in each album folder on the iPod, listing its tracks.
+    private void MakePlaylists()
+    {
+        if (IsBusy) return;
+        var ipod = IpodFolder;
+        var music = string.IsNullOrWhiteSpace(ipod) ? "" : Path.Combine(ipod, "Music");
+        if (music.Length == 0 || !Directory.Exists(music)) { Status = "Geen Music-map op de iPod."; return; }
+        IsBusy = true;
+        Task.Run(() =>
+        {
+            int made = 0;
+            try
+            {
+                foreach (var albumDir in Directory.EnumerateDirectories(music, "*", SearchOption.AllDirectories))
+                {
+                    var tracks = Directory.EnumerateFiles(albumDir)
+                        .Where(f => AudioExt.Contains(Path.GetExtension(f).ToLowerInvariant()))
+                        .OrderBy(f => f, StringComparer.OrdinalIgnoreCase)
+                        .Select(Path.GetFileName).ToList();
+                    if (tracks.Count == 0) continue;
+                    File.WriteAllLines(Path.Combine(albumDir, Path.GetFileName(albumDir) + ".m3u"), tracks!);
+                    made++;
+                }
+            }
+            catch { }
+            Dispatcher.UIThread.Post(() => { IsBusy = false; Status = $"{made} album-playlists (.m3u) gemaakt op de iPod."; });
+        });
+    }
 
     private void Scan()
     {

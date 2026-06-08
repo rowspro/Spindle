@@ -357,9 +357,11 @@
                             IsVisible="{Binding Detail, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
                         <SelectableTextBlock Text="{Binding Detail}" Foreground="{StaticResource TextPrimary}" FontSize="12" TextWrapping="Wrap" />
                     </Border>
-                    <Grid Grid.Row="6" ColumnDefinitions="*,Auto" Margin="0,12,0,0">
+                    <Grid Grid.Row="6" ColumnDefinitions="*,Auto,Auto" Margin="0,12,0,0">
                         <SelectableTextBlock Grid.Column="0" VerticalAlignment="Center" Foreground="{StaticResource TextSecondary}" Text="{Binding Status}" />
-                        <Button Grid.Column="1" Classes="primary" Content="Sorteer" Command="{Binding SortCommand}" />
+                        <Button Grid.Column="1" Classes="ghost" Content="Ongedaan maken" Command="{Binding UndoCommand}"
+                                ToolTip.Tip="Zet de laatste sorteer-/organiseer-actie terug (laatste batch verplaatsingen)." />
+                        <Button Grid.Column="2" Classes="primary" Content="Sorteer" Margin="8,0,0,0" Command="{Binding SortCommand}" />
                     </Grid>
                 </Grid>
             </TabItem>
@@ -387,8 +389,10 @@
                                   ToolTip.Tip="Haalt de albumhoes op (Cover Art Archive) en zet 'm in bestanden die er nog geen hebben." />
                         <CheckBox Margin="0,0,16,0" Content="Genre opschonen" IsChecked="{Binding CleanGenre}"
                                   ToolTip.Tip="Schrijft één canonieke genre terug." />
-                        <CheckBox Content="ReplayGain" IsChecked="{Binding ReplayGain}"
+                        <CheckBox Margin="0,0,16,0" Content="ReplayGain" IsChecked="{Binding ReplayGain}"
                                   ToolTip.Tip="Analyseert het volume (EBU R128, via ffmpeg) en schrijft ReplayGain-tags zodat alles even hard speelt. Trager." />
+                        <CheckBox Content="Songteksten (.lrc)" IsChecked="{Binding Lyrics}"
+                                  ToolTip.Tip="Haalt songteksten op (lrclib) en schrijft een .lrc-bestand naast de track (gesynchroniseerd indien beschikbaar; gelezen door Rockbox)." />
                     </WrapPanel>
                     <Border Grid.Row="4" Classes="card" Margin="0,12,0,0">
                         <ScrollViewer VerticalScrollBarVisibility="Auto">
@@ -411,10 +415,12 @@
                             IsVisible="{Binding Detail, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
                         <SelectableTextBlock Text="{Binding Detail}" Foreground="{StaticResource TextPrimary}" FontSize="12" TextWrapping="Wrap" />
                     </Border>
-                    <Grid Grid.Row="6" ColumnDefinitions="*,Auto,Auto" Margin="0,12,0,0">
+                    <Grid Grid.Row="6" ColumnDefinitions="*,Auto,Auto,Auto" Margin="0,12,0,0">
                         <SelectableTextBlock Grid.Column="0" VerticalAlignment="Center" Foreground="{StaticResource TextSecondary}" Text="{Binding Status}" />
-                        <Button Grid.Column="1" Classes="ghost" Content="Stop" Width="90" Command="{Binding StopCommand}" HorizontalContentAlignment="Center" />
-                        <Button Grid.Column="2" Classes="primary" Content="Organiseer" Margin="8,0,0,0" Command="{Binding RunCommand}" />
+                        <Button Grid.Column="1" Classes="ghost" Content="Ongedaan maken" Command="{Binding UndoCommand}"
+                                ToolTip.Tip="Zet de laatste sorteer-/organiseer-actie terug." />
+                        <Button Grid.Column="2" Classes="ghost" Content="Stop" Width="90" Margin="8,0,0,0" Command="{Binding StopCommand}" HorizontalContentAlignment="Center" />
+                        <Button Grid.Column="3" Classes="primary" Content="Organiseer" Margin="8,0,0,0" Command="{Binding RunCommand}" />
                     </Grid>
                 </Grid>
             </TabItem>
@@ -571,6 +577,67 @@
                 </Grid>
             </TabItem>
 
+            <!-- ============ TAB: ARTIESTEN ============ -->
+            <TabItem Header="Artiesten">
+                <Grid x:CompileBindings="False" DataContext="{Binding Artists}" RowDefinitions="Auto,Auto,Auto,*,Auto" Margin="0,12,0,0">
+                    <TextBlock Grid.Row="0" Foreground="{StaticResource TextSecondary}" FontSize="12" TextWrapping="Wrap"
+                               Text="Volg artiesten en zie hun volledige studio-discografie (MusicBrainz) afgezet tegen je bibliotheek: welke albums je nog mist. Vink de ontbrekende aan en download ze. De muziekbieb komt uit Instellingen." />
+                    <Grid Grid.Row="1" ColumnDefinitions="*,Auto,Auto,Auto" Margin="0,12,0,0">
+                        <TextBox Grid.Column="0" Text="{Binding ArtistInput}" Watermark="Artiest om te volgen…" />
+                        <Button Grid.Column="1" Classes="ghost" Content="Volgen" Margin="8,0,0,0" Command="{Binding AddCommand}" />
+                        <Button Grid.Column="2" Classes="ghost" Content="Top uit Apple Music" Margin="6,0,0,0" Command="{Binding ImportTopCommand}" />
+                        <Button Grid.Column="3" Classes="primary" Content="Controleer" Margin="8,0,0,0" Command="{Binding CheckCommand}" />
+                    </Grid>
+                    <Grid Grid.Row="2" ColumnDefinitions="*,Auto" Margin="0,8,0,0">
+                        <ListBox Grid.Column="0" Height="78" ItemsSource="{Binding Watchlist}" SelectedItem="{Binding SelectedArtist}" />
+                        <Button Grid.Column="1" Classes="ghost" Content="Verwijder" Margin="8,0,0,0" VerticalAlignment="Top" Command="{Binding RemoveCommand}" />
+                    </Grid>
+                    <Border Grid.Row="3" Classes="card" Margin="0,12,0,0">
+                        <TreeView ItemsSource="{Binding Results}">
+                            <TreeView.DataTemplates>
+                                <TreeDataTemplate DataType="vm:ArtistDiscViewModel" ItemsSource="{Binding Albums}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="13" Foreground="{StaticResource TextPrimary}" />
+                                        <TextBlock Text="{Binding Summary}" FontSize="11" Foreground="{StaticResource TextMuted}" VerticalAlignment="Center" Margin="8,0,0,0" />
+                                    </StackPanel>
+                                </TreeDataTemplate>
+                                <DataTemplate DataType="vm:DiscAlbumViewModel">
+                                    <Grid ColumnDefinitions="Auto,*,Auto" Margin="0,1,0,1">
+                                        <CheckBox Grid.Column="0" VerticalAlignment="Center" IsChecked="{Binding Selected}" IsEnabled="{Binding !Have}" />
+                                        <TextBlock Grid.Column="1" Margin="6,0,0,0" VerticalAlignment="Center" Text="{Binding Display}" Foreground="{StaticResource TextPrimary}" FontSize="12" TextTrimming="CharacterEllipsis" />
+                                        <TextBlock Grid.Column="2" Margin="8,0,4,0" VerticalAlignment="Center" Text="{Binding Mark}" Foreground="{Binding MarkBrush}" FontSize="11" FontWeight="SemiBold" />
+                                    </Grid>
+                                </DataTemplate>
+                            </TreeView.DataTemplates>
+                        </TreeView>
+                    </Border>
+                    <Grid Grid.Row="4" ColumnDefinitions="*,Auto" Margin="0,12,0,0">
+                        <SelectableTextBlock Grid.Column="0" VerticalAlignment="Center" Foreground="{StaticResource TextSecondary}" Text="{Binding Status}" />
+                        <Button Grid.Column="1" Classes="primary" Content="Download ontbrekende" Command="{Binding DownloadMissingCommand}" />
+                    </Grid>
+                </Grid>
+            </TabItem>
+
+            <!-- ============ TAB: BIBLIOTHEEK ============ -->
+            <TabItem Header="Bibliotheek">
+                <Grid x:CompileBindings="False" DataContext="{Binding Library}" RowDefinitions="Auto,*,Auto" Margin="0,12,0,0">
+                    <TextBlock Grid.Row="0" Foreground="{StaticResource TextSecondary}" FontSize="12" TextWrapping="Wrap"
+                               Text="Gezondheid van je bibliotheek: scant op ontbrekende tags/hoezen en lossy vs lossless. Herstel: ontbrekende albumhoezen ophalen, of FLAC-upgrades voor MP3-albums opzoeken. Muziekbieb komt uit Instellingen." />
+                    <Border Grid.Row="1" Classes="card" Margin="0,12,0,0">
+                        <SelectableTextBlock Text="{Binding Stats}" Foreground="{StaticResource TextPrimary}" FontSize="13" TextWrapping="Wrap" />
+                    </Border>
+                    <Grid Grid.Row="2" ColumnDefinitions="*,Auto,Auto,Auto,Auto" Margin="0,12,0,0">
+                        <SelectableTextBlock Grid.Column="0" VerticalAlignment="Center" Foreground="{StaticResource TextSecondary}" Text="{Binding Status}" />
+                        <Button Grid.Column="1" Classes="ghost" Content="Hoezen repareren" Command="{Binding RepairCoversCommand}"
+                                ToolTip.Tip="Haalt voor albums zonder hoes de albumhoes op (MusicBrainz/Cover Art Archive) en zet 'm in de bestanden + folder.jpg." />
+                        <Button Grid.Column="2" Classes="ghost" Content="Zoek FLAC-upgrades" Margin="8,0,0,0" Command="{Binding FindUpgradesCommand}"
+                                ToolTip.Tip="Zet alle volledig-lossy (MP3) albums in de wachtrij om ze opnieuw in FLAC te zoeken (album-modus = FLAC-voorkeur)." />
+                        <Button Grid.Column="3" Classes="ghost" Content="Stop" Width="80" Margin="8,0,0,0" Command="{Binding StopCommand}" HorizontalContentAlignment="Center" />
+                        <Button Grid.Column="4" Classes="primary" Content="Scan" Margin="8,0,0,0" Command="{Binding ScanCommand}" />
+                    </Grid>
+                </Grid>
+            </TabItem>
+
             <!-- ============ TAB: DUBBELE ============ -->
             <TabItem Header="Dubbele">
                 <Grid x:CompileBindings="False" DataContext="{Binding Duplicates}" RowDefinitions="Auto,Auto,Auto,*,Auto" Margin="0,12,0,0">
@@ -671,7 +738,7 @@
                         <TextBox Grid.Column="1" Text="{Binding IpodFolder}" Watermark="De gekoppelde iPod (Rockbox)" />
                         <Button Grid.Column="2" Classes="ghost" Content="Bladeren…" Margin="8,0,0,0" Click="OnBrowseSyncIpod" />
                     </Grid>
-                    <Grid Grid.Row="5" ColumnDefinitions="Auto,*,Auto,Auto" Margin="0,12,0,0">
+                    <Grid Grid.Row="5" ColumnDefinitions="Auto,*,Auto,Auto,Auto" Margin="0,12,0,0">
                         <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
                             <CheckBox Content="Omzetten naar ALAC" IsChecked="{Binding ConvertToAlac}"
                                       ToolTip.Tip="Standaard uit = bestanden kopiëren zoals ze zijn (snelst; Rockbox speelt FLAC/MP3/AAC). Aan = alleen FLAC/WAV/AIFF worden omgezet naar ALAC 16-bit/44,1 kHz (bespaart accu op de iPod); MP3/AAC worden altijd gewoon gekopieerd." />
@@ -679,8 +746,10 @@
                                        FontSize="11" Foreground="{StaticResource TextMuted}" />
                         </StackPanel>
                         <SelectableTextBlock Grid.Column="1" VerticalAlignment="Center" Margin="12,0,0,0" Foreground="{StaticResource TextSecondary}" Text="{Binding Status}" />
-                        <Button Grid.Column="2" Classes="ghost" Content="Stop" Width="90" Command="{Binding StopCommand}" HorizontalContentAlignment="Center" />
-                        <Button Grid.Column="3" Classes="primary" Content="Overzetten" Margin="8,0,0,0" Command="{Binding TransferCommand}" />
+                        <Button Grid.Column="2" Classes="ghost" Content=".m3u-playlists" Command="{Binding MakePlaylistsCommand}"
+                                ToolTip.Tip="Maakt per albummap op de iPod een .m3u-playlist (gelezen door Rockbox)." />
+                        <Button Grid.Column="3" Classes="ghost" Content="Stop" Width="90" Margin="8,0,0,0" Command="{Binding StopCommand}" HorizontalContentAlignment="Center" />
+                        <Button Grid.Column="4" Classes="primary" Content="Overzetten" Margin="8,0,0,0" Command="{Binding TransferCommand}" />
                     </Grid>
                     <Border Grid.Row="6" Margin="0,10,0,0" Padding="10" CornerRadius="8" Background="#FBEDEC" BorderBrush="#E0B4AE" BorderThickness="1"
                             MaxHeight="150" IsVisible="{Binding HasFailures}">
@@ -741,6 +810,16 @@
                                 <TextBlock Classes="section" Text="AUTOMATISCH" />
                                 <CheckBox Content="Na downloaden automatisch organiseren" IsChecked="{Binding AutoOrganize}"
                                           ToolTip.Tip="Draait na een geslaagde auto-download meteen de Organiseren-pijplijn op je downloadmap (tags + sorteren naar je bibliotheek)." />
+                            </StackPanel>
+                        </Border>
+
+                        <Border Classes="card">
+                            <StackPanel Spacing="6">
+                                <TextBlock Classes="section" Text="BESTANDSNAMEN" />
+                                <TextBlock Classes="label" Text="Sjabloon (Sorteren &amp; Organiseren)" />
+                                <TextBox Text="{Binding FilenameTemplate}" Watermark="{}{artist} - {album} - {track} {title}"
+                                         ToolTip.Tip="Tokens: {artist} {album} {title} {track} {year}. Lege tokens vallen netjes weg. De mapstructuur blijft Artiest / Album (Jaar)." />
+                                <TextBlock Text="Tokens: {artist} {album} {title} {track} {year}" FontSize="11" Foreground="{StaticResource TextMuted}" />
                             </StackPanel>
                         </Border>
 

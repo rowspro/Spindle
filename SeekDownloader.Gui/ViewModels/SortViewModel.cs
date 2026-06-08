@@ -24,6 +24,7 @@ public class SortViewModel : ViewModelBase
     public SortViewModel()
     {
         SortCommand = new RelayCommand(Run, () => !IsRunning && !string.IsNullOrWhiteSpace(SourceFolder));
+        UndoCommand = new RelayCommand(() => { var n = MoveLog.UndoLast(); Status = n > 0 ? $"{n} bestand(en) teruggezet." : "Niets om ongedaan te maken."; }, () => !IsRunning);
     }
 
     private string _sourceFolder = string.Empty;
@@ -60,6 +61,7 @@ public class SortViewModel : ViewModelBase
     private void ShowDetail(string d) => Detail = d;
 
     public RelayCommand SortCommand { get; }
+    public RelayCommand UndoCommand { get; }
 
     private void Run()
     {
@@ -85,6 +87,8 @@ public class SortViewModel : ViewModelBase
         var test = TestMode;
         var clean = CleanEmpty;
         var cleanGenre = CleanGenre;
+        var template = Settings.Load().FilenameTemplate;
+        if (!test) MoveLog.StartBatch();
         var taken = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var gate = new object();
 
@@ -123,15 +127,13 @@ public class SortViewModel : ViewModelBase
                     var artistDir = Clean(va ? "Various Artists" : (string.IsNullOrEmpty(folderArtist) ? "Unknown Artist" : folderArtist));
                     var albumDir = string.IsNullOrEmpty(album) ? "Singles" : Clean(t.Year > 0 ? $"{album} ({t.Year})" : album);
 
-                    // Filename: hoofdartiest - album - ## titel (track-artiest bij verzamelalbums).
+                    // Filename via the configurable template (track-artiest bij verzamelalbums).
                     var fileArtist = va && !string.IsNullOrEmpty(ar) ? ar : folderArtist;
                     if (string.IsNullOrEmpty(fileArtist)) fileArtist = "Unknown Artist";
-                    var trackNum = t.TrackNumber is > 0 ? $"{t.TrackNumber:00} " : "";
                     var baseName = string.IsNullOrEmpty(title) ? Path.GetFileNameWithoutExtension(file) : title;
-                    var nameParts = new List<string> { Clean(fileArtist) };
-                    if (!string.IsNullOrEmpty(album)) nameParts.Add(Clean(album));
-                    nameParts.Add(Clean($"{trackNum}{baseName}"));
-                    var fileName = string.Join(" - ", nameParts) + ext;
+                    var fileName = NameTemplate.Build(template, fileArtist, album, baseName,
+                        t.TrackNumber is > 0 ? t.TrackNumber.Value : 0,
+                        t.Year is > 0 ? t.Year.ToString() : "", Clean) + ext;
                     var targetDir = Path.Combine(dest, artistDir, albumDir);
 
                     string status;
@@ -152,6 +154,7 @@ public class SortViewModel : ViewModelBase
                         {
                             Directory.CreateDirectory(targetDir);
                             File.Move(file, target);
+                            MoveLog.Record(target, file);
                             Interlocked.Increment(ref moved);
                             status = "Verplaatst";
                         }
