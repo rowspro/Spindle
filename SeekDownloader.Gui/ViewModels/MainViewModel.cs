@@ -35,6 +35,12 @@ public class MainViewModel : ViewModelBase
             onArtist: a => { Mode = 2; SearchTerm = a; SelectedTabIndex = 0; Search(); },
             onPlaylistTracks: QueuePlaylist);
 
+        Artists = new ArtistsViewModel(
+            onDownload: QueuePlaylist,
+            topArtists: () => AppleMusicService.GetTopArtists(50).Select(a => a.Name).ToList());
+
+        Library = new LibraryViewModel(onDownload: QueuePlaylist);
+
         LoadFromConfig(Settings.Load());
 
         // Pre-fill comparison/library folders with your library/download path, but only when the
@@ -45,6 +51,8 @@ public class MainViewModel : ViewModelBase
         if (string.IsNullOrWhiteSpace(Sync.LibraryFolder)) Sync.LibraryFolder = fallback;
         if (string.IsNullOrWhiteSpace(Organize.SourceFolder)) Organize.SourceFolder = DownloadFilePath;
         if (string.IsNullOrWhiteSpace(Organize.DestFolder)) Organize.DestFolder = MusicLibrary;
+        if (string.IsNullOrWhiteSpace(Artists.LibraryFolder)) Artists.LibraryFolder = fallback;
+        if (string.IsNullOrWhiteSpace(Library.LibraryFolder)) Library.LibraryFolder = fallback;
 
         // Restore unfinished downloads from the previous session so they can be resumed (no re-search).
         foreach (var e in QueueStore.Load())
@@ -94,6 +102,9 @@ public class MainViewModel : ViewModelBase
     public bool HasMusicLibrary => !string.IsNullOrWhiteSpace(MusicLibrary);
     public string SearchFilePath { get => _searchFilePath; set => SetField(ref _searchFilePath, value); }
     public string DownloadArchiveFilePath { get => _downloadArchiveFilePath; set => SetField(ref _downloadArchiveFilePath, value); }
+
+    private string _filenameTemplate = NameTemplate.Default;
+    public string FilenameTemplate { get => _filenameTemplate; set => SetField(ref _filenameTemplate, value); }
 
     // ---- Search ----
     private string _searchTerm = string.Empty;
@@ -202,6 +213,8 @@ public class MainViewModel : ViewModelBase
     public DuplicatesViewModel Duplicates { get; } = new();
     public SyncViewModel Sync { get; } = new();
     public AppleMusicViewModel AppleMusic { get; }
+    public ArtistsViewModel Artists { get; }
+    public LibraryViewModel Library { get; }
 
     // ---- Runtime state ----
     private bool _isRunning;
@@ -764,6 +777,7 @@ public class MainViewModel : ViewModelBase
             SyncIpod = Sync.IpodFolder,
             AppleLibrary = AppleMusic.LibraryFolder,
             AutoOrganize = AutoOrganize,
+            FilenameTemplate = string.IsNullOrWhiteSpace(FilenameTemplate) ? NameTemplate.Default : FilenameTemplate.Trim(),
         };
 
         var extensions = SplitList(SearchFileExtensions);
@@ -814,6 +828,7 @@ public class MainViewModel : ViewModelBase
         Sync.IpodFolder = c.SyncIpod;
         AppleMusic.LibraryFolder = c.AppleLibrary;
         AutoOrganize = c.AutoOrganize;
+        FilenameTemplate = string.IsNullOrWhiteSpace(c.FilenameTemplate) ? NameTemplate.Default : c.FilenameTemplate;
     }
 
     // Called when the window closes so tool folders (and other settings) survive a restart.
