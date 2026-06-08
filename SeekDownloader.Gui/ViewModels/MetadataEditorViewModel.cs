@@ -236,6 +236,8 @@ public class MetadataEditorViewModel : ViewModelBase
         Load(_files[_index]);
     }
 
+    private string _loadedAlbum = "", _loadedAlbumArtist = "", _loadedGenre = "", _loadedYear = "";
+
     private void Load(string path)
     {
         try
@@ -251,6 +253,7 @@ public class MetadataEditorViewModel : ViewModelBase
             Track = t.TrackNumber?.ToString() ?? "";
             Disc = t.DiscNumber?.ToString() ?? "";
             Year = t.Year > 0 ? t.Year.ToString() : "";
+            _loadedAlbum = Album; _loadedAlbumArtist = AlbumArtist; _loadedGenre = Genre; _loadedYear = Year;
 
             _artChanged = false;
             _artData = t.EmbeddedPictures.Count > 0 ? t.EmbeddedPictures[0].PictureData : null;
@@ -497,14 +500,57 @@ public class MetadataEditorViewModel : ViewModelBase
         }
         catch (Exception e) { Status = "Opslaan mislukt: " + e.Message; }
 
-        // Album art is set per album: when the cover changed, apply it to the rest of the album.
-        // Run off the UI thread so approving stays instant on big albums.
-        if (artChangedNow)
-        {
-            var path = _path;
-            var art = _artData;
+        // Album-niveau-velden (album, album-artiest, genre, jaar) en de hoes gelden voor het HELE album:
+        // propageer alleen wat veranderd is naar de andere tracks van dit album (zelfde map).
+        var origAlbum = _loadedAlbum;
+        bool cAlbum = !string.Equals((Album ?? "").Trim(), (_loadedAlbum ?? "").Trim());
+        bool cAa = !string.Equals((AlbumArtist ?? "").Trim(), (_loadedAlbumArtist ?? "").Trim());
+        bool cGenre = !string.Equals((Genre ?? "").Trim(), (_loadedGenre ?? "").Trim());
+        bool cYear = !string.Equals((Year ?? "").Trim(), (_loadedYear ?? "").Trim());
+        var path = _path; var art = _artData;
+        var album = Album; var aa = AlbumArtist; var genre = Genre; var year = Year;
+        if (cAlbum || cAa || cGenre || cYear)
+            Task.Run(() => ApplyAlbumFieldsToSiblings(path, origAlbum, cAlbum, album, cAa, aa, cGenre, genre, cYear, year, artChangedNow, art));
+        else if (artChangedNow)
             Task.Run(() => ApplyArtToAlbum(path, art));
+        _loadedAlbum = Album; _loadedAlbumArtist = AlbumArtist; _loadedGenre = Genre; _loadedYear = Year;
+    }
+
+    // Propagate the changed album-level fields (and cover) to the other tracks of the same album.
+    private void ApplyAlbumFieldsToSiblings(string currentPath, string originalAlbum,
+        bool setAlbum, string album, bool setAa, string albumArtist, bool setGenre, string genre,
+        bool setYear, string year, bool setArt, byte[]? art)
+    {
+        var dir = System.IO.Path.GetDirectoryName(currentPath);
+        if (dir == null) return;
+        var match = (originalAlbum ?? string.Empty).Trim();
+        int.TryParse(year, out var yearVal);
+        int n = 0;
+        try
+        {
+            foreach (var f in System.IO.Directory.EnumerateFiles(dir, "*.*"))
+            {
+                if (string.Equals(f, currentPath, StringComparison.OrdinalIgnoreCase)) continue;
+                if (!AudioExts.Contains(System.IO.Path.GetExtension(f).ToLowerInvariant())) continue;
+                if (System.IO.Path.GetFileName(f).StartsWith("._")) continue;
+                try
+                {
+                    var t = new Track(f);
+                    if (match.Length > 0 && !string.Equals((t.Album ?? string.Empty).Trim(), match, StringComparison.OrdinalIgnoreCase))
+                        continue; // ander album in dezelfde map
+                    if (setAlbum) t.Album = album;
+                    if (setAa) t.AlbumArtist = albumArtist;
+                    if (setGenre) t.Genre = genre;
+                    if (setYear) t.Year = yearVal;
+                    if (setArt) { t.EmbeddedPictures.Clear(); if (art != null) t.EmbeddedPictures.Add(PictureInfo.fromBinaryData(art)); }
+                    t.Save();
+                    n++;
+                }
+                catch { }
+            }
         }
+        catch { }
+        if (n > 0) Dispatcher.UIThread.Post(() => Status = $"Albumvelden toegepast op {n + 1} tracks.");
     }
 
     // Apply (or clear) the current cover on every other track of the same album (same folder + same Album tag).

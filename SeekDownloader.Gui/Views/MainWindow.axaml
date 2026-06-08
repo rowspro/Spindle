@@ -1087,7 +1087,7 @@
                         </Button>
                     </Grid>
 
-                    <Grid Grid.Row="1" ColumnDefinitions="*,Auto,Auto,Auto,Auto" Margin="0,12,0,0">
+                    <Grid Grid.Row="1" ColumnDefinitions="*,Auto,Auto,Auto,Auto" Margin="0,12,0,0" IsVisible="{Binding ShowAlbumList}">
                         <TextBlock Grid.Column="0" VerticalAlignment="Center" Classes="caption" Text="{Binding Summary}" />
                         <CheckBox Grid.Column="1" Margin="0,0,12,0" Content="Alleen aandachtspunten" IsChecked="{Binding ShowOnlyIssues}" />
                         <Button Grid.Column="2" Classes="ghost" Content="Schoon" Command="{Binding SelectCleanCommand}" ToolTip.Tip="Selecteer alle schone albums die nog niet in de bieb staan." />
@@ -1095,7 +1095,7 @@
                         <Button Grid.Column="4" Classes="ghost" Content="Geen" Margin="6,0,0,0" Command="{Binding SelectNoneCommand}" />
                     </Grid>
 
-                    <ScrollViewer Grid.Row="2" Margin="0,12,0,0" VerticalScrollBarVisibility="Auto">
+                    <ScrollViewer Grid.Row="2" Margin="0,12,0,0" VerticalScrollBarVisibility="Auto" IsVisible="{Binding ShowAlbumList}">
                         <ItemsControl ItemsSource="{Binding Albums}">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
@@ -1134,7 +1134,80 @@
                         </ItemsControl>
                     </ScrollViewer>
 
-                    <Grid Grid.Row="3" ColumnDefinitions="*,Auto" Margin="0,12,0,0">
+                    <!-- Map-inspecteur (Fix) -->
+                    <Grid Grid.Row="2" Margin="0,12,0,0" RowDefinitions="Auto,*" IsVisible="{Binding ShowDetail}">
+                        <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto" Margin="0,0,0,12">
+                            <Button Grid.Column="0" Classes="ghost" Command="{Binding BackCommand}">
+                                <StackPanel Orientation="Horizontal" Spacing="6"><TextBlock Classes="icon" FontSize="17" Text="&#xE5C4;" /><TextBlock Text="Terug" VerticalAlignment="Center" /></StackPanel>
+                            </Button>
+                            <TextBlock Grid.Column="1" Margin="14,0,0,0" Classes="h2" Text="{Binding DetailTitle}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                            <Button Grid.Column="2" Classes="ghost" Command="{Binding EditInMetadataCommand}">
+                                <StackPanel Orientation="Horizontal" Spacing="6"><TextBlock Classes="icon" FontSize="16" Text="&#xE892;" /><TextBlock Text="Bewerk in Metadata" VerticalAlignment="Center" /></StackPanel>
+                            </Button>
+                        </Grid>
+                        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                            <StackPanel Spacing="12">
+                                <Border Classes="card" IsVisible="{Binding HasDuplicates}">
+                                    <StackPanel>
+                                        <TextBlock Classes="title" Text="Dubbele in deze map" />
+                                        <ItemsControl ItemsSource="{Binding DetailDuplicates}" Margin="0,8,0,0">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Border Padding="10,8" Margin="0,0,0,6" CornerRadius="8" Background="{StaticResource Recess}">
+                                                        <StackPanel>
+                                                            <TextBlock Text="{Binding Title}" Classes="title" FontSize="13" />
+                                                            <ItemsControl ItemsSource="{Binding Files}" Margin="0,4,0,0">
+                                                                <ItemsControl.ItemTemplate>
+                                                                    <DataTemplate>
+                                                                        <Grid ColumnDefinitions="*,Auto,Auto" Margin="0,2">
+                                                                            <TextBlock Grid.Column="0" Text="{Binding FileName}" FontSize="12" Foreground="{StaticResource TextPrimary}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                                                            <Border Grid.Column="1" Classes="badge" Margin="8,0,8,0"><TextBlock Text="{Binding Format}" /></Border>
+                                                                            <Button Grid.Column="2" Classes="ghost" Padding="8,3" Command="{Binding DeleteCommand}" ToolTip.Tip="Verwijder dit bestand (naar _Verwijderd, omkeerbaar)."><TextBlock Classes="icon" FontSize="15" Text="&#xE872;" Foreground="{StaticResource ErrorBrush}" /></Button>
+                                                                        </Grid>
+                                                                    </DataTemplate>
+                                                                </ItemsControl.ItemTemplate>
+                                                            </ItemsControl>
+                                                        </StackPanel>
+                                                    </Border>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </StackPanel>
+                                </Border>
+                                <Border Classes="card">
+                                    <StackPanel>
+                                        <TextBlock Classes="title" Text="Bestanden" />
+                                        <ItemsControl ItemsSource="{Binding DetailFiles}" Margin="0,8,0,0">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Border Padding="10,8" Margin="0,0,0,6" CornerRadius="8" Background="{StaticResource Recess}">
+                                                        <Grid ColumnDefinitions="*,Auto,Auto" VerticalAlignment="Center">
+                                                            <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                                                <TextBlock Text="{Binding FileName}" Classes="title" FontSize="13" TextTrimming="CharacterEllipsis" />
+                                                                <TextBlock Text="{Binding Meta}" Classes="caption" Margin="0,2,0,0" TextTrimming="CharacterEllipsis" />
+                                                                <ItemsControl ItemsSource="{Binding Issues}" IsVisible="{Binding HasIssues}" Margin="0,4,0,0">
+                                                                    <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                                                                    <ItemsControl.ItemTemplate>
+                                                                        <DataTemplate>
+                                                                            <Border CornerRadius="9999" Padding="8,2" Margin="0,0,6,0" Background="#FFE5CC"><TextBlock Text="{Binding}" FontSize="11" FontWeight="SemiBold" Foreground="#A55600" /></Border>
+                                                                        </DataTemplate>
+                                                                    </ItemsControl.ItemTemplate>
+                                                                </ItemsControl>
+                                                            </StackPanel>
+                                                            <Border Grid.Column="1" Classes="badge" Margin="8,0,8,0" VerticalAlignment="Center"><TextBlock Text="{Binding Format}" /></Border>
+                                                            <Button Grid.Column="2" Classes="ghost" Padding="8,4" VerticalAlignment="Center" Command="{Binding DeleteCommand}" ToolTip.Tip="Verwijder dit bestand (naar _Verwijderd, omkeerbaar)."><TextBlock Classes="icon" FontSize="16" Text="&#xE872;" Foreground="{StaticResource ErrorBrush}" /></Button>
+                                                        </Grid>
+                                                    </Border>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+                        </ScrollViewer>
+                    </Grid>
+
+                    <Grid Grid.Row="3" ColumnDefinitions="*,Auto" Margin="0,12,0,0" IsVisible="{Binding ShowAlbumList}">
                         <SelectableTextBlock Grid.Column="0" VerticalAlignment="Center" Foreground="{StaticResource TextSecondary}" Text="{Binding Status}" />
                         <Button Grid.Column="1" Classes="primary" Command="{Binding ApproveCommand}"
                                 ToolTip.Tip="Verplaats de aangevinkte albums naar je muziekbieb en sorteer de hele collectie opnieuw.">
