@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using System.Text.RegularExpressions;
 using Avalonia.Media.Imaging;
 using Avalonia.Threading;
@@ -21,8 +22,31 @@ public class MetadataEditorViewModel : ViewModelBase
         ApplyAppleArtistCommand = new RelayCommand(ApplyAppleArtist, () => HasFile && !IsBusy);
         AutoFillCommand = new RelayCommand(AutoFill, () => HasFile && !IsBusy);
         RemoveArtCommand = new RelayCommand(RemoveArt, () => HasFile && !IsBusy);
+        MatchAlbumCommand = new RelayCommand(MatchAlbum, () => HasFile && !IsBusy);
+        ApplyAlbumMatchCommand = new RelayCommand(ApplyAlbumMatch, () => SelectedCandidate != null && !IsBusy);
+        CancelCandidatesCommand = new RelayCommand(() => ShowCandidates = false);
         _acoustIdKey = Settings.Load().AcoustIdKey ?? string.Empty;
     }
+
+    /// <summary>Discogs token (from Instellingen) — enables the Discogs provider for album matching.</summary>
+    public string DiscogsToken { get; set; } = string.Empty;
+
+    // ---- Album match (one release → all tracks, consistent spelling) ----
+    public ObservableCollection<AlbumMetaMatch> AlbumCandidates { get; } = new();
+
+    private AlbumMetaMatch? _selectedCandidate;
+    public AlbumMetaMatch? SelectedCandidate
+    {
+        get => _selectedCandidate;
+        set { if (SetField(ref _selectedCandidate, value)) ApplyAlbumMatchCommand.RaiseCanExecuteChanged(); }
+    }
+
+    private bool _showCandidates;
+    public bool ShowCandidates { get => _showCandidates; private set => SetField(ref _showCandidates, value); }
+
+    public RelayCommand MatchAlbumCommand { get; }
+    public RelayCommand ApplyAlbumMatchCommand { get; }
+    public RelayCommand CancelCandidatesCommand { get; }
 
     private string _path = string.Empty;
     public bool HasFile => !string.IsNullOrEmpty(_path);
@@ -110,6 +134,91 @@ public class MetadataEditorViewModel : ViewModelBase
         {
             Status = "Kon map niet lezen: " + e.Message;
         }
+    }
+
+    /// <summary>Load an explicit set of files (e.g. the "no tags" / "no cover" lists from Gezondheid) and step through them.</summary>
+    public void LoadFiles(IReadOnlyList<string> files, string? context = null)
+    {
+        _files = files.ToList();
+        _allFiles = _files.ToList();
+        _folderLoaded = true;            // batch Auto-fill / Apple-format run over this set
+        _reviewNotes.Clear();
+        if (_files.Count == 0)
+        {
+            _path = string.Empty;
+            OnPropertyChanged(nameof(HasFile));
+            OnPropertyChanged(nameof(Position));
+            RaiseNav();
+            Status = "Geen bestanden om te bewerken.";
+            return;
+        }
+        _index = 0;
+        Load(_files[0]);
+        Status = context ?? $"{_files.Count} nummers geladen.";
+    }
+
+    private async void MatchAlbum()
+    {
+        if (IsBusy || !HasFile) return;
+        var artist = (!string.IsNullOrWhiteSpace(AlbumArtist) ? AlbumArtist : Artist).Trim();
+        var album = (Album ?? string.Empty).Trim();
+        if (album.Length == 0) { Status = "Vul eerst het Album-veld om op te matchen."; return; }
+        IsBusy = true;
+        Status = $"Album zoeken: {artist} – {album}…";
+        try
+        {
+            var list = await AlbumMetadata.SearchAsync(artist, album, _allFiles.Count, DiscogsToken);
+            AlbumCandidates.Clear();
+            foreach (var c in list) AlbumCandidates.Add(c);
+            SelectedCandidate = AlbumCandidates.FirstOrDefault();
+            ShowCandidates = AlbumCandidates.Count > 0;
+            Status = AlbumCandidates.Count > 0
+                ? $"{AlbumCandidates.Count} edities gevonden — kies de juiste en pas toe op het hele album."
+                : "Geen album-match gevonden (probeer artiest/album bij te stellen).";
+        }
+        catch (Exception e) { Status = "Album-match mislukt: " + e.Message; }
+        finally { IsBusy = false; }
+    }
+
+    private async void ApplyAlbumMatch()
+    {
+        var m = SelectedCandidate;
+        if (m == null || IsBusy) return;
+        IsBusy = true;
+        Status = $"'{m.Album}' toepassen op het album…";
+        try
+        {
+            await AlbumMetadata.EnsureTracksAsync(m, DiscogsToken);
+            var cover = await AlbumMetadata.DownloadCoverAsync(m.CoverUrl);
+            var files = _allFiles.ToList();
+            int year = (m.Year.Length >= 4 && int.TryParse(m.Year.Substring(0, 4), out var yy)) ? yy : 0;
+            await Task.Run(() =>
+            {
+                foreach (var f in files)
+                {
+                    try
+                    {
+                        var t = new Track(f);
+                        t.Album = m.Album;
+                        if (m.Artist.Length > 0) t.AlbumArtist = m.Artist;
+                        if (string.IsNullOrWhiteSpace(t.Artist) && m.Artist.Length > 0) t.Artist = m.Artist;
+                        if (year > 0) t.Year = year;
+                        if (m.Genre.Length > 0) t.Genre = m.Genre;
+                        int tn = t.TrackNumber ?? 0;
+                        if (tn >= 1 && tn <= m.TrackTitles.Count && m.TrackTitles[tn - 1].Length > 0)
+                            t.Title = m.TrackTitles[tn - 1];
+                        if (cover != null) { t.EmbeddedPictures.Clear(); t.EmbeddedPictures.Add(PictureInfo.fromBinaryData(cover)); }
+                        t.Save();
+                    }
+                    catch { }
+                }
+            });
+            ShowCandidates = false;
+            Load(_path);
+            Status = $"Album '{m.Album}' toegepast op {files.Count} tracks (bron: {m.Source}).";
+        }
+        catch (Exception e) { Status = "Toepassen mislukt: " + e.Message; }
+        finally { IsBusy = false; }
     }
 
     private void ApproveNext()
@@ -364,6 +473,7 @@ public class MetadataEditorViewModel : ViewModelBase
     private void Save()
     {
         if (!HasFile) return;
+        bool artChangedNow = _artChanged;
         try
         {
             var t = new Track(_path)
@@ -386,6 +496,51 @@ public class MetadataEditorViewModel : ViewModelBase
             t.Save();
         }
         catch (Exception e) { Status = "Opslaan mislukt: " + e.Message; }
+
+        // Album art is set per album: when the cover changed, apply it to the rest of the album.
+        // Run off the UI thread so approving stays instant on big albums.
+        if (artChangedNow)
+        {
+            var path = _path;
+            var art = _artData;
+            Task.Run(() => ApplyArtToAlbum(path, art));
+        }
+    }
+
+    // Apply (or clear) the current cover on every other track of the same album (same folder + same Album tag).
+    private void ApplyArtToAlbum(string currentPath, byte[]? art)
+    {
+        var dir = System.IO.Path.GetDirectoryName(currentPath);
+        if (dir == null) return;
+        var wantAlbum = (Album ?? string.Empty).Trim();
+        int n = 0;
+        try
+        {
+            foreach (var f in System.IO.Directory.EnumerateFiles(dir, "*.*"))
+            {
+                if (string.Equals(f, currentPath, StringComparison.OrdinalIgnoreCase)) continue;
+                if (!AudioExts.Contains(System.IO.Path.GetExtension(f).ToLowerInvariant())) continue;
+                if (System.IO.Path.GetFileName(f).StartsWith("._")) continue;
+                try
+                {
+                    var t = new Track(f);
+                    // Skip tracks from a different album that happen to sit in the same folder.
+                    if (wantAlbum.Length > 0 && !string.Equals((t.Album ?? string.Empty).Trim(), wantAlbum, StringComparison.OrdinalIgnoreCase))
+                        continue;
+                    t.EmbeddedPictures.Clear();
+                    if (art != null) t.EmbeddedPictures.Add(PictureInfo.fromBinaryData(art));
+                    t.Save();
+                    n++;
+                }
+                catch { }
+            }
+        }
+        catch { }
+        if (n > 0)
+        {
+            var msg = art != null ? $"Albumhoes toegepast op {n + 1} tracks." : $"Albumhoes verwijderd van {n + 1} tracks.";
+            Dispatcher.UIThread.Post(() => Status = msg);
+        }
     }
 
     private void RaiseNav()
@@ -395,6 +550,8 @@ public class MetadataEditorViewModel : ViewModelBase
         ApplyAppleArtistCommand.RaiseCanExecuteChanged();
         AutoFillCommand.RaiseCanExecuteChanged();
         RemoveArtCommand.RaiseCanExecuteChanged();
+        MatchAlbumCommand.RaiseCanExecuteChanged();
+        ApplyAlbumMatchCommand.RaiseCanExecuteChanged();
         OnPropertyChanged(nameof(FolderMode));
         OnPropertyChanged(nameof(HasPrev));
         OnPropertyChanged(nameof(Position));

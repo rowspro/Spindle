@@ -55,8 +55,40 @@ public class SyncViewModel : ViewModelBase
                 TransferCommand.RaiseCanExecuteChanged();
                 MakePlaylistsCommand.RaiseCanExecuteChanged();
                 if (_all.Count > 0) MarkIpodPresence();
+                UpdateDevice();
             }
         }
+    }
+
+    // ---- Device card (capacity of the chosen iPod folder's volume) ----
+    private string _deviceText = "Kies de gekoppelde iPod-map om de vrije ruimte te zien.";
+    public string DeviceText { get => _deviceText; private set => SetField(ref _deviceText, value); }
+
+    private bool _hasDevice;
+    public bool HasDevice { get => _hasDevice; private set => SetField(ref _hasDevice, value); }
+
+    private int _usedPercent;
+    public int UsedPercent { get => _usedPercent; private set => SetField(ref _usedPercent, value); }
+
+    private void UpdateDevice()
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(IpodFolder) || !Directory.Exists(IpodFolder))
+            {
+                DeviceText = "Kies de gekoppelde iPod-map om de vrije ruimte te zien.";
+                HasDevice = false; UsedPercent = 0; return;
+            }
+            var root = Path.GetPathRoot(Path.GetFullPath(IpodFolder));
+            var d = new DriveInfo(root!);
+            double freeGb = d.AvailableFreeSpace / 1073741824.0;
+            double totGb = d.TotalSize / 1073741824.0;
+            var label = string.IsNullOrWhiteSpace(d.VolumeLabel) ? "iPod" : d.VolumeLabel;
+            DeviceText = $"{label} — {freeGb:0.0} GB vrij van {totGb:0.0} GB";
+            UsedPercent = totGb > 0 ? (int)Math.Round((1 - freeGb / totGb) * 100) : 0;
+            HasDevice = true;
+        }
+        catch { DeviceText = IpodFolder; HasDevice = true; UsedPercent = 0; }
     }
 
     // Rockbox plays FLAC/MP3/AAC natively, so copying as-is is the fast default. Conversion is only

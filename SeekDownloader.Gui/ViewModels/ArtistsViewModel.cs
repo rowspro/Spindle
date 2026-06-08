@@ -17,18 +17,22 @@ public class DiscAlbumViewModel : ViewModelBase
     public string Year { get; }
     public bool Have { get; }
 
-    public DiscAlbumViewModel(string artist, string album, string year, bool have)
+    public DiscAlbumViewModel(string artist, string album, string year, bool have, Action<DiscAlbumViewModel>? onOrder = null)
     {
         Artist = artist; Album = album; Year = year; Have = have;
         _selected = !have; // pre-select what you're missing
+        BestelCommand = new RelayCommand(() => onOrder?.Invoke(this), () => !Have);
     }
 
     private bool _selected;
     public bool Selected { get => _selected; set => SetField(ref _selected, value); }
 
+    public RelayCommand BestelCommand { get; }
+
     public string Display => string.IsNullOrEmpty(Year) ? Album : $"{Album} ({Year})";
     public string Mark => Have ? "✓ in bieb" : "ontbreekt";
-    public IBrush MarkBrush => new SolidColorBrush(Color.Parse(Have ? "#2E7D32" : "#B26A00"));
+    public IBrush MarkBrush => new SolidColorBrush(Color.Parse(Have ? "#2E7D32" : "#A55600"));
+    public IBrush MarkBg => new SolidColorBrush(Color.Parse(Have ? "#DCEBDF" : "#FFE5CC"));
     public string Query => $"{Artist} - {Album}";
 }
 
@@ -71,7 +75,7 @@ public class ArtistsViewModel : ViewModelBase
         _onDownload = onDownload;
         _topArtists = topArtists;
         AddCommand = new RelayCommand(AddArtist, () => !string.IsNullOrWhiteSpace(ArtistInput));
-        RemoveCommand = new RelayCommand(() => { if (SelectedArtist != null) { Watchlist.Remove(SelectedArtist); Persist(); } });
+        RemoveCommand = new RelayCommand(() => { if (SelectedArtist != null) { Watchlist.Remove(SelectedArtist); Persist(); RaiseArtistCount(); CheckCommand.RaiseCanExecuteChanged(); } });
         CheckCommand = new RelayCommand(Check, () => !IsBusy && Watchlist.Count > 0);
         ImportTopCommand = new RelayCommand(ImportTop, () => !IsBusy);
         DownloadMissingCommand = new RelayCommand(DownloadMissing, () => !IsBusy);
@@ -87,6 +91,9 @@ public class ArtistsViewModel : ViewModelBase
 
     private string _libraryFolder = string.Empty;
     public string LibraryFolder { get => _libraryFolder; set => SetField(ref _libraryFolder, value); }
+
+    public int ArtistCount => Watchlist.Count;
+    private void RaiseArtistCount() => OnPropertyChanged(nameof(ArtistCount));
 
     private bool _isBusy;
     public bool IsBusy
@@ -121,6 +128,7 @@ public class ArtistsViewModel : ViewModelBase
             Watchlist.Add(a);
             Persist();
             CheckCommand.RaiseCanExecuteChanged();
+            RaiseArtistCount();
         }
         ArtistInput = string.Empty;
     }
@@ -136,6 +144,7 @@ public class ArtistsViewModel : ViewModelBase
                 { Watchlist.Add(a); added++; }
             Persist();
             CheckCommand.RaiseCanExecuteChanged();
+            RaiseArtistCount();
             Status = $"{added} artiest(en) toegevoegd vanuit Apple Music.";
         }
         catch (Exception e) { Status = "Kon Apple Music niet lezen: " + e.Message; }
@@ -165,7 +174,8 @@ public class ArtistsViewModel : ViewModelBase
                 Dispatcher.UIThread.Post(() => Status = $"MusicBrainz… {artist} ({snap}/{artists.Count})");
                 var albums = await MusicBrainzClient.GetOfficialAlbumsAsync(artist);
                 var rows = albums.Select(al => new DiscAlbumViewModel(
-                    artist, al.Title, al.Year, have.Contains(Key(artist, al.Title)))).ToList();
+                    artist, al.Title, al.Year, have.Contains(Key(artist, al.Title)),
+                    onOrder: a => { Status = $"'{a.Album}' naar downloaden…"; _onDownload(new List<string> { a.Query }); })).ToList();
                 if (rows.Count > 0)
                     Dispatcher.UIThread.Post(() => Results.Add(new ArtistDiscViewModel(artist, rows)));
                 try { await Task.Delay(400, token); } catch { break; }

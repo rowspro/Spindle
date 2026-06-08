@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using Avalonia.Media;
 using Avalonia.Threading;
 using SeekDownloader.Models;
 using SeekDownloader.Services;
@@ -8,6 +9,10 @@ namespace SeekDownloader.Gui.ViewModels;
 public class MainViewModel : ViewModelBase
 {
     private readonly DispatcherTimer _timer;
+    private readonly DispatcherTimer _connTimer;   // keeps the sidebar connection pill in sync
+    private readonly DispatcherTimer _errorClearTimer; // auto-hides the queue error panel after 10s
+    private string _lastErrorSnapshot = string.Empty;
+    private bool _isConnecting;
     private readonly Dictionary<string, QueueItemViewModel> _queueByKey = new();
     private readonly HashSet<string> _removedQueueKeys = new(); // queue rows the user removed; Poll won't re-add them
 
@@ -31,6 +36,13 @@ public class MainViewModel : ViewModelBase
         _timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
         _timer.Tick += (_, _) => Poll();
 
+        _connTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(2) };
+        _connTimer.Tick += (_, _) => UpdateConnection();
+        _connTimer.Start();
+
+        _errorClearTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(10) };
+        _errorClearTimer.Tick += (_, _) => { _errorClearTimer.Stop(); ErrorLog = string.Empty; };
+
         AppleMusic = new AppleMusicViewModel(
             onArtist: a => { Mode = 2; SearchTerm = a; SelectedTabIndex = 0; Search(); },
             onPlaylistTracks: QueuePlaylist);
@@ -39,7 +51,13 @@ public class MainViewModel : ViewModelBase
             onDownload: QueuePlaylist,
             topArtists: () => AppleMusicService.GetTopArtists(50).Select(a => a.Name).ToList());
 
-        Library = new LibraryViewModel(onDownload: QueuePlaylist);
+        Library = new LibraryViewModel(
+            onDownload: QueuePlaylist,
+            onEdit: (files, status) =>
+            {
+                Meta.LoadFiles(files, status);
+                SelectedTabIndex = 5; // Metadata
+            });
 
         LoadFromConfig(Settings.Load());
 
@@ -62,7 +80,122 @@ public class MainViewModel : ViewModelBase
             _queueByKey[item.Key] = item;
             Queue.Add(item);
         }
+
+        UpdateConnection();
+        TryAutoConnect();
     }
+
+    // ---- Connection pill (sidebar) ----
+    private static readonly IBrush ConnGreen = new SolidColorBrush(Color.Parse("#2E7D43"));
+    private static readonly IBrush ConnAmber = new SolidColorBrush(Color.Parse("#A55600"));
+    private static readonly IBrush ConnGrey = new SolidColorBrush(Color.Parse("#737783"));
+
+    private string _connectionText = "Niet verbonden";
+    public string ConnectionText { get => _connectionText; private set => SetField(ref _connectionText, value); }
+
+    private IBrush _connectionBrush = ConnGrey;
+    public IBrush ConnectionBrush { get => _connectionBrush; private set => SetField(ref _connectionBrush, value); }
+
+    private void UpdateConnection()
+    {
+        if (_download.IsLoggedIn)
+        {
+            _isConnecting = false;
+            ConnectionText = "Verbonden met Soulseek";
+            ConnectionBrush = ConnGreen;
+        }
+        else if (_isConnecting)
+        {
+            ConnectionText = "Verbinden…";
+            ConnectionBrush = ConnAmber;
+        }
+        else
+        {
+            ConnectionText = "Niet verbonden";
+            ConnectionBrush = ConnGrey;
+        }
+    }
+
+    public RelayCommand ReconnectCommand => _reconnectCommand ??= new RelayCommand(() => { if (!_isConnecting) TryAutoConnect(); });
+    private RelayCommand? _reconnectCommand;
+
+    // Connect at startup when credentials are saved, so the pill is meaningful and the first search is faster.
+    private void TryAutoConnect()
+    {
+        if (string.IsNullOrWhiteSpace(SoulseekUsername) || string.IsNullOrWhiteSpace(SoulseekPassword))
+        {
+            ConnectionText = "Geen inloggegevens";
+            return;
+        }
+        _isConnecting = true;
+        UpdateConnection();
+        _download.SoulSeekUsername = SoulseekUsername.Trim();
+        _download.SoulSeekPassword = SoulseekPassword;
+        _download.NicotineListenPort = (int)SoulseekListenPort;
+        Task.Run(async () =>
+        {
+            try { await _download.ConnectAsync(); } catch { }
+            Dispatcher.UIThread.Post(() => { _isConnecting = false; UpdateConnection(); });
+        });
+    }
+
+    // ---- Top bar ----
+    public string CurrentSection => SelectedTabIndex switch
+    {
+        0 => "Zoeken", 1 => "Wachtrij", 2 => "Sorteren", 3 => "Organiseren",
+        4 => "ALAC-converter", 5 => "Metadata", 6 => "Apple Music", 7 => "Artiesten",
+        8 => "Gezondheid", 9 => "Dubbele", 10 => "Overzetten", 11 => "Instellingen", _ => "Spindle"
+    };
+
+    public string UserInitial => string.IsNullOrWhiteSpace(SoulseekUsername)
+        ? "?" : SoulseekUsername.Trim().Substring(0, 1).ToUpperInvariant();
+
+    // ---- Cmd+F command palette ----
+    private static readonly (string Name, int Idx, string Glyph)[] PaletteSections =
+    {
+        ("Zoeken", 0, ""), ("Wachtrij", 1, ""), ("Artiesten", 7, ""),
+        ("Organiseren", 3, ""), ("Sorteren", 2, ""), ("Metadata", 5, ""),
+        ("Dubbele", 9, ""), ("Gezondheid", 8, ""), ("ALAC-converter", 4, ""),
+        ("Overzetten", 10, ""), ("Apple Music", 6, ""), ("Instellingen", 11, ""),
+    };
+
+    private bool _isPaletteOpen;
+    public bool IsPaletteOpen { get => _isPaletteOpen; set => SetField(ref _isPaletteOpen, value); }
+
+    private string _paletteQuery = string.Empty;
+    public string PaletteQuery { get => _paletteQuery; set { if (SetField(ref _paletteQuery, value)) RebuildPalette(); } }
+
+    public ObservableCollection<PaletteItem> PaletteResults { get; } = new();
+
+    private PaletteItem? _selectedPaletteItem;
+    public PaletteItem? SelectedPaletteItem { get => _selectedPaletteItem; set => SetField(ref _selectedPaletteItem, value); }
+
+    public void OpenPalette() { PaletteQuery = string.Empty; RebuildPalette(); IsPaletteOpen = true; }
+    public void ClosePalette() => IsPaletteOpen = false;
+
+    private void RebuildPalette()
+    {
+        PaletteResults.Clear();
+        var q = (PaletteQuery ?? string.Empty).Trim();
+        if (q.Length > 0)
+            PaletteResults.Add(new PaletteItem($"Zoek “{q}” op Soulseek", "Open Zoeken met deze term", "",
+                () => { SearchTerm = q; SelectedTabIndex = 0; ClosePalette(); }));
+        foreach (var s in PaletteSections)
+            if (q.Length == 0 || s.Name.Contains(q, StringComparison.OrdinalIgnoreCase))
+                PaletteResults.Add(new PaletteItem(s.Name, "Ga naar " + s.Name, s.Glyph,
+                    () => { SelectedTabIndex = s.Idx; ClosePalette(); }));
+        SelectedPaletteItem = PaletteResults.Count > 0 ? PaletteResults[0] : null;
+    }
+
+    public void MovePaletteSelection(int delta)
+    {
+        if (PaletteResults.Count == 0) return;
+        int i = SelectedPaletteItem != null ? PaletteResults.IndexOf(SelectedPaletteItem) : -1;
+        i = Math.Clamp(i + delta, 0, PaletteResults.Count - 1);
+        SelectedPaletteItem = PaletteResults[i];
+    }
+
+    public void RunSelectedPalette() => SelectedPaletteItem?.RunCommand.Execute(null);
 
     // Apple Music playlist -> write its tracks to a temp search file and run the auto pipeline.
     private void QueuePlaylist(List<string> lines)
@@ -88,7 +221,7 @@ public class MainViewModel : ViewModelBase
     private string _username = string.Empty;
     private string _password = string.Empty;
     private decimal _listenPort = 12345;
-    public string SoulseekUsername { get => _username; set => SetField(ref _username, value); }
+    public string SoulseekUsername { get => _username; set { if (SetField(ref _username, value)) OnPropertyChanged(nameof(UserInitial)); } }
     public string SoulseekPassword { get => _password; set => SetField(ref _password, value); }
     public decimal SoulseekListenPort { get => _listenPort; set => SetField(ref _listenPort, value); }
 
@@ -105,6 +238,9 @@ public class MainViewModel : ViewModelBase
 
     private string _filenameTemplate = NameTemplate.Default;
     public string FilenameTemplate { get => _filenameTemplate; set => SetField(ref _filenameTemplate, value); }
+
+    private string _discogsToken = string.Empty;
+    public string DiscogsToken { get => _discogsToken; set { if (SetField(ref _discogsToken, value)) Meta.DiscogsToken = value ?? string.Empty; } }
 
     // ---- Search ----
     private string _searchTerm = string.Empty;
@@ -182,7 +318,27 @@ public class MainViewModel : ViewModelBase
     public bool IsPickMode => Mode == 1 || Mode == 2; // modes with a Zoek/results step
 
     private int _selectedTabIndex;
-    public int SelectedTabIndex { get => _selectedTabIndex; set => SetField(ref _selectedTabIndex, value); }
+    public int SelectedTabIndex
+    {
+        get => _selectedTabIndex;
+        set { if (SetField(ref _selectedTabIndex, value)) { OnPropertyChanged(nameof(CurrentSection)); MaybeAutoScan(value); } }
+    }
+
+    // Open a menu → start its scan once per session, but only the safe read-only library scans
+    // (no folder picked / network-heavy MusicBrainz / destructive previews are skipped).
+    private readonly HashSet<int> _autoScanned = new();
+    private void MaybeAutoScan(int tab)
+    {
+        if (_autoScanned.Contains(tab)) return;
+        bool ran = false;
+        switch (tab)
+        {
+            case 8:  if (Library.ScanCommand.CanExecute(null))    { Library.ScanCommand.Execute(null); ran = true; } break;     // Gezondheid
+            case 10: if (Sync.ScanCommand.CanExecute(null))       { Sync.ScanCommand.Execute(null); ran = true; } break;        // Overzetten
+            case 6:  if (AppleMusic.RefreshCommand.CanExecute(null)) { AppleMusic.RefreshCommand.Execute(null); ran = true; } break; // Apple Music
+        }
+        if (ran) _autoScanned.Add(tab);
+    }
 
     // ---- Manual results (per file) ----
     public ObservableCollection<ResultRowViewModel> Results { get; } = new();
@@ -250,6 +406,9 @@ public class MainViewModel : ViewModelBase
     public int IncorrectTagsCount { get => _incorrectTagsCount; private set => SetField(ref _incorrectTagsCount, value); }
     public int SuccessfulDownloadsCount { get => _successfulDownloadsCount; private set => SetField(ref _successfulDownloadsCount, value); }
     public int ActiveDownloadsCount { get => _activeDownloadsCount; private set => SetField(ref _activeDownloadsCount, value); }
+
+    private string _totalSpeedText = "0 KB/s";
+    public string TotalSpeedText { get => _totalSpeedText; private set => SetField(ref _totalSpeedText, value); }
 
     private string _errorLog = string.Empty;
     public string ErrorLog { get => _errorLog; private set => SetField(ref _errorLog, value); }
@@ -684,6 +843,9 @@ public class MainViewModel : ViewModelBase
         var active = dl.ActiveDownloads.Where(p => p.Progress < 100 && !string.IsNullOrEmpty(p.Filename)).ToList();
         ActiveDownloadsCount = active.Count;
 
+        double totalKb = active.Sum(p => p.AverageDownloadSpeed) / 1000.0;
+        TotalSpeedText = totalKb >= 1000 ? $"{totalKb / 1000.0:0.0} MB/s" : $"{(int)totalKb} KB/s";
+
         foreach (var p in active)
         {
             var key = $"{p.Username}|{p.Filename}";
@@ -708,11 +870,20 @@ public class MainViewModel : ViewModelBase
         }
         if (queueChanged) SaveQueue();
 
-        var errors = dl.RecentErrors
+        var errorText = string.Join(Environment.NewLine, dl.RecentErrors
             .OrderByDescending(e => e.Value)
             .Take(5)
-            .Select(e => $"[{e.Value}x] {e.Key}");
-        ErrorLog = string.Join(Environment.NewLine, errors);
+            .Select(e => $"[{e.Value}x] {e.Key}"));
+
+        // Show the error panel only when the error set changes, and auto-dismiss it after 10s
+        // (so Poll doesn't immediately re-show the same errors every 0.5s).
+        if (errorText != _lastErrorSnapshot)
+        {
+            _lastErrorSnapshot = errorText;
+            ErrorLog = errorText;
+            _errorClearTimer.Stop();
+            if (!string.IsNullOrEmpty(errorText)) _errorClearTimer.Start();
+        }
     }
 
     // ===================== HELPERS =====================
@@ -767,6 +938,7 @@ public class MainViewModel : ViewModelBase
             InMemoryDownloads = InMemoryDownloads,
             SaveInUploaderSubfolder = SaveInUploaderSubfolder,
             AcoustIdKey = Meta.AcoustIdKey,
+            DiscogsToken = DiscogsToken.Trim(),
             FilterOutFileNames = SplitList(FilterOutFileNames),
             SortSource = Sort.SourceFolder,
             SortDest = Sort.DestFolder,
@@ -829,6 +1001,7 @@ public class MainViewModel : ViewModelBase
         AppleMusic.LibraryFolder = c.AppleLibrary;
         AutoOrganize = c.AutoOrganize;
         FilenameTemplate = string.IsNullOrWhiteSpace(c.FilenameTemplate) ? NameTemplate.Default : c.FilenameTemplate;
+        DiscogsToken = c.DiscogsToken ?? string.Empty;
     }
 
     // Called when the window closes so tool folders (and other settings) survive a restart.

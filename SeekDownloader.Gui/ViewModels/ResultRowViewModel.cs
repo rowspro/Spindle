@@ -27,6 +27,10 @@ public class ResultRowViewModel : ViewModelBase
         }
     }
 
+    private static readonly string[] LosslessExt = { "FLAC", "WAV", "AIFF", "AIF", "ALAC", "APE" };
+    /// <summary>true for lossless formats → the badge gets the primary tint, lossy gets the neutral tint.</summary>
+    public bool IsLossless => LosslessExt.Contains(Ext);
+
     public string Meta
     {
         get

@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Collections.ObjectModel;
 using System.IO;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -6,6 +7,56 @@ using Avalonia.Threading;
 using ATL;
 
 namespace SeekDownloader.Gui.ViewModels;
+
+/// <summary>One album with a quality issue, shown in the "Problematische albums" table (Gezondheid).</summary>
+public class ProblemAlbumViewModel : ViewModelBase
+{
+    public string Artist { get; }
+    public string Album { get; }
+    public string Issue { get; }
+    public string Title => string.IsNullOrEmpty(Artist) ? Album : $"{Artist} — {Album}";
+
+    public IReadOnlyList<string> Files { get; }
+    private readonly Action<IReadOnlyList<string>, string> _onEdit;
+    public RelayCommand FixCommand { get; }
+    public RelayCommand DeleteCommand { get; }
+
+    public ProblemAlbumViewModel(string artist, string album, string issue, IReadOnlyList<string> files,
+        Action<IReadOnlyList<string>, string> onEdit, Action<ProblemAlbumViewModel> onDelete)
+    {
+        Artist = artist; Album = album; Issue = issue; Files = files; _onEdit = onEdit;
+        FixCommand = new RelayCommand(() => _onEdit(Files, $"{Title} — {issue}. Vul aan / zet hoes en keur goed."));
+        DeleteCommand = new RelayCommand(() => onDelete(this));
+    }
+}
+
+/// <summary>One album row in a Gezondheid detail list (FLAC-upgrades / Lossy) with a "replace with FLAC" action.</summary>
+public class HealthAlbumViewModel : ViewModelBase
+{
+    public string Title { get; }
+    public string Detail { get; }
+    public RelayCommand UpgradeCommand { get; }
+    public HealthAlbumViewModel(string title, string detail, Action onUpgrade)
+    {
+        Title = title; Detail = detail; UpgradeCommand = new RelayCommand(onUpgrade);
+    }
+}
+
+/// <summary>Album node in the "Alle albums" tree (children are track filenames).</summary>
+public class HealthAlbumNode
+{
+    public string Header { get; }
+    public List<string> Tracks { get; }
+    public HealthAlbumNode(string header, List<string> tracks) { Header = header; Tracks = tracks; }
+}
+
+/// <summary>Artist node in the "Alle albums" tree (children are albums).</summary>
+public class HealthArtistNode
+{
+    public string Name { get; }
+    public List<HealthAlbumNode> Albums { get; }
+    public HealthArtistNode(string name, List<HealthAlbumNode> albums) { Name = name; Albums = albums; }
+}
 
 /// <summary>
 /// Library health: scans your music for issues (missing tags, no cover art, lossy vs lossless) and
@@ -24,20 +75,130 @@ public class LibraryViewModel : ViewModelBase
         public List<string> Files = new();
         public bool HasCover;
         public bool AllLossy;
+        public int Untagged;
+        public int LossyCount;
         public string Query => $"{Artist} - {Name}";
     }
 
     private readonly Action<List<string>> _onDownload;
+    private readonly Action<IReadOnlyList<string>, string> _onEdit;
     private readonly List<Album> _albums = new();
+    private List<string> _noTagFiles = new();
+    private List<string> _noCoverFiles = new();
     private CancellationTokenSource? _cts;
 
-    public LibraryViewModel(Action<List<string>> onDownload)
+    public LibraryViewModel(Action<List<string>> onDownload, Action<IReadOnlyList<string>, string> onEdit)
     {
         _onDownload = onDownload;
+        _onEdit = onEdit;
         ScanCommand = new RelayCommand(Scan, () => !IsBusy && !string.IsNullOrWhiteSpace(LibraryFolder));
         RepairCoversCommand = new RelayCommand(RepairCovers, () => !IsBusy && _albums.Count > 0);
         FindUpgradesCommand = new RelayCommand(FindUpgrades, () => !IsBusy && _albums.Count > 0);
         StopCommand = new RelayCommand(() => _cts?.Cancel(), () => IsBusy);
+        EditNoTagsCommand = new RelayCommand(
+            () => _onEdit(_noTagFiles, $"{_noTagFiles.Count} nummers zonder (volledige) tags — vul aan en keur goed."),
+            () => _noTagFiles.Count > 0);
+        EditNoCoverCommand = new RelayCommand(
+            () => _onEdit(_noCoverFiles, $"{_noCoverFiles.Count} nummers uit albums zonder hoes — zet een hoes (of Auto-fill) en keur goed."),
+            () => _noCoverFiles.Count > 0);
+        ShowFilesCommand = new RelayCommand(ShowFiles);
+        ShowAlbumsCommand = new RelayCommand(ShowAlbums);
+        ShowUpgradesCommand = new RelayCommand(ShowUpgrades);
+        ShowLossyCommand = new RelayCommand(ShowLossy);
+        CloseDetailCommand = new RelayCommand(() => DetailKind = string.Empty);
+    }
+
+    // ---- Detail drill-down (clicking a stat box) ----
+    public ObservableCollection<string> DetailFiles { get; } = new();
+    public ObservableCollection<HealthArtistNode> AlbumTree { get; } = new();
+    public ObservableCollection<HealthAlbumViewModel> DetailAlbums { get; } = new();
+
+    private string _detailKind = string.Empty;     // "", "files", "albums", "list"
+    public string DetailKind
+    {
+        get => _detailKind;
+        private set
+        {
+            if (SetField(ref _detailKind, value))
+            {
+                OnPropertyChanged(nameof(ShowDetail));
+                OnPropertyChanged(nameof(ShowDashboard));
+                OnPropertyChanged(nameof(ShowFilesPanel));
+                OnPropertyChanged(nameof(ShowAlbumsPanel));
+                OnPropertyChanged(nameof(ShowListPanel));
+            }
+        }
+    }
+    public bool ShowDetail => _detailKind.Length > 0;
+    public bool ShowDashboard => _detailKind.Length == 0;
+    public bool ShowFilesPanel => _detailKind == "files";
+    public bool ShowAlbumsPanel => _detailKind == "albums";
+    public bool ShowListPanel => _detailKind == "list";
+
+    private string _detailTitle = string.Empty;
+    public string DetailTitle { get => _detailTitle; private set => SetField(ref _detailTitle, value); }
+
+    public RelayCommand ShowFilesCommand { get; }
+    public RelayCommand ShowAlbumsCommand { get; }
+    public RelayCommand ShowUpgradesCommand { get; }
+    public RelayCommand ShowLossyCommand { get; }
+    public RelayCommand CloseDetailCommand { get; }
+
+    private void ShowFiles()
+    {
+        DetailFiles.Clear();
+        foreach (var a in _albums.OrderBy(a => a.Artist).ThenBy(a => a.Name))
+            foreach (var f in a.Files.OrderBy(x => x))
+                DetailFiles.Add(RelativeOrName(f));
+        DetailTitle = $"Alle bestanden ({DetailFiles.Count})";
+        DetailKind = "files";
+    }
+
+    private void ShowAlbums()
+    {
+        AlbumTree.Clear();
+        foreach (var g in _albums.GroupBy(a => a.Artist).OrderBy(g => g.Key))
+        {
+            var albums = g.OrderBy(a => a.Name)
+                .Select(a => new HealthAlbumNode($"{a.Name}  ·  {a.Files.Count} nummers",
+                    a.Files.Select(x => Path.GetFileName(x) ?? x).OrderBy(x => x).ToList()))
+                .ToList();
+            AlbumTree.Add(new HealthArtistNode(string.IsNullOrWhiteSpace(g.Key) ? "(onbekend)" : g.Key, albums));
+        }
+        DetailTitle = $"Alle albums ({_albums.Count})";
+        DetailKind = "albums";
+    }
+
+    private void ShowUpgrades()
+    {
+        DetailAlbums.Clear();
+        foreach (var a in _albums.Where(a => a.AllLossy).OrderBy(a => a.Artist).ThenBy(a => a.Name))
+        {
+            var q = a.Query; var name = a.Name;
+            DetailAlbums.Add(new HealthAlbumViewModel($"{a.Artist} — {a.Name}", $"{a.Files.Count} nummers · volledig lossy",
+                () => { Status = $"'{name}' naar FLAC-upgrade…"; _onDownload(new List<string> { q }); }));
+        }
+        DetailTitle = $"FLAC-upgrades mogelijk ({DetailAlbums.Count})";
+        DetailKind = "list";
+    }
+
+    private void ShowLossy()
+    {
+        DetailAlbums.Clear();
+        foreach (var a in _albums.Where(a => a.LossyCount > 0).OrderByDescending(a => a.LossyCount).ThenBy(a => a.Artist))
+        {
+            var q = a.Query; var name = a.Name;
+            DetailAlbums.Add(new HealthAlbumViewModel($"{a.Artist} — {a.Name}", $"{a.LossyCount} lossy bestand(en)",
+                () => { Status = $"'{name}' opnieuw in FLAC zoeken…"; _onDownload(new List<string> { q }); }));
+        }
+        DetailTitle = $"Lossy bestanden ({LossyFileCount})";
+        DetailKind = "list";
+    }
+
+    private string RelativeOrName(string f)
+    {
+        try { var rel = Path.GetRelativePath(LibraryFolder, f); return rel.StartsWith("..") ? Path.GetFileName(f) : rel; }
+        catch { return Path.GetFileName(f); }
     }
 
     private string _libraryFolder = string.Empty;
@@ -62,13 +223,29 @@ public class LibraryViewModel : ViewModelBase
     private string _status = "Stel je muziekbieb in (Instellingen) en scan op problemen.";
     public string Status { get => _status; private set => SetField(ref _status, value); }
 
-    private string _stats = string.Empty;
-    public string Stats { get => _stats; private set => SetField(ref _stats, value); }
+    // Individual figures for the stat cards (Gezondheid).
+    private int _fileCount, _albumCount, _noTagCount, _noCoverCount, _lossyFileCount, _upgradeCount;
+    public int FileCount { get => _fileCount; private set => SetField(ref _fileCount, value); }
+    public int AlbumCount { get => _albumCount; private set => SetField(ref _albumCount, value); }
+    public int NoTagCount { get => _noTagCount; private set => SetField(ref _noTagCount, value); }
+    public int NoCoverCount { get => _noCoverCount; private set => SetField(ref _noCoverCount, value); }
+    public int LossyFileCount { get => _lossyFileCount; private set => SetField(ref _lossyFileCount, value); }
+    public int UpgradeAlbumCount { get => _upgradeCount; private set => SetField(ref _upgradeCount, value); }
+
+    private bool _hasScanned;
+    public bool HasScanned { get => _hasScanned; private set => SetField(ref _hasScanned, value); }
+
+    private int _healthScore;
+    public int HealthScore { get => _healthScore; private set => SetField(ref _healthScore, value); }
+
+    public ObservableCollection<ProblemAlbumViewModel> ProblemAlbums { get; } = new();
 
     public RelayCommand ScanCommand { get; }
     public RelayCommand RepairCoversCommand { get; }
     public RelayCommand FindUpgradesCommand { get; }
     public RelayCommand StopCommand { get; }
+    public RelayCommand EditNoTagsCommand { get; }
+    public RelayCommand EditNoCoverCommand { get; }
 
     private void Scan()
     {
@@ -76,6 +253,7 @@ public class LibraryViewModel : ViewModelBase
         var lib = LibraryFolder;
         if (!Directory.Exists(lib)) { Status = "Bibliotheek-map bestaat niet."; return; }
         IsBusy = true;
+        DetailKind = string.Empty; // terug naar het overzicht bij (her)scannen
         _cts = new CancellationTokenSource();
         var token = _cts.Token;
         Status = "Bibliotheek scannen…";
@@ -87,6 +265,7 @@ public class LibraryViewModel : ViewModelBase
                 .ToList();
 
             int noTags = 0, lossyFiles = 0;
+            var noTagBag = new ConcurrentBag<string>();
             var groups = new ConcurrentDictionary<string, Album>();
             int scanned = 0;
 
@@ -97,7 +276,8 @@ public class LibraryViewModel : ViewModelBase
                     var t = new Track(f);
                     var artist = !string.IsNullOrWhiteSpace(t.AlbumArtist) ? t.AlbumArtist : (t.Artist ?? "");
                     var album = t.Album ?? "";
-                    if (string.IsNullOrWhiteSpace(t.Title) || string.IsNullOrWhiteSpace(artist)) Interlocked.Increment(ref noTags);
+                    bool untagged = string.IsNullOrWhiteSpace(t.Title) || string.IsNullOrWhiteSpace(artist);
+                    if (untagged) { Interlocked.Increment(ref noTags); noTagBag.Add(f); }
                     bool lossy = !Lossless.Contains(Path.GetExtension(f).ToLowerInvariant());
                     if (lossy) Interlocked.Increment(ref lossyFiles);
                     bool hasCover = t.EmbeddedPictures.Count > 0;
@@ -109,6 +289,8 @@ public class LibraryViewModel : ViewModelBase
                         a.Files.Add(f);
                         if (hasCover) a.HasCover = true;
                         if (!lossy) a.AllLossy = false;
+                        if (lossy) a.LossyCount++;
+                        if (untagged) a.Untagged++;
                     }
                 }
                 catch { }
@@ -119,23 +301,86 @@ public class LibraryViewModel : ViewModelBase
             var albums = groups.Values.Where(a => a.Files.Count > 0).ToList();
             int noCover = albums.Count(a => !a.HasCover);
             int lossyAlbums = albums.Count(a => a.AllLossy);
+            var noCoverFiles = albums.Where(a => !a.HasCover).SelectMany(a => a.Files).ToList();
+            var noTagFiles = noTagBag.ToList();
+
+            var problemData = albums
+                .Select(a => (a.Artist, a.Name, a.Files, IReadOnlyList: (IReadOnlyList<string>)a.Files,
+                              sev: (a.HasCover ? 0 : 1) + (a.AllLossy ? 1 : 0) + (a.Untagged > 0 ? 1 : 0),
+                              issue: string.Join(" · ", new[]
+                              {
+                                  a.HasCover ? null : "geen hoes",
+                                  a.AllLossy ? "volledig lossy" : null,
+                                  a.Untagged > 0 ? $"{a.Untagged} zonder tags" : null
+                              }.Where(s => s != null))))
+                .Where(x => x.sev > 0)
+                .OrderByDescending(x => x.sev).ThenByDescending(x => x.Files.Count)
+                .Take(40).ToList();
+
+            double tagFrac = files.Count > 0 ? (double)noTags / files.Count : 0;
+            double lossyFrac = files.Count > 0 ? (double)lossyFiles / files.Count : 0;
+            double coverFrac = albums.Count > 0 ? (double)noCover / albums.Count : 0;
+            int score = albums.Count == 0 ? 0 : Math.Clamp((int)Math.Round(100 * (1 - 0.4 * tagFrac - 0.3 * coverFrac - 0.3 * lossyFrac)), 0, 100);
 
             Dispatcher.UIThread.Post(() =>
             {
                 _albums.Clear(); _albums.AddRange(albums);
-                Stats =
-                    $"Bestanden: {files.Count}\n" +
-                    $"Albums: {albums.Count}\n" +
-                    $"Zonder (volledige) tags: {noTags}\n" +
-                    $"Albums zonder albumhoes: {noCover}\n" +
-                    $"Lossy bestanden (MP3/AAC): {lossyFiles}\n" +
-                    $"Volledig-lossy albums (FLAC-upgrade mogelijk): {lossyAlbums}";
+                _noTagFiles = noTagFiles;
+                _noCoverFiles = noCoverFiles;
+                FileCount = files.Count;
+                AlbumCount = albums.Count;
+                NoTagCount = noTags;
+                NoCoverCount = noCover;
+                LossyFileCount = lossyFiles;
+                UpgradeAlbumCount = lossyAlbums;
+                HealthScore = score;
+                ProblemAlbums.Clear();
+                foreach (var p in problemData)
+                    ProblemAlbums.Add(new ProblemAlbumViewModel(p.Artist, p.Name, p.issue, p.IReadOnlyList, _onEdit, DeleteAlbum));
+                HasScanned = true;
                 IsBusy = false;
                 RepairCoversCommand.RaiseCanExecuteChanged();
                 FindUpgradesCommand.RaiseCanExecuteChanged();
-                Status = token.IsCancellationRequested ? "Scan gestopt." : "Scan klaar. Kies een herstelactie.";
+                EditNoTagsCommand.RaiseCanExecuteChanged();
+                EditNoCoverCommand.RaiseCanExecuteChanged();
+                Status = token.IsCancellationRequested ? "Scan gestopt." : $"Scan klaar — gezondheid {score}%. Klik een kaart of album om te herstellen.";
             });
         });
+    }
+
+    // Safe delete: move the album's files to a trash folder OUTSIDE the library (a sibling on the same
+    // volume), so re-organising/sorting the library never picks them back up. Reversible: move them back.
+    private void DeleteAlbum(ProblemAlbumViewModel album)
+    {
+        var lib = LibraryFolder;
+        if (string.IsNullOrWhiteSpace(lib) || !Directory.Exists(lib)) { Status = "Geen geldige bibliotheek-map."; return; }
+
+        var libFull = Path.GetFullPath(lib).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        var parent = Path.GetDirectoryName(libFull);
+        // Sibling of the library (same volume → File.Move works, and it's outside any library scan).
+        var trashRoot = parent != null
+            ? Path.Combine(parent, "_Verwijderd (Spindle)")
+            : Path.Combine(libFull, "_Verwijderd");
+
+        int moved = 0;
+        foreach (var f in album.Files)
+        {
+            try
+            {
+                var rel = Path.GetRelativePath(libFull, f);
+                if (rel.StartsWith("..") || Path.IsPathRooted(rel)) rel = Path.GetFileName(f);
+                var dest = Path.Combine(trashRoot, rel);
+                Directory.CreateDirectory(Path.GetDirectoryName(dest)!);
+                if (File.Exists(dest)) File.Delete(dest);
+                File.Move(f, dest);
+                moved++;
+            }
+            catch { }
+        }
+        ProblemAlbums.Remove(album);
+        FileCount = Math.Max(0, FileCount - album.Files.Count);
+        AlbumCount = Math.Max(0, AlbumCount - 1);
+        Status = $"'{album.Title}' verplaatst naar '{trashRoot}' ({moved} bestanden) — buiten de bieb, omkeerbaar.";
     }
 
     private void RepairCovers()

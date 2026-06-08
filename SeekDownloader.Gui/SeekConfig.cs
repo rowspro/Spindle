@@ -40,6 +40,7 @@ public class SeekConfig
     public string? DownloadArchiveFilePath { get; set; }
 
     public string AcoustIdKey { get; set; } = string.Empty;
+    public string DiscogsToken { get; set; } = string.Empty;
 
     public int SearchMatchArtistPercentage { get; set; } = 50;
     public int SearchMatchAlbumPercentage { get; set; } = 50;
