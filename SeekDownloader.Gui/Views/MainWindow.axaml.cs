@@ -47,7 +47,7 @@ public partial class MainWindow : Window
             }
         }
 
-        if (Vm.SelectedTabIndex != 5) return; // Metadata tab (shifted by the Organiseren tab)
+        if (Vm.SelectedTabIndex != 3) return; // Metadata tab
         if (e.Source is TextBox) return;
         if (e.Key == Key.Left)
         {

@@ -39,7 +39,7 @@ public class MainViewModel : ViewModelBase
 
         _connTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(2) };
         _connTimer.Tick += (_, _) => UpdateConnection();
-        _connTimer.Start();
+        // Geen Soulseek-verbinding meer: downloaden gaat via Nicotine+. (_connTimer niet gestart.)
 
         _errorClearTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(10) };
         _errorClearTimer.Tick += (_, _) => { _errorClearTimer.Stop(); ErrorLog = string.Empty; };
@@ -57,7 +57,7 @@ public class MainViewModel : ViewModelBase
             onEdit: (files, status) =>
             {
                 Meta.LoadFiles(files, status);
-                SelectedTabIndex = 5; // Metadata
+                SelectedTabIndex = 3; // Metadata
             });
 
         LoadFromConfig(Settings.Load());
@@ -81,9 +81,6 @@ public class MainViewModel : ViewModelBase
             _queueByKey[item.Key] = item;
             Queue.Add(item);
         }
-
-        UpdateConnection();
-        TryAutoConnect();
     }
 
     // ---- Connection pill (sidebar) ----
@@ -143,21 +140,18 @@ public class MainViewModel : ViewModelBase
     // ---- Top bar ----
     public string CurrentSection => SelectedTabIndex switch
     {
-        0 => "Zoeken", 1 => "Wachtrij", 2 => "Sorteren", 3 => "Organiseren",
-        4 => "ALAC-converter", 5 => "Metadata", 6 => "Apple Music", 7 => "Artiesten",
-        8 => "Gezondheid", 9 => "Dubbele", 10 => "Overzetten", 11 => "Instellingen", _ => "Spindle"
+        0 => "Sorteren", 1 => "Organiseren", 2 => "ALAC-converter", 3 => "Metadata",
+        4 => "Gezondheid", 5 => "Dubbele", 6 => "Overzetten", 7 => "Instellingen", _ => "Spindle"
     };
 
-    public string UserInitial => string.IsNullOrWhiteSpace(SoulseekUsername)
-        ? "?" : SoulseekUsername.Trim().Substring(0, 1).ToUpperInvariant();
+    public string UserInitial => "S";
 
     // ---- Cmd+F command palette ----
     private static readonly (string Name, int Idx, string Glyph)[] PaletteSections =
     {
-        ("Zoeken", 0, ""), ("Wachtrij", 1, ""), ("Artiesten", 7, ""),
-        ("Organiseren", 3, ""), ("Sorteren", 2, ""), ("Metadata", 5, ""),
-        ("Dubbele", 9, ""), ("Gezondheid", 8, ""), ("ALAC-converter", 4, ""),
-        ("Overzetten", 10, ""), ("Apple Music", 6, ""), ("Instellingen", 11, ""),
+        ("Organiseren", 1, ""), ("Sorteren", 0, ""), ("Metadata", 3, ""),
+        ("Dubbele", 5, ""), ("Gezondheid", 4, ""), ("ALAC-converter", 2, ""),
+        ("Overzetten", 6, ""), ("Instellingen", 7, ""),
     };
 
     private bool _isPaletteOpen;
@@ -178,9 +172,6 @@ public class MainViewModel : ViewModelBase
     {
         PaletteResults.Clear();
         var q = (PaletteQuery ?? string.Empty).Trim();
-        if (q.Length > 0)
-            PaletteResults.Add(new PaletteItem($"Zoek “{q}” op Soulseek", "Open Zoeken met deze term", "",
-                () => { SearchTerm = q; SelectedTabIndex = 0; ClosePalette(); }));
         foreach (var s in PaletteSections)
             if (q.Length == 0 || s.Name.Contains(q, StringComparison.OrdinalIgnoreCase))
                 PaletteResults.Add(new PaletteItem(s.Name, "Ga naar " + s.Name, s.Glyph,
@@ -334,9 +325,8 @@ public class MainViewModel : ViewModelBase
         bool ran = false;
         switch (tab)
         {
-            case 8:  if (Library.ScanCommand.CanExecute(null))    { Library.ScanCommand.Execute(null); ran = true; } break;     // Gezondheid
-            case 10: if (Sync.ScanCommand.CanExecute(null))       { Sync.ScanCommand.Execute(null); ran = true; } break;        // Overzetten
-            case 6:  if (AppleMusic.RefreshCommand.CanExecute(null)) { AppleMusic.RefreshCommand.Execute(null); ran = true; } break; // Apple Music
+            case 4: if (Library.ScanCommand.CanExecute(null)) { Library.ScanCommand.Execute(null); ran = true; } break; // Gezondheid
+            case 6: if (Sync.ScanCommand.CanExecute(null))    { Sync.ScanCommand.Execute(null); ran = true; } break;    // Overzetten
         }
         if (ran) _autoScanned.Add(tab);
     }
