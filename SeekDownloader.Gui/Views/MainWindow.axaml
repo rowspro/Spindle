@@ -992,7 +992,13 @@
                         <TextBox Grid.Column="1" Text="{Binding IpodFolder}" Watermark="De gekoppelde iPod (Rockbox)" />
                         <Button Grid.Column="2" Classes="ghost" Content="Bladeren…" Margin="8,0,0,0" Click="OnBrowseSyncIpod" />
                     </Grid>
-                    <Grid Grid.Row="5" ColumnDefinitions="Auto,*,Auto,Auto,Auto" Margin="0,12,0,0">
+                    <StackPanel Grid.Row="5" Margin="0,12,0,0">
+                    <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,8" IsVisible="{Binding IsTransferring}">
+                        <ProgressBar Grid.Column="0" Minimum="0" Maximum="100" Value="{Binding TransferProgress}" Height="8" CornerRadius="4"
+                                     Background="{StaticResource SurfaceVariant}" Foreground="{StaticResource Accent}" VerticalAlignment="Center" />
+                        <TextBlock Grid.Column="1" Margin="10,0,0,0" VerticalAlignment="Center" Classes="caption" Text="{Binding TransferProgress, StringFormat='{}{0:0}%'}" />
+                    </Grid>
+                    <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto">
                         <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
                             <CheckBox Content="Omzetten naar ALAC" IsChecked="{Binding ConvertToAlac}"
                                       ToolTip.Tip="Standaard uit = bestanden kopiëren zoals ze zijn (snelst; Rockbox speelt FLAC/MP3/AAC). Aan = alleen FLAC/WAV/AIFF worden omgezet naar ALAC 16-bit/44,1 kHz (bespaart accu op de iPod); MP3/AAC worden altijd gewoon gekopieerd." />
@@ -1005,6 +1011,7 @@
                         <Button Grid.Column="3" Classes="ghost" Content="Stop" Width="90" Margin="8,0,0,0" Command="{Binding StopCommand}" HorizontalContentAlignment="Center" />
                         <Button Grid.Column="4" Classes="primary" Content="Overzetten" Margin="8,0,0,0" Command="{Binding TransferCommand}" />
                     </Grid>
+                    </StackPanel>
                     <Border Grid.Row="6" Margin="0,10,0,0" Padding="10" CornerRadius="8" Background="#FFDAD6" BorderBrush="#E0B4AE" BorderThickness="1"
                             MaxHeight="150" IsVisible="{Binding HasFailures}">
                         <DockPanel>

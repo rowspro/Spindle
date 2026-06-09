@@ -144,6 +144,12 @@ public class SyncViewModel : ViewModelBase
         }
     }
 
+    private bool _isTransferring;
+    public bool IsTransferring { get => _isTransferring; private set => SetField(ref _isTransferring, value); }
+
+    private double _transferProgress;
+    public double TransferProgress { get => _transferProgress; private set => SetField(ref _transferProgress, value); }
+
     private string _status = "Scan je bibliotheek, filter op genre/zoekterm, vink albums aan en zet over naar de iPod.";
     public string Status { get => _status; private set => SetField(ref _status, value); }
 
@@ -339,6 +345,8 @@ public class SyncViewModel : ViewModelBase
 
         Failures.Clear();
         IsBusy = true;
+        IsTransferring = true;
+        TransferProgress = 0;
         _cts = new CancellationTokenSource();
         var token = _cts.Token;
         var convert = ConvertToAlac;
@@ -402,7 +410,7 @@ public class SyncViewModel : ViewModelBase
                     catch (OperationCanceledException) { throw; }
                     catch (Exception ex) { Interlocked.Increment(ref failed); AddFailure(job.File, ex.Message); }
                     var p = Interlocked.Increment(ref processed);
-                    Dispatcher.UIThread.Post(() => Status = $"Overzetten... {p}/{jobs.Count}");
+                    Dispatcher.UIThread.Post(() => { Status = $"Overzetten… {p}/{jobs.Count}"; TransferProgress = jobs.Count > 0 ? 100.0 * p / jobs.Count : 100; });
                 });
             }
             catch (OperationCanceledException) { }
@@ -410,9 +418,11 @@ public class SyncViewModel : ViewModelBase
             Dispatcher.UIThread.Post(() =>
             {
                 IsBusy = false;
+                IsTransferring = false;
+                if (!token.IsCancellationRequested) TransferProgress = 100;
                 Status = token.IsCancellationRequested
-                    ? $"Gestopt - {copied} overgezet, {removed} verwijderd, {skipped} overgeslagen."
-                    : $"Klaar - {copied} overgezet, {removed} van iPod verwijderd, {skipped} overgeslagen (al aanwezig), {failed} mislukt.";
+                    ? $"Gestopt — {copied} overgezet, {removed} verwijderd, {skipped} overgeslagen."
+                    : $"Klaar — {copied} overgezet, {removed} van iPod verwijderd, {skipped} overgeslagen, {failed} mislukt.  ✓ Veilig om de iPod af te koppelen.";
                 MarkIpodPresence();
             });
         });
