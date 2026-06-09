@@ -79,8 +79,8 @@ public class SyncViewModel : ViewModelBase
                 DeviceText = "Kies de gekoppelde iPod-map om de vrije ruimte te zien.";
                 HasDevice = false; UsedPercent = 0; return;
             }
-            var root = Path.GetPathRoot(Path.GetFullPath(IpodFolder));
-            var d = new DriveInfo(root!);
+            var d = FindVolume(IpodFolder);
+            if (d == null) { DeviceText = IpodFolder; HasDevice = true; UsedPercent = 0; return; }
             double freeGb = d.AvailableFreeSpace / 1073741824.0;
             double totGb = d.TotalSize / 1073741824.0;
             var label = string.IsNullOrWhiteSpace(d.VolumeLabel) ? "iPod" : d.VolumeLabel;
@@ -89,6 +89,29 @@ public class SyncViewModel : ViewModelBase
             HasDevice = true;
         }
         catch { DeviceText = IpodFolder; HasDevice = true; UsedPercent = 0; }
+    }
+
+    // The volume that actually contains the iPod path. On macOS Path.GetPathRoot() returns "/", which
+    // reports the internal disk; instead pick the deepest mounted volume whose root is a prefix of the path.
+    private static DriveInfo? FindVolume(string path)
+    {
+        string full;
+        try { full = Path.GetFullPath(path); } catch { return null; }
+        DriveInfo? best = null; int bestLen = -1;
+        foreach (var dr in DriveInfo.GetDrives())
+        {
+            try
+            {
+                if (!dr.IsReady) continue;
+                var root = dr.RootDirectory.FullName;
+                var rootSlash = root.EndsWith(Path.DirectorySeparatorChar) ? root : root + Path.DirectorySeparatorChar;
+                if ((full.Equals(root, StringComparison.OrdinalIgnoreCase) ||
+                     full.StartsWith(rootSlash, StringComparison.OrdinalIgnoreCase)) && root.Length > bestLen)
+                { best = dr; bestLen = root.Length; }
+            }
+            catch { }
+        }
+        return best;
     }
 
     // Rockbox plays FLAC/MP3/AAC natively, so copying as-is is the fast default. Conversion is only
@@ -245,26 +268,29 @@ public class SyncViewModel : ViewModelBase
     private void MarkIpodPresence()
     {
         var ipod = IpodFolder;
-        var music = string.IsNullOrWhiteSpace(ipod) ? "" : Path.Combine(ipod, "Music");
-        bool ok = music.Length > 0 && Directory.Exists(music);
+        bool ok = !string.IsNullOrWhiteSpace(ipod) && Directory.Exists(ipod);
         var snapshot = _all.ToList();
 
         Task.Run(() =>
         {
+            // Index op bestandsnaam-zonder-extensie van ALLES wat op de iPod staat (recursief),
+            // zodat ook handmatig/anders gestructureerd overgezette mappen herkend worden — ongeacht waar ze staan.
+            var onIpod = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            if (ok)
+            {
+                try
+                {
+                    foreach (var f in Directory.EnumerateFiles(ipod, "*.*", SearchOption.AllDirectories))
+                        if (AudioExt.Contains(Path.GetExtension(f).ToLowerInvariant()) && !Path.GetFileName(f).StartsWith("._"))
+                            onIpod.Add(Path.GetFileNameWithoutExtension(f));
+                }
+                catch { }
+            }
             var map = new Dictionary<AlbumEntryViewModel, int>();
             foreach (var a in snapshot)
             {
                 if (!ok) { map[a] = -1; continue; }
-                var dir = Path.Combine(music, Clean(a.Artist), Clean(a.Album));
-                if (!Directory.Exists(dir)) { map[a] = 0; continue; }
-                int present = 0;
-                foreach (var f in a.Files)
-                {
-                    var name = Path.GetFileName(f);
-                    if (File.Exists(Path.Combine(dir, name)) || File.Exists(Path.Combine(dir, Path.ChangeExtension(name, ".m4a"))))
-                        present++;
-                }
-                map[a] = present;
+                map[a] = a.Files.Count(f => onIpod.Contains(Path.GetFileNameWithoutExtension(f)));
             }
 
             Dispatcher.UIThread.Post(() =>
