@@ -16,6 +16,7 @@ public sealed class LibraryService : IDisposable
     private readonly HashSet<string> _dirty = new(StringComparer.OrdinalIgnoreCase);
     private readonly DispatcherTimer _debounce;
     private FileSystemWatcher? _w1, _w2;
+    private string _library = "", _nieuw = "";
 
     /// <summary>root, done, total — raised on the UI thread while a scan reads files.</summary>
     public event Action<string, int, int>? ScanProgress;
@@ -37,6 +38,8 @@ public sealed class LibraryService : IDisposable
     /// <summary>(Re)point the watchers at the configured folders and kick off initial incremental scans.</summary>
     public void Configure(string libraryFolder, string nieuwFolder)
     {
+        _library = libraryFolder ?? "";
+        _nieuw = nieuwFolder ?? "";
         _w1?.Dispose(); _w1 = null;
         _w2?.Dispose(); _w2 = null;
         _w1 = TryWatch(libraryFolder);
@@ -44,6 +47,13 @@ public sealed class LibraryService : IDisposable
         foreach (var r in new[] { libraryFolder, nieuwFolder })
             if (!string.IsNullOrWhiteSpace(r) && Directory.Exists(r))
             { var root = r; Task.Run(() => Refresh(root)); }
+    }
+
+    /// <summary>Refresh both configured roots in the background (used after tag/file writes).</summary>
+    public void RefreshConfigured()
+    {
+        foreach (var r in new[] { _library, _nieuw })
+        { var root = r; Task.Run(() => Refresh(root)); }
     }
 
     private FileSystemWatcher? TryWatch(string root)

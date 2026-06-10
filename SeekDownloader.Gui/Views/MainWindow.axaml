@@ -608,7 +608,7 @@
 
             <!-- ============ TAB: METADATA ============ -->
             <TabItem Header="Metadata">
-                <Grid x:CompileBindings="False" DataContext="{Binding Meta}" RowDefinitions="Auto,*,Auto" Margin="0,12,0,0">
+                <Grid x:CompileBindings="False" DataContext="{Binding Meta}" RowDefinitions="Auto,Auto,*,Auto" Margin="0,12,0,0">
                     <Grid Grid.Row="0" ColumnDefinitions="Auto,Auto,Auto,Auto,Auto,*,Auto">
                         <Button Grid.Column="0" Classes="ghost" Content="Open bestand…" Click="OnOpenMetaFile" />
                         <Button Grid.Column="1" Classes="ghost" Content="Open map…" Margin="8,0,0,0" Click="OnOpenMetaFolder" />
@@ -621,7 +621,15 @@
                         <TextBlock Grid.Column="5" VerticalAlignment="Center" Margin="10,0,0,0" Foreground="{StaticResource TextSecondary}" FontSize="12" Text="{Binding FileName}" TextTrimming="CharacterEllipsis" />
                         <TextBlock Grid.Column="6" VerticalAlignment="Center" Foreground="{StaticResource HeaderBlue}" FontSize="13" FontWeight="SemiBold" Text="{Binding Position}" />
                     </Grid>
-                    <Grid Grid.Row="1" ColumnDefinitions="*,Auto" Margin="0,14,0,0">
+
+                    <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,10,0,0">
+                        <Button Classes="chipbtn" Content="Formulier" Command="{Binding ModeFormCommand}" Classes.active="{Binding IsFormMode}" />
+                        <Button Classes="chipbtn" Content="Tabel" Margin="6,0,0,0" Command="{Binding ModeTableCommand}" Classes.active="{Binding IsTableMode}" />
+                        <Button Classes="chipbtn" Content="Converters" Margin="6,0,0,0" Command="{Binding ModeConvCommand}" Classes.active="{Binding IsConvMode}" />
+                        <TextBlock Classes="caption" Margin="14,0,0,0" VerticalAlignment="Center" Text="{Binding Grid.Status}" />
+                    </StackPanel>
+                    <Panel Grid.Row="2" Margin="0,14,0,0">
+                    <Grid ColumnDefinitions="*,Auto" IsVisible="{Binding IsFormMode}">
                         <StackPanel Grid.Column="0" Spacing="8">
                             <Grid ColumnDefinitions="110,*"><TextBlock Classes="label" Text="Titel" /><TextBox Grid.Column="1" Text="{Binding Title}" /></Grid>
                             <Grid ColumnDefinitions="110,*"><TextBlock Classes="label" Text="Artiest" /><TextBox Grid.Column="1" Text="{Binding Artist}" /></Grid>
@@ -643,8 +651,69 @@
                             <Button Classes="ghost" Content="Hoes verwijderen" Margin="0,6,0,0" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Command="{Binding RemoveArtCommand}" />
                         </StackPanel>
 
-                        <!-- Album-match candidate picker (overlay) -->
-                        <Border Grid.Column="0" Grid.ColumnSpan="2" ZIndex="50" IsVisible="{Binding ShowCandidates}"
+                    </Grid>
+
+                    <!-- TABEL-modus (fase 2): Mp3tag-achtige grid-editor -->
+                    <Grid RowDefinitions="Auto,*,Auto" IsVisible="{Binding IsTableMode}">
+                        <WrapPanel Grid.Row="0">
+                            <TextBlock Classes="caption" Text="Acties (alle rijen, als wijziging):" VerticalAlignment="Center" Margin="0,0,10,0" />
+                            <Button Classes="ghost" Padding="10,5" Content="Apple-format" Command="{Binding Grid.ActionAppleCommand}" />
+                            <Button Classes="ghost" Padding="10,5" Content="Genre normaliseren" Margin="6,0,0,0" Command="{Binding Grid.ActionGenreCommand}" />
+                            <Button Classes="ghost" Padding="10,5" Content="Trim spaties" Margin="6,0,0,0" Command="{Binding Grid.ActionTrimCommand}" />
+                        </WrapPanel>
+                        <DataGrid Grid.Row="1" Margin="0,10,0,0" ItemsSource="{Binding Grid.Rows}" AutoGenerateColumns="False"
+                                  CanUserResizeColumns="True" GridLinesVisibility="Horizontal" HeadersVisibility="Column"
+                                  Background="{StaticResource Card}" BorderBrush="{StaticResource CardBorder}" BorderThickness="1" CornerRadius="10">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="" Binding="{Binding DirtyMark}" IsReadOnly="True" Width="28" />
+                                <DataGridTextColumn Header="Bestand" Binding="{Binding FileName}" IsReadOnly="True" Width="210" />
+                                <DataGridTextColumn Header="Titel" Binding="{Binding Title, Mode=TwoWay}" Width="*" />
+                                <DataGridTextColumn Header="Artiest" Binding="{Binding Artist, Mode=TwoWay}" Width="150" />
+                                <DataGridTextColumn Header="Album-artiest" Binding="{Binding AlbumArtist, Mode=TwoWay}" Width="150" />
+                                <DataGridTextColumn Header="Album" Binding="{Binding Album, Mode=TwoWay}" Width="170" />
+                                <DataGridTextColumn Header="Genre" Binding="{Binding Genre, Mode=TwoWay}" Width="110" />
+                                <DataGridTextColumn Header="#" Binding="{Binding Track, Mode=TwoWay}" Width="46" />
+                                <DataGridTextColumn Header="Jaar" Binding="{Binding Year, Mode=TwoWay}" Width="62" />
+                            </DataGrid.Columns>
+                        </DataGrid>
+                        <Grid Grid.Row="2" ColumnDefinitions="*,Auto" Margin="0,10,0,0">
+                            <TextBlock Grid.Column="0" Classes="caption" VerticalAlignment="Center" Text="{Binding Grid.DirtyText}" />
+                            <Button Grid.Column="1" Classes="primary" Content="Bewaar wijzigingen" Command="{Binding Grid.SaveCommand}"
+                                    ToolTip.Tip="Schrijft de gewijzigde rijen naar de bestanden (Cmd+Z = ongedaan maken)." />
+                        </Grid>
+                    </Grid>
+
+                    <!-- CONVERTERS-modus (fase 2) -->
+                    <ScrollViewer IsVisible="{Binding IsConvMode}" VerticalScrollBarVisibility="Auto">
+                        <StackPanel Spacing="12">
+                            <Border Classes="card">
+                                <StackPanel>
+                                    <TextBlock Classes="title" Text="Bestandsnaam → Tags" />
+                                    <TextBlock Classes="caption" Margin="0,2,0,8" Text="Leest velden uit de bestandsnaam en vult de tabel als wijziging — controleer daar en klik Bewaar." />
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <TextBox Grid.Column="0" Text="{Binding Grid.PatternF2T}" Watermark="%artist% - %title%" />
+                                        <Button Grid.Column="1" Classes="primary" Margin="8,0,0,0" Content="Vul tabel" Command="{Binding Grid.ApplyF2TCommand}" />
+                                    </Grid>
+                                    <TextBlock Classes="caption" Margin="0,8,0,0" Text="{Binding Grid.PreviewF2T}" TextWrapping="Wrap" />
+                                </StackPanel>
+                            </Border>
+                            <Border Classes="card">
+                                <StackPanel>
+                                    <TextBlock Classes="title" Text="Tags → Bestandsnaam" />
+                                    <TextBlock Classes="caption" Margin="0,2,0,8" Text="Hernoemt de bestanden op basis van de (tabel)tags. Omkeerbaar met Cmd+Z." />
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <TextBox Grid.Column="0" Text="{Binding Grid.PatternT2F}" Watermark="%track% %title%" />
+                                        <Button Grid.Column="1" Classes="primary" Margin="8,0,0,0" Content="Hernoem bestanden" Command="{Binding Grid.ApplyT2FCommand}" />
+                                    </Grid>
+                                    <TextBlock Classes="caption" Margin="0,8,0,0" Text="{Binding Grid.PreviewT2F}" TextWrapping="Wrap" />
+                                </StackPanel>
+                            </Border>
+                            <TextBlock Classes="caption" Text="Tokens: %artist%  %albumartist%  %album%  %title%  %track%  %disc%  %year%  %genre%" />
+                        </StackPanel>
+                    </ScrollViewer>
+
+                    <!-- Album-match candidate picker (overlay, alle modi) -->
+                    <Border ZIndex="50" IsVisible="{Binding ShowCandidates}"
                                 Background="{StaticResource Surface}" CornerRadius="12">
                             <Border Classes="card">
                                 <Grid RowDefinitions="Auto,*,Auto">
@@ -676,8 +745,8 @@
                                 </Grid>
                             </Border>
                         </Border>
-                    </Grid>
-                    <Grid Grid.Row="2" ColumnDefinitions="*,Auto,Auto" Margin="0,12,0,0">
+                    </Panel>
+                    <Grid Grid.Row="3" ColumnDefinitions="*,Auto,Auto" Margin="0,12,0,0">
                         <SelectableTextBlock Grid.Column="0" VerticalAlignment="Center" Foreground="{StaticResource TextSecondary}" Text="{Binding Status}" />
                         <Button Grid.Column="1" Classes="ghost" Content="◀ Vorige  (←)" Command="{Binding BackCommand}" />
                         <Button Grid.Column="2" Classes="primary" Content="Goedkeuren ▶  (→)" Margin="8,0,0,0" Command="{Binding ApproveNextCommand}" />

@@ -15,8 +15,14 @@ public class MetadataEditorViewModel : ViewModelBase
 {
     private static readonly string[] AudioExts = { ".flac", ".mp3", ".m4a", ".wav", ".aiff", ".aif", ".opus" };
 
-    public MetadataEditorViewModel()
+    public TagGridViewModel Grid { get; }
+
+    public MetadataEditorViewModel(LibraryService? lib = null, UndoJournal? undo = null)
     {
+        Grid = new TagGridViewModel(lib, undo);
+        ModeFormCommand = new RelayCommand(() => EditorMode = "form");
+        ModeTableCommand = new RelayCommand(() => { if (!Grid.HasDirty) Grid.Reload(); EditorMode = "tabel"; });
+        ModeConvCommand = new RelayCommand(() => { if (!Grid.HasDirty) Grid.Reload(); EditorMode = "conv"; });
         ApproveNextCommand = new RelayCommand(ApproveNext, () => HasFile && !IsBusy);
         BackCommand = new RelayCommand(Back, () => HasPrev && !IsBusy);
         ApplyAppleArtistCommand = new RelayCommand(ApplyAppleArtist, () => HasFile && !IsBusy);
@@ -102,6 +108,29 @@ public class MetadataEditorViewModel : ViewModelBase
     public RelayCommand AutoFillCommand { get; }
     public RelayCommand RemoveArtCommand { get; }
 
+    // ---- weergavemodus: formulier / tabel / converters (fase 2) ----
+    public RelayCommand ModeFormCommand { get; }
+    public RelayCommand ModeTableCommand { get; }
+    public RelayCommand ModeConvCommand { get; }
+
+    private string _editorMode = "form";
+    public string EditorMode
+    {
+        get => _editorMode;
+        private set
+        {
+            if (SetField(ref _editorMode, value))
+            {
+                OnPropertyChanged(nameof(IsFormMode));
+                OnPropertyChanged(nameof(IsTableMode));
+                OnPropertyChanged(nameof(IsConvMode));
+            }
+        }
+    }
+    public bool IsFormMode => _editorMode == "form";
+    public bool IsTableMode => _editorMode == "tabel";
+    public bool IsConvMode => _editorMode == "conv";
+
     public void Open(string path)
     {
         _folderLoaded = false;
@@ -110,6 +139,8 @@ public class MetadataEditorViewModel : ViewModelBase
         _allFiles = new List<string> { path };
         _index = 0;
         Load(path);
+        Grid.Load(_allFiles);
+        EditorMode = "form";
     }
 
     public void LoadFolder(string folder)
@@ -129,6 +160,8 @@ public class MetadataEditorViewModel : ViewModelBase
             _index = 0;
             Load(_files[0]);
             Status = $"{_files.Count} nummers geladen. Klik Auto-fill om de hele map bij te werken.";
+            Grid.Load(_allFiles);
+            EditorMode = _files.Count > 1 ? "tabel" : "form";
         }
         catch (Exception e)
         {
@@ -155,6 +188,8 @@ public class MetadataEditorViewModel : ViewModelBase
         _index = 0;
         Load(_files[0]);
         Status = context ?? $"{_files.Count} nummers geladen.";
+        Grid.Load(_allFiles);
+        EditorMode = _files.Count > 1 ? "tabel" : "form";
     }
 
     private async void MatchAlbum()

@@ -24,6 +24,7 @@ public class MainViewModel : ViewModelBase
 
     public MainViewModel()
     {
+        Meta = new MetadataEditorViewModel(Lib, Undo);
         StartCommand = new RelayCommand(StartAuto, () => !IsRunning && IsAutoMode);
         StopCommand = new RelayCommand(StopAll);
         SearchCommand = new RelayCommand(Search, () => IsPickMode && !IsSearching);
@@ -424,7 +425,7 @@ public class MainViewModel : ViewModelBase
 
     // ---- Extra tools (own tabs) ----
     public AlacConverterViewModel Alac { get; } = new();
-    public MetadataEditorViewModel Meta { get; } = new();
+    public MetadataEditorViewModel Meta { get; }
     public SortViewModel Sort { get; } = new();
     public OrganizeViewModel Organize { get; } = new();
     public DuplicatesViewModel Duplicates { get; } = new();
