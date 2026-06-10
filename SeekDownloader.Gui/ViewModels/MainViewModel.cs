@@ -69,6 +69,11 @@ public class MainViewModel : ViewModelBase
         Browser = new BrowserViewModel(Lib, () => MusicLibrary,
             (files, status) => { Meta.LoadFiles(files, status); SelectedTabIndex = 3; });
 
+        Galaxy = new GalaxyViewModel(Lib, () => MusicLibrary,
+            onOpenAlbum: (artist, album) => { SelectedTabIndex = 9; Browser.FocusAlbum(artist, album); },
+            getAlbumLevel: () => GalaxyAlbumLevel,
+            setAlbumLevel: v => GalaxyAlbumLevel = v);
+
         LoadFromConfig(Settings.Load());
 
         // Pre-fill comparison/library folders with your library/download path, but only when the
@@ -189,7 +194,7 @@ public class MainViewModel : ViewModelBase
     public string CurrentSection => SelectedTabIndex switch
     {
         0 => "Sorteren", 1 => "Organiseren", 2 => "ALAC-converter", 3 => "Metadata",
-        4 => "Gezondheid", 5 => "Dubbele", 6 => "Overzetten", 7 => "Instellingen", 8 => "Nieuw", 9 => "Bibliotheek", _ => "Spindle"
+        4 => "Gezondheid", 5 => "Dubbele", 6 => "Overzetten", 7 => "Instellingen", 8 => "Nieuw", 9 => "Bibliotheek", 10 => "Galaxy", _ => "Spindle"
     };
 
     public string UserInitial => "S";
@@ -197,6 +202,7 @@ public class MainViewModel : ViewModelBase
     // ---- Cmd+F command palette ----
     private static readonly (string Name, int Idx, string Glyph)[] PaletteSections =
     {
+        ("Galaxy", 10, ""),
         ("Bibliotheek", 9, ""),
         ("Nieuw", 8, ""),
         ("Organiseren", 1, ""), ("Sorteren", 0, ""), ("Metadata", 3, ""),
@@ -347,6 +353,13 @@ public class MainViewModel : ViewModelBase
     private bool _autoOrganize;
     public bool AutoOrganize { get => _autoOrganize; set => SetField(ref _autoOrganize, value); }
 
+    private bool _galaxyAlbumLevel;
+    public bool GalaxyAlbumLevel
+    {
+        get => _galaxyAlbumLevel;
+        set { if (SetField(ref _galaxyAlbumLevel, value)) Galaxy?.Refresh(); }
+    }
+
     // ---- Mode (0 = automatisch, 1 = handmatig per bestand, 2 = artiest → kies albums) ----
     private int _mode;
     public int Mode
@@ -391,6 +404,7 @@ public class MainViewModel : ViewModelBase
             case 6: if (Sync.ScanCommand.CanExecute(null))    { Sync.ScanCommand.Execute(null); ran = true; } break;    // Overzetten
             case 8: if (Staging.ScanCommand.CanExecute(null)) { Staging.ScanCommand.Execute(null); ran = true; } break; // Nieuw
             case 9: Browser.Refresh(); ran = true; break; // Bibliotheek (leest direct uit de index)
+            case 10: Galaxy.Refresh(); ran = true; break; // Galaxy
         }
         if (ran) _autoScanned.Add(tab);
     }
@@ -428,6 +442,7 @@ public class MainViewModel : ViewModelBase
     public LibraryViewModel Library { get; }
     public StagingViewModel Staging { get; }
     public BrowserViewModel Browser { get; }
+    public GalaxyViewModel Galaxy { get; }
 
     // ---- Runtime state ----
     private bool _isRunning;
@@ -1066,6 +1081,7 @@ public class MainViewModel : ViewModelBase
             SyncIpod = Sync.IpodFolder,
             AppleLibrary = AppleMusic.LibraryFolder,
             AutoOrganize = AutoOrganize,
+            GalaxyAlbumLevel = GalaxyAlbumLevel,
             FilenameTemplate = string.IsNullOrWhiteSpace(FilenameTemplate) ? NameTemplate.Default : FilenameTemplate.Trim(),
         };
 
@@ -1117,6 +1133,7 @@ public class MainViewModel : ViewModelBase
         Sync.IpodFolder = c.SyncIpod;
         AppleMusic.LibraryFolder = c.AppleLibrary;
         AutoOrganize = c.AutoOrganize;
+        GalaxyAlbumLevel = c.GalaxyAlbumLevel;
         FilenameTemplate = string.IsNullOrWhiteSpace(c.FilenameTemplate) ? NameTemplate.Default : c.FilenameTemplate;
         DiscogsToken = c.DiscogsToken ?? string.Empty;
     }

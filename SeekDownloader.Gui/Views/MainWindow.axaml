@@ -1,6 +1,7 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:SeekDownloader.Gui.ViewModels"
+        xmlns:views="using:SeekDownloader.Gui.Views"
         x:Class="SeekDownloader.Gui.Views.MainWindow"
         x:DataType="vm:MainViewModel"
         x:CompileBindings="True"
@@ -363,6 +364,10 @@
                         <Button Classes="nav" Tag="9" Click="OnNav"
                                 Classes.active="{Binding SelectedTabIndex, Converter={x:Static vm:IntEquals.Instance}, ConverterParameter=9}">
                             <StackPanel Orientation="Horizontal"><TextBlock Classes="icon" FontSize="19" Width="28" Text="&#xE030;" /><TextBlock Text="Bibliotheek" VerticalAlignment="Center" /></StackPanel>
+                        </Button>
+                        <Button Classes="nav" Tag="10" Click="OnNav"
+                                Classes.active="{Binding SelectedTabIndex, Converter={x:Static vm:IntEquals.Instance}, ConverterParameter=10}">
+                            <StackPanel Orientation="Horizontal"><TextBlock Classes="icon" FontSize="19" Width="28" Text="&#xE838;" /><TextBlock Text="Galaxy" VerticalAlignment="Center" /></StackPanel>
                         </Button>
                         <Button Classes="nav" Tag="4" Click="OnNav"
                                 Classes.active="{Binding SelectedTabIndex, Converter={x:Static vm:IntEquals.Instance}, ConverterParameter=4}">
@@ -1150,6 +1155,14 @@
                         </Border>
 
                         <Border Classes="card">
+                            <StackPanel Spacing="6">
+                                <TextBlock Classes="section" Text="GALAXY" />
+                                <CheckBox Content="Album-niveau (sneller bij grote collecties)" IsChecked="{Binding GalaxyAlbumLevel}"
+                                          ToolTip.Tip="Eén punt per album in plaats van per nummer. Aangeraden boven ±20.000 nummers (≈ 1 TB)." />
+                            </StackPanel>
+                        </Border>
+
+                        <Border Classes="card">
                             <StackPanel>
                                 <TextBlock Classes="section" Text="MAPPEN" />
                                 <Grid ColumnDefinitions="110,*,Auto" RowDefinitions="Auto,Auto">
@@ -1493,6 +1506,33 @@
                             </StackPanel>
                         </ScrollViewer>
                     </Border>
+                </Grid>
+            </TabItem>
+
+            <!-- ============ TAB: GALAXY (fase 4) ============ -->
+            <TabItem Header="Galaxy">
+                <Grid x:CompileBindings="False" DataContext="{Binding Galaxy}" RowDefinitions="Auto,Auto,*" Margin="0,12,0,0">
+                    <Grid Grid.Row="0" ColumnDefinitions="*,Auto,Auto,Auto,Auto">
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Classes="h2" Text="Galaxy" />
+                            <TextBlock Classes="caption" Margin="0,2,0,0" Text="{Binding Status}" />
+                        </StackPanel>
+                        <Button Grid.Column="1" Classes="chipbtn" Content="Alles" VerticalAlignment="Top" Command="{Binding FilterAllCommand}" Classes.active="{Binding IsFilterAll}" />
+                        <Button Grid.Column="2" Classes="chipbtn" Content="Lossy" Margin="6,0,0,0" VerticalAlignment="Top" Command="{Binding FilterLossyCommand}" Classes.active="{Binding IsFilterLossy}" />
+                        <Button Grid.Column="3" Classes="chipbtn" Content="Zonder hoes" Margin="6,0,0,0" VerticalAlignment="Top" Command="{Binding FilterNoCoverCommand}" Classes.active="{Binding IsFilterNoCover}" />
+                        <Button Grid.Column="4" Classes="ghost" Margin="10,0,0,0" VerticalAlignment="Top" Command="{Binding RefreshCommand}" ToolTip.Tip="Opnieuw opbouwen uit de index.">
+                            <TextBlock Classes="icon" FontSize="17" Text="&#xE5D5;" />
+                        </Button>
+                    </Grid>
+
+                    <Border Grid.Row="1" Margin="0,10,0,0" CornerRadius="10" Padding="12,8" Background="#FFE5CC" IsVisible="{Binding WarningVisible}">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <TextBlock Grid.Column="0" TextWrapping="Wrap" FontSize="12" Foreground="#A55600" VerticalAlignment="Center" Text="{Binding WarningText}" />
+                            <Button Grid.Column="1" Classes="ghost" Margin="10,0,0,0" Content="Schakel naar album-niveau" Command="{Binding SwitchToAlbumsCommand}" />
+                        </Grid>
+                    </Border>
+
+                    <views:GalaxyControl Grid.Row="2" Margin="0,12,0,0" />
                 </Grid>
             </TabItem>
         </TabControl>
