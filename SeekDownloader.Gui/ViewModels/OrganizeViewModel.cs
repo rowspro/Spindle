@@ -10,7 +10,7 @@ using FuzzySharp;
 namespace SeekDownloader.Gui.ViewModels;
 
 /// <summary>
-/// One-stop "Organiseren" pipeline: for a folder it matches each album against MusicBrainz (album-level),
+/// One-stop "Organize" pipeline: for a folder it matches each album against MusicBrainz (album-level),
 /// fills/cleans the tags (Apple-format artist, primary album-artist, canonical genre, cover art) and then
 /// sorts the files into Artiest / Album (Jaar) / "hoofdartiest - album - ## titel" — optionally adding
 /// ReplayGain. Test mode previews everything without touching files.
@@ -27,7 +27,7 @@ public class OrganizeViewModel : ViewModelBase
     {
         RunCommand = new RelayCommand(Run, () => !IsBusy && !string.IsNullOrWhiteSpace(SourceFolder));
         StopCommand = new RelayCommand(() => _cts?.Cancel(), () => IsBusy);
-        UndoCommand = new RelayCommand(() => { var n = MoveLog.UndoLast(); Status = n > 0 ? $"{n} bestand(en) teruggezet." : "Niets om ongedaan te maken."; }, () => !IsBusy);
+        UndoCommand = new RelayCommand(() => { var n = MoveLog.UndoLast(); Status = n > 0 ? $"{n} file(s) restored." : "Nothing to undo."; }, () => !IsBusy);
     }
 
     private string _sourceFolder = string.Empty;
@@ -63,7 +63,7 @@ public class OrganizeViewModel : ViewModelBase
         private set { if (SetField(ref _isBusy, value)) { RunCommand.RaiseCanExecuteChanged(); StopCommand.RaiseCanExecuteChanged(); } }
     }
 
-    private string _status = "Kies een map. 'Alleen tonen' laat zien wat er zou gebeuren zonder iets te wijzigen.";
+    private string _status = "Pick a folder. 'Preview only' shows what would happen without changing anything.";
     public string Status { get => _status; private set => SetField(ref _status, value); }
 
     private string _detail = string.Empty;
@@ -104,8 +104,8 @@ public class OrganizeViewModel : ViewModelBase
                     .Where(f => AudioExt.Contains(Path.GetExtension(f).ToLowerInvariant()) && !Path.GetFileName(f).StartsWith("._"))
                     .ToList();
             }
-            catch (Exception e) { Done(false, "Kon map niet lezen: " + e.Message); return; }
-            if (files.Count == 0) { Done(false, "Geen audiobestanden gevonden."); return; }
+            catch (Exception e) { Done(false, "Couldn't read folder: " + e.Message); return; }
+            if (files.Count == 0) { Done(false, "No audio files found."); return; }
 
             // Read tags across all cores, then group into albums.
             var bag = new ConcurrentBag<FileRec>();
@@ -158,23 +158,23 @@ public class OrganizeViewModel : ViewModelBase
                     try
                     {
                         var result = ProcessFile(rec, mb, art, grpArtist, grpAlbum, genre, rg, cover, test, dest, taken, token);
-                        if (result.Item1 == "Verplaatst") moved++;
-                        else if (result.Item1 == "Mislukt") failed++;
-                        else if (result.Item1 == "Al goed" || result.Item1 == "Overgeslagen") skipped++;
+                        if (result.Item1 == "Moved") moved++;
+                        else if (result.Item1 == "Failed") failed++;
+                        else if (result.Item1 == "Al goed" || result.Item1 == "Skipped") skipped++;
                         AddItem(Path.GetFileName(rec.Path), rec.Path, result.Item2, result.Item1, result.Item3);
                     }
                     catch (Exception e)
                     {
                         failed++;
-                        AddItem(Path.GetFileName(rec.Path), rec.Path, "", "Mislukt", e.GetType().Name + ": " + e.Message);
+                        AddItem(Path.GetFileName(rec.Path), rec.Path, "", "Failed", e.GetType().Name + ": " + e.Message);
                     }
                 }
             }
 
             var mbInfo = useMb ? $" · {albumsMatched}/{groups.Count} albums via MusicBrainz" : "";
             Done(!test, test
-                ? $"Test — {files.Count} bestanden in {groups.Count} albums bekeken{mbInfo}. Zet 'Alleen tonen' uit om te verwerken."
-                : $"Klaar — {moved} verwerkt, {skipped} overgeslagen, {failed} mislukt{mbInfo}.");
+                ? $"Dry run — {files.Count} files in {groups.Count} albums reviewed{mbInfo}. Turn off 'Preview only' to process."
+                : $"Done — {moved} processed, {skipped} skipped, {failed} failed{mbInfo}.");
         });
     }
 
@@ -247,7 +247,7 @@ public class OrganizeViewModel : ViewModelBase
         Directory.CreateDirectory(targetDir);
         File.Move(rec.Path, target);
         MoveLog.Record(target, rec.Path);
-        return ("Verplaatst", targetRel, "");
+        return ("Moved", targetRel, "");
     }
 
     private void AddItem(string name, string source, string target, string status, string error)

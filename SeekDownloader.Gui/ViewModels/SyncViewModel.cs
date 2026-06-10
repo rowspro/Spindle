@@ -61,7 +61,7 @@ public class SyncViewModel : ViewModelBase
     }
 
     // ---- Device card (capacity of the chosen iPod folder's volume) ----
-    private string _deviceText = "Kies de gekoppelde iPod-map om de vrije ruimte te zien.";
+    private string _deviceText = "Pick the connected iPod folder to see free space.";
     public string DeviceText { get => _deviceText; private set => SetField(ref _deviceText, value); }
 
     private bool _hasDevice;
@@ -76,7 +76,7 @@ public class SyncViewModel : ViewModelBase
         {
             if (string.IsNullOrWhiteSpace(IpodFolder) || !Directory.Exists(IpodFolder))
             {
-                DeviceText = "Kies de gekoppelde iPod-map om de vrije ruimte te zien.";
+                DeviceText = "Pick the connected iPod folder to see free space.";
                 HasDevice = false; UsedPercent = 0; return;
             }
             var d = FindVolume(IpodFolder);
@@ -84,7 +84,7 @@ public class SyncViewModel : ViewModelBase
             double freeGb = d.AvailableFreeSpace / 1073741824.0;
             double totGb = d.TotalSize / 1073741824.0;
             var label = string.IsNullOrWhiteSpace(d.VolumeLabel) ? "iPod" : d.VolumeLabel;
-            DeviceText = $"{label} — {freeGb:0.0} GB vrij van {totGb:0.0} GB";
+            DeviceText = $"{label} — {freeGb:0.0} GB free of {totGb:0.0} GB";
             UsedPercent = totGb > 0 ? (int)Math.Round((1 - freeGb / totGb) * 100) : 0;
             HasDevice = true;
         }
@@ -150,7 +150,7 @@ public class SyncViewModel : ViewModelBase
     private double _transferProgress;
     public double TransferProgress { get => _transferProgress; private set => SetField(ref _transferProgress, value); }
 
-    private string _status = "Scan je bibliotheek, filter op genre/zoekterm, vink albums aan en zet over naar de iPod.";
+    private string _status = "Scan your library, filter by genre/search, tick albums and transfer to the iPod.";
     public string Status { get => _status; private set => SetField(ref _status, value); }
 
     public RelayCommand ScanCommand { get; }
@@ -166,7 +166,7 @@ public class SyncViewModel : ViewModelBase
         if (IsBusy) return;
         var ipod = IpodFolder;
         var music = string.IsNullOrWhiteSpace(ipod) ? "" : Path.Combine(ipod, "Music");
-        if (music.Length == 0 || !Directory.Exists(music)) { Status = "Geen Music-map op de iPod."; return; }
+        if (music.Length == 0 || !Directory.Exists(music)) { Status = "No Music folder on the iPod."; return; }
         IsBusy = true;
         Task.Run(() =>
         {
@@ -185,7 +185,7 @@ public class SyncViewModel : ViewModelBase
                 }
             }
             catch { }
-            Dispatcher.UIThread.Post(() => { IsBusy = false; Status = $"{made} album-playlists (.m3u) gemaakt op de iPod."; });
+            Dispatcher.UIThread.Post(() => { IsBusy = false; Status = $"{made} album playlists (.m3u) created on the iPod."; });
         });
     }
 
@@ -193,11 +193,11 @@ public class SyncViewModel : ViewModelBase
     {
         if (IsBusy) return;
         var lib = LibraryFolder;
-        if (!Directory.Exists(lib)) { Status = "Bibliotheek-map bestaat niet."; return; }
+        if (!Directory.Exists(lib)) { Status = "Library folder doesn't exist."; return; }
         IsBusy = true;
         _cts = new CancellationTokenSource();
         var token = _cts.Token;
-        Status = "Bibliotheek scannen...";
+        Status = "Scanning library...";
 
         Task.Run(() =>
         {
@@ -208,7 +208,7 @@ public class SyncViewModel : ViewModelBase
                     .Where(f => AudioExt.Contains(Path.GetExtension(f).ToLowerInvariant()) && !Path.GetFileName(f).StartsWith("._"))
                     .ToList();
             }
-            catch (Exception e) { Dispatcher.UIThread.Post(() => { IsBusy = false; Status = "Kon bibliotheek niet lezen: " + e.Message; }); return; }
+            catch (Exception e) { Dispatcher.UIThread.Post(() => { IsBusy = false; Status = "Couldn't read library: " + e.Message; }); return; }
 
             // Tag reading is the slow part -> read across all cores, then group in-memory.
             int scanned = 0;
@@ -227,7 +227,7 @@ public class SyncViewModel : ViewModelBase
                     }
                     catch { }
                     var s = Interlocked.Increment(ref scanned);
-                    if (s % 100 == 0) Dispatcher.UIThread.Post(() => Status = $"Scannen... {s} bestanden");
+                    if (s % 100 == 0) Dispatcher.UIThread.Post(() => Status = $"Scanning... {s} files");
                 });
             }
             catch (OperationCanceledException) { }
@@ -263,7 +263,7 @@ public class SyncViewModel : ViewModelBase
                 SelectedGenre = AllGenres;
                 ApplyFilter();
                 IsBusy = false;
-                Status = $"{_all.Count} albums gevonden ({scanned} bestanden). Filter en vink aan wat je wilt overzetten.";
+                Status = $"{_all.Count} albums found ({scanned} files). Filter and tick what to transfer.";
                 MarkIpodPresence();
             });
         });
@@ -310,7 +310,7 @@ public class SyncViewModel : ViewModelBase
                 if (ok)
                 {
                     int present = snapshot.Count(a => a.OnIpod > 0);
-                    Status = $"{snapshot.Count} albums · {present} al op de iPod (voorgevinkt). Vink af om van de iPod te verwijderen, vink aan om over te zetten.";
+                    Status = $"{snapshot.Count} albums · {present} already on the iPod (pre-ticked). Untick to remove from the iPod, tick to transfer.";
                 }
                 ApplyFilter();
             });
@@ -335,13 +335,13 @@ public class SyncViewModel : ViewModelBase
     {
         if (IsBusy) return;
         var ipod = IpodFolder;
-        if (!Directory.Exists(ipod)) { Status = "iPod-map bestaat niet."; return; }
+        if (!Directory.Exists(ipod)) { Status = "iPod folder doesn't exist."; return; }
         var jobs = _all.Where(a => a.Selected)
             .SelectMany(a => a.Files.Select(f => (File: f, a.Artist, a.Album)))
             .ToList();
         // Unticked albums that are currently on the iPod get removed from it (iTunes-style sync).
         var deletes = _all.Where(a => !a.Selected && a.OnIpod > 0).ToList();
-        if (jobs.Count == 0 && deletes.Count == 0) { Status = "Niets te doen — selectie komt al overeen met de iPod."; return; }
+        if (jobs.Count == 0 && deletes.Count == 0) { Status = "Nothing to do — selection already matches the iPod."; return; }
 
         Failures.Clear();
         IsBusy = true;
@@ -395,7 +395,7 @@ public class SyncViewModel : ViewModelBase
                                     else
                                     {
                                         Interlocked.Increment(ref failed);
-                                        if (!token.IsCancellationRequested) AddFailure(job.File, encErr ?? "geen uitvoerbestand");
+                                        if (!token.IsCancellationRequested) AddFailure(job.File, encErr ?? "no output file");
                                     }
                                 }
                                 finally { try { if (File.Exists(part)) File.Delete(part); } catch { } }
@@ -410,7 +410,7 @@ public class SyncViewModel : ViewModelBase
                     catch (OperationCanceledException) { throw; }
                     catch (Exception ex) { Interlocked.Increment(ref failed); AddFailure(job.File, ex.Message); }
                     var p = Interlocked.Increment(ref processed);
-                    Dispatcher.UIThread.Post(() => { Status = $"Overzetten… {p}/{jobs.Count}"; TransferProgress = jobs.Count > 0 ? 100.0 * p / jobs.Count : 100; });
+                    Dispatcher.UIThread.Post(() => { Status = $"Transferring… {p}/{jobs.Count}"; TransferProgress = jobs.Count > 0 ? 100.0 * p / jobs.Count : 100; });
                 });
             }
             catch (OperationCanceledException) { }
@@ -421,8 +421,8 @@ public class SyncViewModel : ViewModelBase
                 IsTransferring = false;
                 if (!token.IsCancellationRequested) TransferProgress = 100;
                 Status = token.IsCancellationRequested
-                    ? $"Gestopt — {copied} overgezet, {removed} verwijderd, {skipped} overgeslagen."
-                    : $"Klaar — {copied} overgezet, {removed} van iPod verwijderd, {skipped} overgeslagen, {failed} mislukt.  ✓ Veilig om de iPod af te koppelen.";
+                    ? $"Stopped — {copied} transferred, {removed} removed, {skipped} skipped."
+                    : $"Done — {copied} transferred, {removed} removed from iPod, {skipped} skipped, {failed} failed.  ✓ Safe to disconnect the iPod.";
                 MarkIpodPresence();
             });
         });

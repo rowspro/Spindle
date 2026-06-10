@@ -22,7 +22,7 @@ public class SortItemViewModel : ViewModelBase
         ShowCommand = new RelayCommand(() => onShow(Detail));
     }
 
-    public bool IsError => Status is "Mislukt" or "fout";
+    public bool IsError => Status is "Failed" or "error";
 
     public string Detail => string.IsNullOrEmpty(Error)
         ? $"{SourcePath}\n→ {Target}"
@@ -30,9 +30,9 @@ public class SortItemViewModel : ViewModelBase
 
     public IBrush StatusBrush => Status switch
     {
-        "Verplaatst" => new SolidColorBrush(Color.Parse("#2E7D43")),
-        "Mislukt" or "fout" => new SolidColorBrush(Color.Parse("#B23A2E")),
-        "Geen tags" => new SolidColorBrush(Color.Parse("#B7791F")),
+        "Moved" => new SolidColorBrush(Color.Parse("#2E7D43")),
+        "Failed" or "error" => new SolidColorBrush(Color.Parse("#B23A2E")),
+        "No tags" => new SolidColorBrush(Color.Parse("#B7791F")),
         _ => new SolidColorBrush(Color.Parse("#8A8370")),
     };
 }

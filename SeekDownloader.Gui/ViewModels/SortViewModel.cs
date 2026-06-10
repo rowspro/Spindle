@@ -24,7 +24,7 @@ public class SortViewModel : ViewModelBase
     public SortViewModel()
     {
         SortCommand = new RelayCommand(Run, () => !IsRunning && !string.IsNullOrWhiteSpace(SourceFolder));
-        UndoCommand = new RelayCommand(() => { var n = MoveLog.UndoLast(); Status = n > 0 ? $"{n} bestand(en) teruggezet." : "Niets om ongedaan te maken."; }, () => !IsRunning);
+        UndoCommand = new RelayCommand(() => { var n = MoveLog.UndoLast(); Status = n > 0 ? $"{n} file(s) restored." : "Nothing to undo."; }, () => !IsRunning);
     }
 
     private string _sourceFolder = string.Empty;
@@ -53,7 +53,7 @@ public class SortViewModel : ViewModelBase
         private set { if (SetField(ref _isRunning, value)) SortCommand.RaiseCanExecuteChanged(); }
     }
 
-    private string _status = "Kies een map. Zet 'Alleen tonen' uit om echt te verplaatsen.";
+    private string _status = "Pick a folder. Turn off 'Preview only' to actually move.";
     public string Status { get => _status; private set => SetField(ref _status, value); }
 
     private string _detail = string.Empty;
@@ -77,11 +77,11 @@ public class SortViewModel : ViewModelBase
                 .Where(f => AudioExt.Contains(Path.GetExtension(f).ToLowerInvariant()) && !Path.GetFileName(f).StartsWith("._"))
                 .ToList();
         }
-        catch (Exception e) { Status = "Kon map niet lezen: " + e.Message; return; }
+        catch (Exception e) { Status = "Couldn't read folder: " + e.Message; return; }
 
         Tree.Clear();
         _artists.Clear();
-        if (files.Count == 0) { Status = "Geen audiobestanden gevonden."; return; }
+        if (files.Count == 0) { Status = "No audio files found."; return; }
 
         IsRunning = true;
         var test = TestMode;
@@ -111,7 +111,7 @@ public class SortViewModel : ViewModelBase
                     if (string.IsNullOrEmpty(folderArtist) && string.IsNullOrEmpty(album) && string.IsNullOrEmpty(title))
                     {
                         Interlocked.Increment(ref notags);
-                        AddItem(Path.GetFileName(file), file, "", "Geen tags", "");
+                        AddItem(Path.GetFileName(file), file, "", "No tags", "");
                         return;
                     }
 
@@ -156,7 +156,7 @@ public class SortViewModel : ViewModelBase
                             File.Move(file, target);
                             MoveLog.Record(target, file);
                             Interlocked.Increment(ref moved);
-                            status = "Verplaatst";
+                            status = "Moved";
                         }
                     }
                     AddItem(Path.GetFileName(file), file, targetRel, status, "");
@@ -164,7 +164,7 @@ public class SortViewModel : ViewModelBase
                 catch (Exception e)
                 {
                     Interlocked.Increment(ref failed);
-                    AddItem(Path.GetFileName(file), file, targetRel, "Mislukt", e.GetType().Name + ": " + e.Message);
+                    AddItem(Path.GetFileName(file), file, targetRel, "Failed", e.GetType().Name + ": " + e.Message);
                 }
                 var p = Interlocked.Increment(ref done);
                 if (p % 25 == 0) Dispatcher.UIThread.Post(() => Status = $"Bezig... {p}/{files.Count}");
@@ -176,8 +176,8 @@ public class SortViewModel : ViewModelBase
             {
                 IsRunning = false;
                 Status = test
-                    ? $"Test - {files.Count} bestanden bekeken, {notags} zonder tags. Zet 'Alleen tonen' uit om te verplaatsen."
-                    : $"Klaar - {moved} verplaatst, {notags} zonder tags, {failed} mislukt.";
+                    ? $"Dry run - {files.Count} files reviewed, {notags} without tags. Turn off 'Preview only' to move."
+                    : $"Done - {moved} moved, {notags} without tags, {failed} failed.";
             });
         });
     }

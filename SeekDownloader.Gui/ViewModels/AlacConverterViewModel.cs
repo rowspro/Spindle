@@ -68,7 +68,7 @@ public class AlacConverterViewModel : ViewModelBase
     }
     public bool IsNotConverting => !IsConverting;
 
-    private string _status = "Kies een bronmap (muziek) en een doelmap (iPod). Al aanwezige bestanden worden overgeslagen.";
+    private string _status = "Pick a source folder (music) and a destination (iPod). Existing files are skipped.";
     public string Status { get => _status; private set => SetField(ref _status, value); }
 
     private string _detail = string.Empty;
@@ -93,11 +93,11 @@ public class AlacConverterViewModel : ViewModelBase
                 .OrderBy(f => f)
                 .ToList();
         }
-        catch (Exception e) { Status = "Kon bronmap niet lezen: " + e.Message; return; }
+        catch (Exception e) { Status = "Couldn't read source folder: " + e.Message; return; }
 
         Items.Clear();
         foreach (var f in files) Items.Add(new ConvertItemViewModel(f, ShowDetail));
-        if (Items.Count == 0) { Status = "Geen converteerbare bestanden in de bronmap."; return; }
+        if (Items.Count == 0) { Status = "No convertible files in the source folder."; return; }
 
         IsConverting = true;
         _cts = new CancellationTokenSource();
@@ -116,7 +116,7 @@ public class AlacConverterViewModel : ViewModelBase
                 Parallel.ForEach(items, new ParallelOptions { MaxDegreeOfParallelism = dop, CancellationToken = token }, item =>
                 {
                     token.ThrowIfCancellationRequested();
-                    Dispatcher.UIThread.Post(() => item.Status = "Bezig");
+                    Dispatcher.UIThread.Post(() => item.Status = "Busy");
                     try
                     {
                         var rel = mirror ? Path.GetRelativePath(src, item.SourcePath) : Path.GetFileName(item.SourcePath);
@@ -125,7 +125,7 @@ public class AlacConverterViewModel : ViewModelBase
                         if (File.Exists(dst))
                         {
                             Interlocked.Increment(ref skipped);
-                            Dispatcher.UIThread.Post(() => item.Status = "Overgeslagen");
+                            Dispatcher.UIThread.Post(() => item.Status = "Skipped");
                         }
                         else
                         {
@@ -139,13 +139,13 @@ public class AlacConverterViewModel : ViewModelBase
                                     File.Move(part, dst, true); // atomic publish: dst only appears when complete
                                     if (delete) { try { File.Delete(item.SourcePath); } catch { } }
                                     Interlocked.Increment(ref done);
-                                    Dispatcher.UIThread.Post(() => item.Status = "Klaar");
+                                    Dispatcher.UIThread.Post(() => item.Status = "Done");
                                 }
                                 else
                                 {
                                     Interlocked.Increment(ref failed);
-                                    if (!token.IsCancellationRequested) item.Error = encErr ?? "geen uitvoerbestand";
-                                    Dispatcher.UIThread.Post(() => item.Status = token.IsCancellationRequested ? "Onderbroken" : "Mislukt");
+                                    if (!token.IsCancellationRequested) item.Error = encErr ?? "no output file";
+                                    Dispatcher.UIThread.Post(() => item.Status = token.IsCancellationRequested ? "Onderbroken" : "Failed");
                                 }
                             }
                             finally
@@ -159,7 +159,7 @@ public class AlacConverterViewModel : ViewModelBase
                     {
                         Interlocked.Increment(ref failed);
                         item.Error = ex.Message;
-                        Dispatcher.UIThread.Post(() => item.Status = "Mislukt");
+                        Dispatcher.UIThread.Post(() => item.Status = "Failed");
                     }
                     var p = Interlocked.Increment(ref processed);
                     Dispatcher.UIThread.Post(() => Status = $"Converteren… {p}/{items.Count}  ({dop} tegelijk)");
@@ -171,8 +171,8 @@ public class AlacConverterViewModel : ViewModelBase
             {
                 IsConverting = false;
                 Status = token.IsCancellationRequested
-                    ? $"Gestopt — {done} geconverteerd, {skipped} overgeslagen. Start opnieuw om te hervatten."
-                    : $"Klaar — {done} geconverteerd, {skipped} overgeslagen (al aanwezig), {failed} mislukt.";
+                    ? $"Stopped — {done} converted, {skipped} skipped. Start again to resume."
+                    : $"Done — {done} converted, {skipped} skipped (already present), {failed} failed.";
             });
         });
     }

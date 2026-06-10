@@ -39,8 +39,8 @@ public class BrowserAlbumViewModel : ViewModelBase
     public bool HasIssues { get; init; }
 
     public string Key => (Artist + "|" + Album).ToLowerInvariant();
-    public string Title => string.IsNullOrEmpty(Album) ? "(onbekend album)" : Album;
-    public string ArtistText => string.IsNullOrEmpty(Artist) ? "(onbekende artiest)" : Artist;
+    public string Title => string.IsNullOrEmpty(Album) ? "(unknown album)" : Album;
+    public string ArtistText => string.IsNullOrEmpty(Artist) ? "(unknown artist)" : Artist;
 
     private Bitmap? _cover;
     public Bitmap? Cover { get => _cover; set => SetField(ref _cover, value); }
@@ -75,7 +75,7 @@ public class BrowserViewModel : ViewModelBase
         EditInMetadataCommand = new RelayCommand(() =>
         {
             var a = SelectedAlbum;
-            if (a != null) _onEdit(a.Tracks.Select(t => t.Path).ToList(), $"{a.ArtistText} — {a.Title} — tags bewerken.");
+            if (a != null) _onEdit(a.Tracks.Select(t => t.Path).ToList(), $"{a.ArtistText} — {a.Title} — edit tags.");
         }, () => SelectedAlbum != null);
         ShowInFinderCommand = new RelayCommand(() =>
         {
@@ -107,7 +107,7 @@ public class BrowserViewModel : ViewModelBase
     private string _searchText = string.Empty;
     public string SearchText { get => _searchText; set { if (SetField(ref _searchText, value)) ApplyFilter(); } }
 
-    private string _status = "De bibliotheek wordt geladen zodra je hier komt.";
+    private string _status = "The library loads when you arrive here.";
     public string Status { get => _status; private set => SetField(ref _status, value); }
 
     private bool _busyEdit;
@@ -157,7 +157,7 @@ public class BrowserViewModel : ViewModelBase
     public void Refresh()
     {
         var root = _root();
-        if (string.IsNullOrWhiteSpace(root)) { Status = "Stel je muziekbieb in (Instellingen)."; return; }
+        if (string.IsNullOrWhiteSpace(root)) { Status = "Set your music library (Settings)."; return; }
         var rows = _lib.Index.AllTracks(root);
 
         var groups = new Dictionary<string, List<IndexedTrack>>();
@@ -184,13 +184,13 @@ public class BrowserViewModel : ViewModelBase
             var durTxt = dur.TotalHours >= 1 ? $"{(int)dur.TotalHours}:{dur.Minutes:00} u" : $"{(int)dur.TotalMinutes} min";
             var flags = new List<string>();
             if (lossy > 0) flags.Add($"{lossy} lossy");
-            if (unt > 0) flags.Add($"{unt} zonder tags");
-            if (!cover) flags.Add("geen hoes");
+            if (unt > 0) flags.Add($"{unt} without tags");
+            if (!cover) flags.Add("no cover");
             _all.Add(new BrowserAlbumViewModel
             {
                 Artist = eff, Album = first.Album, Year = year, Genre = genre, Tracks = ts,
                 LossyCount = lossy, UntaggedCount = unt, HasCoverFlag = cover,
-                Sub = (year > 0 ? year + " · " : "") + $"{ts.Count} nummers · {durTxt}",
+                Sub = (year > 0 ? year + " · " : "") + $"{ts.Count} tracks · {durTxt}",
                 FlagText = string.Join(" · ", flags),
                 HasIssues = flags.Count > 0,
             });
@@ -203,7 +203,7 @@ public class BrowserViewModel : ViewModelBase
 
         _loaded = true;
         ApplyFilter();
-        Status = $"{_all.Count} albums · {rows.Count} nummers";
+        Status = $"{_all.Count} albums · {rows.Count} tracks";
         LoadCovers();
     }
 
@@ -291,11 +291,11 @@ public class BrowserViewModel : ViewModelBase
         bool cArtist = artist.Length > 0 && artist != a.Artist;
         bool cGenre = genre != a.Genre && genre.Length > 0;
         bool cYear = year > 0 && year != a.Year;
-        if (!cAlbum && !cArtist && !cGenre && !cYear) { Status = "Niets gewijzigd."; return; }
+        if (!cAlbum && !cArtist && !cGenre && !cYear) { Status = "Nothing changed."; return; }
 
         _busyEdit = true;
         SaveAlbumEditCommand.RaiseCanExecuteChanged();
-        Status = "Albumvelden opslaan…";
+        Status = "Saving album fields…";
         var files = a.Tracks.Select(t => t.Path).ToList();
         _pendingSelectKey = ((cArtist ? artist : a.Artist) + "|" + (cAlbum ? album : a.Album)).ToLowerInvariant();
         var root = _root();
@@ -322,7 +322,7 @@ public class BrowserViewModel : ViewModelBase
             {
                 _busyEdit = false;
                 SaveAlbumEditCommand.RaiseCanExecuteChanged();
-                Status = $"Albumvelden toegepast op {n} nummers.";
+                Status = $"Album fields applied to {n} tracks.";
             });
         });
     }
@@ -330,7 +330,7 @@ public class BrowserViewModel : ViewModelBase
     // ---- 10s audio-preview (spatie) via afplay ----
     public void TogglePreview()
     {
-        if (_preview != null && !_preview.HasExited) { StopPreview(); Status = "Preview gestopt."; return; }
+        if (_preview != null && !_preview.HasExited) { StopPreview(); Status = "Preview stopped."; return; }
         var path = SelectedTrack?.Path ?? SelectedAlbum?.Tracks.FirstOrDefault()?.Path;
         if (path == null) return;
         try
@@ -340,9 +340,9 @@ public class BrowserViewModel : ViewModelBase
             psi.ArgumentList.Add("10");
             psi.ArgumentList.Add(path);
             _preview = Process.Start(psi);
-            Status = $"▶ {System.IO.Path.GetFileName(path)}  (spatie = stop)";
+            Status = $"▶ {System.IO.Path.GetFileName(path)}  (space = stop)";
         }
-        catch { Status = "Preview niet beschikbaar (afplay)."; }
+        catch { Status = "Preview unavailable (afplay)."; }
     }
 
     private void StopPreview()

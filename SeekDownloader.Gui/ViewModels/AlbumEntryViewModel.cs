@@ -22,7 +22,7 @@ public class AlbumEntryViewModel : ViewModelBase
 
     public int TrackCount => Files.Count;
     public string Display => $"{Artist} — {Album}";
-    public string Sub => $"{(string.IsNullOrWhiteSpace(Genre) ? "geen genre" : Genre)}  ·  {TrackCount} nummers{(string.IsNullOrWhiteSpace(Year) ? "" : "  ·  " + Year)}";
+    public string Sub => $"{(string.IsNullOrWhiteSpace(Genre) ? "geen genre" : Genre)}  ·  {TrackCount} tracks{(string.IsNullOrWhiteSpace(Year) ? "" : "  ·  " + Year)}";
 
     private bool _selected;
     public bool Selected { get => _selected; set => SetField(ref _selected, value); }

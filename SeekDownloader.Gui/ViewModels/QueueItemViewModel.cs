@@ -27,7 +27,7 @@ public class QueueItemViewModel : ViewModelBase
         RemoteFilename = remoteFilename ?? string.Empty;
         Size = size;
         BaseFileName = RemoteFilename.Split('\\', '/').Last();
-        _status = "Wachtrij";
+        _status = "Queued";
         SizeText = Format.Size(size);
         _onRemove = onRemove;
         _onRetry = onRetry;
@@ -58,22 +58,22 @@ public class QueueItemViewModel : ViewModelBase
         }
     }
 
-    public bool IsTerminal => Status is "Klaar" or "Mislukt";
-    public bool IsFailed => Status == "Mislukt";
+    public bool IsTerminal => Status is "Done" or "Failed";
+    public bool IsFailed => Status == "Failed";
 
     /// <summary>Reset a failed/finished item so it can be re-queued.</summary>
     public void Requeue()
     {
         Progress = 0;
         Speed = string.Empty;
-        Status = "Wachtrij";
+        Status = "Queued";
     }
 
     public IBrush StatusBrush => Status switch
     {
-        "Klaar" => new SolidColorBrush(Color.Parse("#2E7D43")),
-        "Mislukt" => new SolidColorBrush(Color.Parse("#B23A2E")),
-        "Bezig" => new SolidColorBrush(Color.Parse("#3568C4")),
+        "Done" => new SolidColorBrush(Color.Parse("#2E7D43")),
+        "Failed" => new SolidColorBrush(Color.Parse("#B23A2E")),
+        "Busy" => new SolidColorBrush(Color.Parse("#3568C4")),
         _ => new SolidColorBrush(Color.Parse("#8A8370")),
     };
 
@@ -81,19 +81,19 @@ public class QueueItemViewModel : ViewModelBase
     {
         Progress = p.Progress;
         Speed = $"{(int)(p.AverageDownloadSpeed / 1000)} KB/s";
-        if (!IsTerminal) Status = "Bezig";
+        if (!IsTerminal) Status = "Busy";
     }
 
     public void MarkDone()
     {
         Progress = 100;
         Speed = string.Empty;
-        Status = "Klaar";
+        Status = "Done";
     }
 
     public void MarkFailed()
     {
-        Status = "Mislukt";
+        Status = "Failed";
         Speed = string.Empty;
     }
 }

@@ -40,7 +40,7 @@ public class StagingDupGroup
     public StagingDupGroup(string title, List<StagingFileViewModel> files) { Title = title; Files = files; }
 }
 
-/// <summary>One album found in the "Nieuw" staging folder, with the quality flags that need attention.</summary>
+/// <summary>One album found in the "Inbox" staging folder, with the quality flags that need attention.</summary>
 public class StagingAlbumViewModel : ViewModelBase
 {
     public string Artist { get; }
@@ -80,7 +80,7 @@ public class StagingAlbumViewModel : ViewModelBase
 }
 
 /// <summary>
-/// "Nieuw": the review gate. Scans the staging/download folder (where Nicotine+ drops artist folders),
+/// "Inbox": the review gate. Scans the staging/download folder (where Nicotine+ drops artist folders),
 /// groups by album, and flags anything that deviates (no FLAC, missing tags/cover, already in the library,
 /// duplicate versions). Approve = move the selected albums into the main library and re-sort everything.
 /// </summary>
@@ -113,7 +113,7 @@ public class StagingViewModel : ViewModelBase
         CancelPlanCommand = new RelayCommand(() => ShowPlan = false);
         BackCommand = new RelayCommand(() => ShowDetail = false);
         EditInMetadataCommand = new RelayCommand(
-            () => { if (_detailAlbum != null) _onFix(_detailAlbum.Files, $"{_detailAlbum.Title} — tags/hoes bewerken."); },
+            () => { if (_detailAlbum != null) _onFix(_detailAlbum.Files, $"{_detailAlbum.Title} — edit tags/cover."); },
             () => _detailAlbum != null);
     }
 
@@ -147,7 +147,7 @@ public class StagingViewModel : ViewModelBase
         EditInMetadataCommand.RaiseCanExecuteChanged();
         var files = album.Files.ToList();
         FixGrid.Load(files);
-        Status = "Map inlezen…";
+        Status = "Reading folder…";
         var nieuw = NieuwFolder;
         Task.Run(() =>
         {
@@ -162,7 +162,7 @@ public class StagingViewModel : ViewModelBase
                 {
                     title = r.Title;
                     var artist = !string.IsNullOrWhiteSpace(r.Artist) ? r.Artist : r.AlbumArtist;
-                    var parts = new List<string> { string.IsNullOrWhiteSpace(title) ? "(geen titel)" : title };
+                    var parts = new List<string> { string.IsNullOrWhiteSpace(title) ? "(no title)" : title };
                     if (!string.IsNullOrWhiteSpace(artist)) parts.Add(artist);
                     if (r.TrackNo > 0) parts.Add($"#{r.TrackNo}");
                     if (r.Year > 0) parts.Add(r.Year.ToString());
@@ -170,10 +170,10 @@ public class StagingViewModel : ViewModelBase
                     if (r.Duration > 0) parts.Add($"{r.Duration / 60}:{r.Duration % 60:00}");
                     meta = string.Join("  ·  ", parts);
                     if (!r.Lossless) issues.Add("lossy");
-                    if (r.MissingTags) issues.Add("geen tags");
-                    if (!r.HasCover) issues.Add("geen hoes");
+                    if (r.MissingTags) issues.Add("no tags");
+                    if (!r.HasCover) issues.Add("no cover");
                 }
-                else meta = "(nog niet geïndexeerd)";
+                else meta = "(not indexed yet)";
                 rows.Add(new StagingFileViewModel(f, Path.GetFileName(f), fmt, meta, issues, DeleteDetailFile, PlayDetailFile));
                 _detailTitles[rows[^1]] = title;
             }
@@ -183,7 +183,7 @@ public class StagingViewModel : ViewModelBase
                 foreach (var r in rows.OrderBy(r => r.FileName, StringComparer.OrdinalIgnoreCase)) DetailFiles.Add(r);
                 RebuildDuplicates();
                 ShowDetail = true;
-                Status = $"{DetailFiles.Count} nummers in '{album.Title}'.";
+                Status = $"{DetailFiles.Count} tracks in '{album.Title}'.";
             });
         });
     }
@@ -192,7 +192,7 @@ public class StagingViewModel : ViewModelBase
 
     private void PlayDetailFile(StagingFileViewModel file)
     {
-        try { if (_filePreview != null && !_filePreview.HasExited) { _filePreview.Kill(); _filePreview = null; Status = "Preview gestopt."; return; } } catch { }
+        try { if (_filePreview != null && !_filePreview.HasExited) { _filePreview.Kill(); _filePreview = null; Status = "Preview stopped."; return; } } catch { }
         try
         {
             var psi = new ProcessStartInfo("afplay") { UseShellExecute = false };
@@ -200,9 +200,9 @@ public class StagingViewModel : ViewModelBase
             psi.ArgumentList.Add("10");
             psi.ArgumentList.Add(file.Path);
             _filePreview = Process.Start(psi);
-            Status = $"▶ {file.FileName}  (nogmaals = stop)";
+            Status = $"▶ {file.FileName}  (again = stop)";
         }
-        catch { Status = "Preview niet beschikbaar (afplay)."; }
+        catch { Status = "Preview unavailable (afplay)."; }
     }
 
     private readonly Dictionary<StagingFileViewModel, string> _detailTitles = new();
@@ -225,7 +225,7 @@ public class StagingViewModel : ViewModelBase
             var parent = Path.GetDirectoryName(Path.GetFullPath(NieuwFolder).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
             var trash = parent != null ? Path.Combine(parent, "_Verwijderd (Spindle)") : Path.Combine(NieuwFolder, "_Verwijderd");
             var dest = MoveInto(file.Path, trash);
-            _undo.Record($"Bestand verwijderd: {file.FileName}", new List<UndoJournal.MoveOp> { new(file.Path, dest) });
+            _undo.Record($"File deleted: {file.FileName}", new List<UndoJournal.MoveOp> { new(file.Path, dest) });
         }
         catch { try { File.Delete(file.Path); } catch { } }
         DetailFiles.Remove(file);
@@ -233,7 +233,7 @@ public class StagingViewModel : ViewModelBase
         FixGrid.RemoveByPath(file.Path);
         if (_detailAlbum?.Files is List<string> albumFiles) albumFiles.Remove(file.Path);
         RebuildDuplicates();
-        Status = $"'{file.FileName}' verwijderd (naar _Verwijderd, omkeerbaar).";
+        Status = $"'{file.FileName}' deleted (to _Verwijderd, reversible).";
     }
 
     private string _nieuwFolder = string.Empty;
@@ -252,7 +252,7 @@ public class StagingViewModel : ViewModelBase
     private bool _showOnlyIssues;
     public bool ShowOnlyIssues { get => _showOnlyIssues; set { if (SetField(ref _showOnlyIssues, value)) ApplyFilter(); } }
 
-    private string _status = "Stel de map 'Nieuwe muziek' in (Instellingen) en scan wat Nicotine+ heeft binnengehaald.";
+    private string _status = "Set the 'New music' folder (Settings) and scan what Nicotine+ brought in.";
     public string Status { get => _status; private set => SetField(ref _status, value); }
 
     private string _summary = string.Empty;
@@ -281,12 +281,12 @@ public class StagingViewModel : ViewModelBase
     {
         if (IsBusy) return;
         var nieuw = NieuwFolder;
-        if (!Directory.Exists(nieuw)) { Status = "De map 'Nieuwe muziek' bestaat niet."; return; }
+        if (!Directory.Exists(nieuw)) { Status = "The 'New music' folder doesn't exist."; return; }
         IsBusy = true;
         ShowDetail = false;
         _cts = new CancellationTokenSource();
         var token = _cts.Token;
-        Status = "Nieuw scannen…";
+        Status = "Scanning inbox…";
         var lib = LibraryFolder;
 
         Task.Run(() =>
@@ -330,13 +330,13 @@ public class StagingViewModel : ViewModelBase
                 bool already = have.Contains(Norm(g.Artist) + "|" + Norm(g.Album));
                 var flags = new List<string>();
                 if (g.Lossy > 0) flags.Add($"{g.Lossy} lossy");
-                if (g.Untagged > 0) flags.Add($"{g.Untagged} zonder tags");
-                if (g.NoCover > 0) flags.Add("geen hoes");
-                if (g.MissingYg > 0) flags.Add("mist jaar/genre");
-                if (dup) flags.Add("dubbele versies");
+                if (g.Untagged > 0) flags.Add($"{g.Untagged} without tags");
+                if (g.NoCover > 0) flags.Add("no cover");
+                if (g.MissingYg > 0) flags.Add("missing year/genre");
+                if (dup) flags.Add("duplicate versions");
                 bool clean = g.Lossy == 0 && g.Untagged == 0 && g.NoCover == 0 && g.MissingYg == 0 && !dup;
-                if (already) flags.Add("al in bieb");
-                var sub = $"{g.Files.Count} nummers" + (string.IsNullOrEmpty(g.Year) ? "" : $"  ·  {g.Year}");
+                if (already) flags.Add("already in library");
+                var sub = $"{g.Files.Count} tracks" + (string.IsNullOrEmpty(g.Year) ? "" : $"  ·  {g.Year}");
                 albums.Add(new StagingAlbumViewModel(g.Artist, g.Album, g.Year, g.Files, g.Dirs.ToList(),
                     flags, clean, already, sub, g.Cover.Length > 0 ? g.Cover : null, OpenDetail));
             }
@@ -348,9 +348,9 @@ public class StagingViewModel : ViewModelBase
                 ApplyFilter();
                 int issues = albums.Count(a => !a.IsClean);
                 int ready = albums.Count(a => a.IsSelected);
-                Summary = $"{albums.Count} albums · {files.Count} nummers · {issues} met aandachtspunten";
-                Status = token.IsCancellationRequested ? "Scan gestopt."
-                    : albums.Count == 0 ? "Niets in 'Nieuw'." : $"{ready} schoon en klaar om goed te keuren; {issues} hebben aandacht nodig.";
+                Summary = $"{albums.Count} albums · {files.Count} tracks · {issues} need attention";
+                Status = token.IsCancellationRequested ? "Scan stopped."
+                    : albums.Count == 0 ? "Inbox is empty." : $"{ready} clean and ready to approve; {issues} need attention.";
                 IsBusy = false;
                 ApproveCommand.RaiseCanExecuteChanged();
                 UpdatePipeline();
@@ -375,7 +375,7 @@ public class StagingViewModel : ViewModelBase
             if (string.IsNullOrWhiteSpace(lib) || !Directory.Exists(lib)) { PipelineText = ""; return; }
             var h = _lib.Index.HealthCounts(lib);
             int ready = _all.Count(a => a.IsSelected), att = _all.Count(a => !a.IsClean);
-            PipelineText = $"Nieuw {_all.Count} albums ({ready} schoon · {att} aandacht)    →    Bieb {h.Albums} albums · {h.Files:N0} nummers";
+            PipelineText = $"Inbox {_all.Count} albums ({ready} clean · {att} attention)    →    Library {h.Albums} albums · {h.Files:N0} tracks";
         }
         catch { PipelineText = ""; }
     }
@@ -436,9 +436,9 @@ public class StagingViewModel : ViewModelBase
     {
         if (IsBusy) return;
         var lib = LibraryFolder;
-        if (string.IsNullOrWhiteSpace(lib) || !Directory.Exists(lib)) { Status = "Stel eerst je muziekbieb in (Instellingen)."; return; }
+        if (string.IsNullOrWhiteSpace(lib) || !Directory.Exists(lib)) { Status = "Set your music library first (Settings)."; return; }
         var selected = _all.Where(a => a.IsSelected).ToList();
-        if (selected.Count == 0) { Status = "Niets geselecteerd."; return; }
+        if (selected.Count == 0) { Status = "Nothing selected."; return; }
 
         var map = new Dictionary<string, IndexedTrack>(StringComparer.Ordinal);
         try { foreach (var r in _lib.Index.AllTracks(NieuwFolder)) map[r.Path] = r; } catch { }
@@ -474,7 +474,7 @@ public class StagingViewModel : ViewModelBase
                 PlanItems.Add(new PlanItemViewModel(f, dest, relFrom, relTo));
             }
         }
-        PlanSummary = $"{selected.Count} album(s) · {PlanItems.Count} bestanden  →  {lib}";
+        PlanSummary = $"{selected.Count} album(s) · {PlanItems.Count} files  →  {lib}";
         ConfirmPlanCommand.RaiseCanExecuteChanged();
         ShowPlan = true;
     }
@@ -486,7 +486,7 @@ public class StagingViewModel : ViewModelBase
         var selected = _planAlbums;
         IsBusy = true;
         ShowPlan = false;
-        Status = $"{plan.Count} bestanden verplaatsen…";
+        Status = $"Moving {plan.Count} files…";
 
         Task.Run(() =>
         {
@@ -508,7 +508,7 @@ public class StagingViewModel : ViewModelBase
             foreach (var a in selected) foreach (var d in a.SourceDirs) dirs.Add(d);
             // opruimen: bronmappen die helemaal leeg zijn van audio → naar prullenbak (incl. hoezen/.nfo).
             foreach (var d in dirs) CleanConsumedSourceDir(d, ops);
-            _undo.Record($"Goedkeuren: {selected.Count} album(s) naar bieb", ops);
+            _undo.Record($"Approve: {selected.Count} album(s) to library", ops);
             _lib.Refresh(NieuwFolder);
             _lib.Refresh(LibraryFolder);
 
@@ -519,7 +519,7 @@ public class StagingViewModel : ViewModelBase
                 IsBusy = false;
                 ApproveCommand.RaiseCanExecuteChanged();
                 UpdatePipeline();
-                Status = $"✓ {moved} nummers netjes in de bieb geplaatst (Cmd+Z = ongedaan maken).";
+                Status = $"✓ {moved} tracks placed neatly in the library (Cmd+Z = undo).";
             });
         });
     }

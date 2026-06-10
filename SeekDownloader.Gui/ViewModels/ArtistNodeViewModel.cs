@@ -64,7 +64,7 @@ public class ArtistNodeViewModel : ViewModelBase
         get
         {
             int onIpod = Albums.Count(a => a.OnIpod > 0);
-            return onIpod > 0 ? $"{Albums.Count} albums · {onIpod} op iPod" : $"{Albums.Count} albums";
+            return onIpod > 0 ? $"{Albums.Count} albums · {onIpod} on iPod" : $"{Albums.Count} albums";
         }
     }
 }

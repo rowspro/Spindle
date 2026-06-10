@@ -94,12 +94,12 @@ public class MainViewModel : ViewModelBase
         {
             IndexBusy = true;
             IndexPercent = t > 0 ? 100.0 * d / t : 0;
-            GlobalStatus = $"Indexeren… {d}/{t} — {System.IO.Path.GetFileName(sroot.TrimEnd('/'))}";
+            GlobalStatus = $"Indexing… {d}/{t} — {System.IO.Path.GetFileName(sroot.TrimEnd('/'))}";
         };
         Lib.Changed += () =>
         {
             IndexBusy = false;
-            GlobalStatus = $"{Lib.Index.TrackCount():N0} nummers geïndexeerd";
+            GlobalStatus = $"{Lib.Index.TrackCount():N0} tracks indexed";
         };
         Lib.Configure(MusicLibrary, DownloadFilePath);
 
@@ -117,7 +117,7 @@ public class MainViewModel : ViewModelBase
     public LibraryService Lib { get; } = new();
     public UndoJournal Undo { get; } = new();
 
-    private string _globalStatus = "Klaar.";
+    private string _globalStatus = "Ready.";
     public string GlobalStatus { get => _globalStatus; private set => SetField(ref _globalStatus, value); }
 
     private bool _indexBusy;
@@ -130,8 +130,8 @@ public class MainViewModel : ViewModelBase
     {
         var (done, total, label) = Undo.UndoLast();
         GlobalStatus = total == 0
-            ? "Niets om ongedaan te maken."
-            : $"Ongedaan gemaakt: {label} — {done}/{total} teruggezet.";
+            ? "Nothing to undo."
+            : $"Undone: {label} — {done}/{total} restored.";
         if (total > 0)
             Task.Run(() => { Lib.Refresh(MusicLibrary); Lib.Refresh(DownloadFilePath); });
     }
@@ -193,8 +193,8 @@ public class MainViewModel : ViewModelBase
     // ---- Top bar ----
     public string CurrentSection => SelectedTabIndex switch
     {
-        0 => "Sorteren", 1 => "Organiseren", 2 => "ALAC-converter", 3 => "Metadata",
-        4 => "Gezondheid", 5 => "Dubbele", 6 => "Overzetten", 7 => "Instellingen", 8 => "Nieuw", 9 => "Bibliotheek", 10 => "Galaxy", _ => "Spindle"
+        0 => "Sort", 1 => "Organize", 2 => "ALAC Converter", 3 => "Metadata",
+        4 => "Health", 5 => "Duplicates", 6 => "Transfer", 7 => "Settings", 8 => "Inbox", 9 => "Library", 10 => "Galaxy", _ => "Spindle"
     };
 
     public string UserInitial => "S";
@@ -203,11 +203,11 @@ public class MainViewModel : ViewModelBase
     private static readonly (string Name, int Idx, string Glyph)[] PaletteSections =
     {
         ("Galaxy", 10, ""),
-        ("Bibliotheek", 9, ""),
-        ("Nieuw", 8, ""),
-        ("Organiseren", 1, ""), ("Sorteren", 0, ""), ("Metadata", 3, ""),
-        ("Dubbele", 5, ""), ("Gezondheid", 4, ""), ("ALAC-converter", 2, ""),
-        ("Overzetten", 6, ""), ("Instellingen", 7, ""),
+        ("Library", 9, ""),
+        ("Inbox", 8, ""),
+        ("Organize", 1, ""), ("Sort", 0, ""), ("Metadata", 3, ""),
+        ("Duplicates", 5, ""), ("Health", 4, ""), ("ALAC Converter", 2, ""),
+        ("Transfer", 6, ""), ("Settings", 7, ""),
     };
 
     private bool _isPaletteOpen;
@@ -230,7 +230,7 @@ public class MainViewModel : ViewModelBase
         var q = (PaletteQuery ?? string.Empty).Trim();
         foreach (var s in PaletteSections)
             if (q.Length == 0 || s.Name.Contains(q, StringComparison.OrdinalIgnoreCase))
-                PaletteResults.Add(new PaletteItem(s.Name, "Ga naar " + s.Name, s.Glyph,
+                PaletteResults.Add(new PaletteItem(s.Name, "Go to " + s.Name, s.Glyph,
                     () => { SelectedTabIndex = s.Idx; ClosePalette(); }));
         if (q.Length >= 2 && !string.IsNullOrWhiteSpace(MusicLibrary))
         {
@@ -240,7 +240,7 @@ public class MainViewModel : ViewModelBase
             {
                 var aa = a.AlbumArtist; var al = a.Album;
                 PaletteResults.Add(new PaletteItem(
-                    (aa.Length > 0 ? aa + " — " : "") + al, "Open in Bibliotheek", "",
+                    (aa.Length > 0 ? aa + " — " : "") + al, "Open in Library", "",
                     () => { SelectedTabIndex = 9; Browser.FocusAlbum(aa, al); ClosePalette(); }));
             }
         }
@@ -469,7 +469,7 @@ public class MainViewModel : ViewModelBase
     }
     public bool IsNotRunning => !IsRunning;
 
-    private string _statusMessage = "Klaar.";
+    private string _statusMessage = "Ready.";
     public string StatusMessage { get => _statusMessage; private set => SetField(ref _statusMessage, value); }
 
     private string _seekedText = "0 / 0";
@@ -535,7 +535,7 @@ public class MainViewModel : ViewModelBase
                 if (t.IsCanceled || token.IsCancellationRequested)
                     StatusMessage = "Gestopt.";
                 else if (t.IsFaulted)
-                    StatusMessage = "Fout: " + (t.Exception?.GetBaseException().Message ?? "onbekend");
+                    StatusMessage = "Fout: " + (t.Exception?.GetBaseException().Message ?? "unknown");
                 else
                 {
                     StatusMessage = $"Klaar — {SuccessfulDownloadsCount} gedownload, {SkippedCount} overgeslagen.";
@@ -607,7 +607,7 @@ public class MainViewModel : ViewModelBase
             IsSearching = false;
             if (t.IsFaulted)
             {
-                StatusMessage = "Zoekfout: " + (t.Exception?.GetBaseException().Message ?? "onbekend");
+                StatusMessage = "Zoekfout: " + (t.Exception?.GetBaseException().Message ?? "unknown");
                 return;
             }
             var results = t.Result ?? new List<SearchResult>();
@@ -671,7 +671,7 @@ public class MainViewModel : ViewModelBase
             IsSearching = false;
             if (t.IsFaulted)
             {
-                StatusMessage = "Zoekfout: " + (t.Exception?.GetBaseException().Message ?? "onbekend");
+                StatusMessage = "Zoekfout: " + (t.Exception?.GetBaseException().Message ?? "unknown");
                 return;
             }
             var (officialCount, albums) = t.Result;
@@ -688,7 +688,7 @@ public class MainViewModel : ViewModelBase
             }
             else
             {
-                var why = MusicBrainzClient.LastError ?? "onbekend";
+                var why = MusicBrainzClient.LastError ?? "unknown";
                 ResultsSummary = albums.Count == 0
                     ? $"Geen albums. MusicBrainz: {why}."
                     : $"{albums.Count} albums (op mapnaam — MusicBrainz: {why}) — vink aan en klik 'Naar wachtrij'.";
@@ -736,7 +736,7 @@ public class MainViewModel : ViewModelBase
         var selected = Results.Where(r => r.IsSelected).Select(r => r.Source).ToList();
         if (selected.Count == 0)
         {
-            StatusMessage = "Niets geselecteerd.";
+            StatusMessage = "Nothing selected.";
             return;
         }
 
@@ -901,7 +901,7 @@ public class MainViewModel : ViewModelBase
         var cfg = BuildConfig();
         Settings.Save(cfg);
         var results = pending.Select(ToSearchResult).ToList();
-        foreach (var item in pending) item.Status = "Wachtrij";
+        foreach (var item in pending) item.Status = "Queued";
 
         _activeDownload = _download;
         StartPolling();

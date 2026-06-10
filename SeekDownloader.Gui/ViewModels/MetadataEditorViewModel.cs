@@ -99,7 +99,7 @@ public class MetadataEditorViewModel : ViewModelBase
         private set { if (SetField(ref _isBusy, value)) RaiseNav(); }
     }
 
-    private string _status = "Open een bestand of map (album). Auto-fill vult ontbrekende tags via MusicBrainz.";
+    private string _status = "Open a file or folder (album). Auto-fill completes missing tags via MusicBrainz.";
     public string Status { get => _status; private set => SetField(ref _status, value); }
 
     public RelayCommand ApproveNextCommand { get; }
@@ -156,16 +156,16 @@ public class MetadataEditorViewModel : ViewModelBase
             _allFiles = _files.ToList();
             _folderLoaded = true;
             _reviewNotes.Clear();
-            if (_files.Count == 0) { Status = "Geen audiobestanden in deze map (incl. submappen)."; return; }
+            if (_files.Count == 0) { Status = "No audio files in this folder (incl. subfolders)."; return; }
             _index = 0;
             Load(_files[0]);
-            Status = $"{_files.Count} nummers geladen. Klik Auto-fill om de hele map bij te werken.";
+            Status = $"{_files.Count} tracks loaded. Click Auto-fill to update the whole folder.";
             Grid.Load(_allFiles);
             EditorMode = _files.Count > 1 ? "tabel" : "form";
         }
         catch (Exception e)
         {
-            Status = "Kon map niet lezen: " + e.Message;
+            Status = "Couldn't read folder: " + e.Message;
         }
     }
 
@@ -182,12 +182,12 @@ public class MetadataEditorViewModel : ViewModelBase
             OnPropertyChanged(nameof(HasFile));
             OnPropertyChanged(nameof(Position));
             RaiseNav();
-            Status = "Geen bestanden om te bewerken.";
+            Status = "No files to edit.";
             return;
         }
         _index = 0;
         Load(_files[0]);
-        Status = context ?? $"{_files.Count} nummers geladen.";
+        Status = context ?? $"{_files.Count} tracks loaded.";
         Grid.Load(_allFiles);
         EditorMode = _files.Count > 1 ? "tabel" : "form";
     }
@@ -197,9 +197,9 @@ public class MetadataEditorViewModel : ViewModelBase
         if (IsBusy || !HasFile) return;
         var artist = (!string.IsNullOrWhiteSpace(AlbumArtist) ? AlbumArtist : Artist).Trim();
         var album = (Album ?? string.Empty).Trim();
-        if (album.Length == 0) { Status = "Vul eerst het Album-veld om op te matchen."; return; }
+        if (album.Length == 0) { Status = "Fill in the Album field first to match."; return; }
         IsBusy = true;
-        Status = $"Album zoeken: {artist} – {album}…";
+        Status = $"Searching album: {artist} – {album}…";
         try
         {
             var list = await AlbumMetadata.SearchAsync(artist, album, _allFiles.Count, DiscogsToken);
@@ -208,10 +208,10 @@ public class MetadataEditorViewModel : ViewModelBase
             SelectedCandidate = AlbumCandidates.FirstOrDefault();
             ShowCandidates = AlbumCandidates.Count > 0;
             Status = AlbumCandidates.Count > 0
-                ? $"{AlbumCandidates.Count} edities gevonden — kies de juiste en pas toe op het hele album."
-                : "Geen album-match gevonden (probeer artiest/album bij te stellen).";
+                ? $"{AlbumCandidates.Count} editions found — pick the right one and apply to the whole album."
+                : "No album match found (try adjusting artist/album).";
         }
-        catch (Exception e) { Status = "Album-match mislukt: " + e.Message; }
+        catch (Exception e) { Status = "Album match failed: " + e.Message; }
         finally { IsBusy = false; }
     }
 
@@ -220,7 +220,7 @@ public class MetadataEditorViewModel : ViewModelBase
         var m = SelectedCandidate;
         if (m == null || IsBusy) return;
         IsBusy = true;
-        Status = $"'{m.Album}' toepassen op het album…";
+        Status = $"Applying '{m.Album}' to the album…";
         try
         {
             await AlbumMetadata.EnsureTracksAsync(m, DiscogsToken);
@@ -250,9 +250,9 @@ public class MetadataEditorViewModel : ViewModelBase
             });
             ShowCandidates = false;
             Load(_path);
-            Status = $"Album '{m.Album}' toegepast op {files.Count} tracks (bron: {m.Source}).";
+            Status = $"Album '{m.Album}' applied to {files.Count} tracks (source: {m.Source}).";
         }
-        catch (Exception e) { Status = "Toepassen mislukt: " + e.Message; }
+        catch (Exception e) { Status = "Apply failed: " + e.Message; }
         finally { IsBusy = false; }
     }
 
@@ -261,7 +261,7 @@ public class MetadataEditorViewModel : ViewModelBase
         if (IsBusy) return;
         Save();
         if (_index < _files.Count - 1) { _index++; Load(_files[_index]); }
-        else if (FolderMode) { Status = "Klaar — alle nummers gehad."; RaiseNav(); }
+        else if (FolderMode) { Status = "Done — went through all tracks."; RaiseNav(); }
     }
 
     private void Back()
@@ -297,11 +297,11 @@ public class MetadataEditorViewModel : ViewModelBase
             OnPropertyChanged(nameof(HasFile));
             RaiseNav();
             var note = _reviewNotes.TryGetValue(path, out var nv) ? $"  ({nv})" : "";
-            Status = FolderMode ? $"{Position}  —  {FileName}{note}" : $"Geladen: {FileName}";
+            Status = FolderMode ? $"{Position}  —  {FileName}{note}" : $"Loaded: {FileName}";
         }
         catch (Exception e)
         {
-            Status = "Kon bestand niet laden: " + e.Message;
+            Status = "Couldn't load file: " + e.Message;
         }
     }
 
@@ -312,9 +312,9 @@ public class MetadataEditorViewModel : ViewModelBase
             _artData = System.IO.File.ReadAllBytes(imagePath);
             _artChanged = true;
             AlbumArt = BitmapFrom(_artData);
-            Status = "Nieuwe albumhoes geladen — wordt bewaard bij Goedkeuren.";
+            Status = "New album art loaded — saved on Approve.";
         }
-        catch (Exception e) { Status = "Kon afbeelding niet laden: " + e.Message; }
+        catch (Exception e) { Status = "Couldn't load image: " + e.Message; }
     }
 
     private void RemoveArt()
@@ -322,7 +322,7 @@ public class MetadataEditorViewModel : ViewModelBase
         _artData = null;
         _artChanged = true;
         AlbumArt = null;
-        Status = "Albumhoes wordt verwijderd bij Goedkeuren.";
+        Status = "Album art will be removed on Approve.";
     }
 
     private void ApplyAppleArtist()
@@ -340,13 +340,13 @@ public class MetadataEditorViewModel : ViewModelBase
         Title = AppleTitle(Title);
         Album = AppleTitle(Album);
         Genre = AppleGenre(Genre);
-        Status = "Apple-format toegepast (album-artiest = hoofdartiest).";
+        Status = "Apple format applied (album artist = primary artist).";
     }
 
     private void BatchAppleFormat()
     {
         IsBusy = true;
-        Status = "Apple-format toepassen op de map…";
+        Status = "Applying Apple format to the folder…";
         var files = _allFiles.ToList();
 
         Task.Run(() =>
@@ -358,7 +358,7 @@ public class MetadataEditorViewModel : ViewModelBase
             {
                 i++;
                 var snap = i;
-                Dispatcher.UIThread.Post(() => Status = $"Apple-format {snap}/{files.Count}…");
+                Dispatcher.UIThread.Post(() => Status = $"Apple format {snap}/{files.Count}…");
                 try
                 {
                     var t = new Track(f);
@@ -370,10 +370,10 @@ public class MetadataEditorViewModel : ViewModelBase
                     {
                         t.Artist = na; t.AlbumArtist = naa; t.Title = nti; t.Album = nal; t.Genre = ng;
                         t.Save();
-                        review.Add(f); notes[f] = "geformatteerd"; changed++;
+                        review.Add(f); notes[f] = "formatted"; changed++;
                     }
                 }
-                catch { review.Add(f); notes[f] = "fout"; }
+                catch { review.Add(f); notes[f] = "error"; }
             }
 
             Dispatcher.UIThread.Post(() =>
@@ -385,14 +385,14 @@ public class MetadataEditorViewModel : ViewModelBase
                 _index = 0;
                 if (_files.Count == 0)
                 {
-                    Status = $"Klaar — niets te wijzigen ({files.Count} nummers waren al goed.)";
+                    Status = $"Done — nothing to change ({files.Count} tracks were already fine).";
                     OnPropertyChanged(nameof(Position));
                     RaiseNav();
                 }
                 else
                 {
                     Load(_files[0]);
-                    Status = $"{changed} geformatteerd. Loop de {_files.Count} wijzigingen langs en keur goed.";
+                    Status = $"{changed} formatted. Step through the {_files.Count} changes and approve.";
                 }
             });
         });
@@ -408,11 +408,11 @@ public class MetadataEditorViewModel : ViewModelBase
     private async void AutoFillCurrent()
     {
         if (!HasFile) return;
-        Status = "Metadata zoeken…";
+        Status = "Searching metadata…";
         try
         {
             var rec = await Identify(Artist, Title, Album, _path);
-            if (rec == null) { Status = "Geen match gevonden."; return; }
+            if (rec == null) { Status = "No match found."; return; }
             if (string.IsNullOrWhiteSpace(Title) && rec.Title.Length > 0) Title = rec.Title;
             if (string.IsNullOrWhiteSpace(Artist) && rec.Artist.Length > 0) Artist = rec.Artist;
             if (string.IsNullOrWhiteSpace(AlbumArtist) && rec.Artist.Length > 0) AlbumArtist = rec.Artist;
@@ -424,15 +424,15 @@ public class MetadataEditorViewModel : ViewModelBase
                 var art = await MusicBrainzClient.GetCoverArtAsync(rec.ReleaseId);
                 if (art != null) { _artData = art; _artChanged = true; AlbumArt = BitmapFrom(art); }
             }
-            Status = $"Aangevuld: {rec.Album} ({rec.Year}). Controleer en klik Goedkeuren.";
+            Status = $"Filled in: {rec.Album} ({rec.Year}). Review and click Approve.";
         }
-        catch (Exception e) { Status = "Auto-fill mislukt: " + e.Message; }
+        catch (Exception e) { Status = "Auto-fill failed: " + e.Message; }
     }
 
     private void BatchAutoFill()
     {
         IsBusy = true;
-        Status = "Auto-fill van de map…";
+        Status = "Auto-filling the folder…";
         var files = _allFiles.ToList();
 
         Task.Run(async () =>
@@ -449,7 +449,7 @@ public class MetadataEditorViewModel : ViewModelBase
                 {
                     var t = new Track(f);
                     var rec = await Identify(t.Artist ?? "", t.Title ?? "", t.Album ?? "", f);
-                    if (rec == null) { review.Add(f); notes[f] = "niet gevonden"; notFound++; continue; }
+                    if (rec == null) { review.Add(f); notes[f] = "not found"; notFound++; continue; }
 
                     bool ch = false;
                     if (string.IsNullOrWhiteSpace(t.Title) && rec.Title.Length > 0) { t.Title = rec.Title; ch = true; }
@@ -463,9 +463,9 @@ public class MetadataEditorViewModel : ViewModelBase
                         var art = await MusicBrainzClient.GetCoverArtAsync(rec.ReleaseId);
                         if (art != null) { t.EmbeddedPictures.Add(PictureInfo.fromBinaryData(art)); ch = true; }
                     }
-                    if (ch) { t.Save(); review.Add(f); notes[f] = "gewijzigd"; changed++; }
+                    if (ch) { t.Save(); review.Add(f); notes[f] = "changed"; changed++; }
                 }
-                catch { review.Add(f); notes[f] = "fout"; }
+                catch { review.Add(f); notes[f] = "error"; }
             }
 
             Dispatcher.UIThread.Post(() =>
@@ -477,14 +477,14 @@ public class MetadataEditorViewModel : ViewModelBase
                 _index = 0;
                 if (_files.Count == 0)
                 {
-                    Status = $"Klaar — {changed} gewijzigd, {notFound} niet gevonden. Niets meer te reviewen.";
+                    Status = $"Done — {changed} changed, {notFound} not found. Nothing left to review.";
                     OnPropertyChanged(nameof(Position));
                     RaiseNav();
                 }
                 else
                 {
                     Load(_files[0]);
-                    Status = $"{changed} gewijzigd, {notFound} niet gevonden. Loop de {_files.Count} te controleren nummers langs.";
+                    Status = $"{changed} changed, {notFound} not found. Step through the {_files.Count} tracks to review.";
                 }
             });
         });
@@ -533,7 +533,7 @@ public class MetadataEditorViewModel : ViewModelBase
             }
             t.Save();
         }
-        catch (Exception e) { Status = "Opslaan mislukt: " + e.Message; }
+        catch (Exception e) { Status = "Save failed: " + e.Message; }
 
         // Album-niveau-velden (album, album-artiest, genre, jaar) en de hoes gelden voor het HELE album:
         // propageer alleen wat veranderd is naar de andere tracks van dit album (zelfde map).
@@ -585,7 +585,7 @@ public class MetadataEditorViewModel : ViewModelBase
             }
         }
         catch { }
-        if (n > 0) Dispatcher.UIThread.Post(() => Status = $"Albumvelden toegepast op {n + 1} tracks.");
+        if (n > 0) Dispatcher.UIThread.Post(() => Status = $"Album fields applied to {n + 1} tracks.");
     }
 
     // Apply (or clear) the current cover on every other track of the same album (same folder + same Album tag).
@@ -619,7 +619,7 @@ public class MetadataEditorViewModel : ViewModelBase
         catch { }
         if (n > 0)
         {
-            var msg = art != null ? $"Albumhoes toegepast op {n + 1} tracks." : $"Albumhoes verwijderd van {n + 1} tracks.";
+            var msg = art != null ? $"Album art applied to {n + 1} tracks." : $"Album art removed from {n + 1} tracks.";
             Dispatcher.UIThread.Post(() => Status = msg);
         }
     }

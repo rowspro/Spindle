@@ -52,7 +52,7 @@ public class DuplicatesViewModel : ViewModelBase
         }
     }
 
-    private string _status = "Kies een map en zoek naar dubbele tracks (zelfde artiest + titel).";
+    private string _status = "Pick a folder and search for duplicate tracks (same artist + title).";
     public string Status { get => _status; private set => SetField(ref _status, value); }
 
     public RelayCommand ScanCommand { get; }
@@ -69,7 +69,7 @@ public class DuplicatesViewModel : ViewModelBase
         var token = _cts.Token;
         var useFp = UseFingerprint;
         var fpKey = Settings.Load().AcoustIdKey ?? string.Empty;
-        Status = "Zoeken naar dubbele...";
+        Status = "Searching for duplicates...";
         Groups.Clear();
 
         Task.Run(async () =>
@@ -82,7 +82,7 @@ public class DuplicatesViewModel : ViewModelBase
                                 && !Path.GetFileName(f).StartsWith("._") && !f.Contains(TrashName))
                     .ToList();
             }
-            catch (Exception e) { Dispatcher.UIThread.Post(() => { IsBusy = false; Status = "Kon map niet lezen: " + e.Message; }); return; }
+            catch (Exception e) { Dispatcher.UIThread.Post(() => { IsBusy = false; Status = "Couldn't read folder: " + e.Message; }); return; }
 
             int scanned = 0;
             var bag = new ConcurrentBag<(string Key, string File)>();
@@ -98,7 +98,7 @@ public class DuplicatesViewModel : ViewModelBase
                     }
                     catch { }
                     var s = Interlocked.Increment(ref scanned);
-                    if (s % 100 == 0) Dispatcher.UIThread.Post(() => Status = $"Scannen... {s} bestanden");
+                    if (s % 100 == 0) Dispatcher.UIThread.Post(() => Status = $"Scanning... {s} files");
                 });
             }
             catch (OperationCanceledException) { Finish(token, 0); return; }
@@ -119,7 +119,7 @@ public class DuplicatesViewModel : ViewModelBase
             {
                 if (string.IsNullOrWhiteSpace(fpKey) || !FingerprintService.Available)
                 {
-                    Dispatcher.UIThread.Post(() => Status = "Tag-pass klaar. Vingerafdruk overgeslagen: geen AcoustID-key (zie Metadata-tab) of Chromaprint ontbreekt.");
+                    Dispatcher.UIThread.Post(() => Status = "Tag pass done. Fingerprint skipped: no AcoustID key (see Metadata tab) or Chromaprint missing.");
                 }
                 else
                 {
@@ -155,9 +155,9 @@ public class DuplicatesViewModel : ViewModelBase
             IsBusy = false;
             RemoveCommand.RaiseCanExecuteChanged();
             if (token.IsCancellationRequested)
-                Status = $"Gestopt - {Groups.Count} dubbele set(s) tot nu toe.";
+                Status = $"Stopped - {Groups.Count} duplicate set(s) so far.";
             else if (Groups.Count == 0)
-                Status = $"Geen dubbele gevonden ({scanned} bestanden gescand).";
+                Status = $"No duplicates found ({scanned} files scanned).";
             else
                 Status = $"{tagSets} op tags + {acousticSets} op vingerafdruk = {Groups.Count} dubbele set(s). Beste kopie voorgeselecteerd.";
         });
@@ -202,11 +202,11 @@ public class DuplicatesViewModel : ViewModelBase
                 }
             }
         }
-        catch (Exception e) { Status = "Verwijderen mislukt: " + e.Message; return; }
+        catch (Exception e) { Status = "Delete failed: " + e.Message; return; }
 
         Groups.Clear();
         RemoveCommand.RaiseCanExecuteChanged();
-        Status = $"{moved} dubbele bestand(en) verplaatst naar '{TrashName}'. Zoek opnieuw om te controleren.";
+        Status = $"{moved} duplicate file(s) moved to '{TrashName}'. Search again to verify.";
     }
 
     private static string Norm(string? s) => Regex.Replace((s ?? "").ToLowerInvariant(), "[^a-z0-9]", "");

@@ -64,7 +64,7 @@ public sealed class GalaxyViewModel : ViewModelBase
     public bool IsFilterLossy => _filter == "lossy";
     public bool IsFilterNoCover => _filter == "hoes";
 
-    private string _status = "De galaxy bouwt zodra je hier komt.";
+    private string _status = "The galaxy builds when you arrive here.";
     public string Status { get => _status; private set => SetField(ref _status, value); }
 
     private bool _warningVisible;
@@ -91,13 +91,13 @@ public sealed class GalaxyViewModel : ViewModelBase
     public void Refresh()
     {
         var root = _root();
-        if (string.IsNullOrWhiteSpace(root)) { Status = "Stel je muziekbieb in (Instellingen)."; return; }
+        if (string.IsNullOrWhiteSpace(root)) { Status = "Set your music library (Settings)."; return; }
         var rows = _lib.Index.AllTracks(root);
         bool albumLevel = _getAlbumLevel();
         _loaded = true;
 
         // genre → cluster-index (gesorteerd op omvang zodat kleuren stabiel-ish zijn)
-        static string G(string? g) => string.IsNullOrWhiteSpace(g) ? "onbekend" : g.Trim().ToLowerInvariant();
+        static string G(string? g) => string.IsNullOrWhiteSpace(g) ? "unknown" : g.Trim().ToLowerInvariant();
         var genreCounts = rows.GroupBy(r => G(r.Genre)).ToDictionary(g => g.Key, g => g.Count());
         var genreOrder = genreCounts.OrderByDescending(kv => kv.Value).Select(kv => kv.Key).ToList();
         var genreIdx = new Dictionary<string, int>();
@@ -182,9 +182,9 @@ public sealed class GalaxyViewModel : ViewModelBase
         ClusterLabels = labels.ToArray();
         WarningVisible = !albumLevel && rows.Count > 20000;
         WarningText = WarningVisible
-            ? $"{rows.Count:N0} nummers op track-niveau — dat kan haperen op een gewone laptop. Album-niveau rendert vlot."
+            ? $"{rows.Count:N0} tracks at track level — that can stutter on a regular laptop. Album level renders smoothly."
             : "";
-        Status = $"{Points.Length:N0} punten ({(albumLevel ? "albums" : "tracks")}) · kleur = genre · sleep = draaien · scroll = zoomen · klik = open album";
+        Status = $"{Points.Length:N0} punten ({(albumLevel ? "albums" : "tracks")}) · color = genre · drag = rotate · scroll = zoom · click = open album";
     }
 
     private static (float, float, float) HashDir(string s, float mag)

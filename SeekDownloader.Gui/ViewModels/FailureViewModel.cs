@@ -11,7 +11,7 @@ public class FailureViewModel
     {
         Path = path;
         FileName = System.IO.Path.GetFileName(path);
-        Reason = string.IsNullOrWhiteSpace(reason) ? "onbekende fout" : reason.Trim();
+        Reason = string.IsNullOrWhiteSpace(reason) ? "unknown error" : reason.Trim();
     }
 
     public string Line => $"{FileName} — {Reason}";

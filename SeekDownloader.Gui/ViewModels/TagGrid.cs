@@ -145,7 +145,7 @@ public sealed class TagGridViewModel : ViewModelBase
     public RelayCommand ApplyT2FCommand { get; }
 
     public bool HasDirty => Rows.Any(r => r.IsDirty);
-    public string DirtyText => $"{Rows.Count(r => r.IsDirty)} gewijzigd · {Rows.Count} rijen";
+    public string DirtyText => $"{Rows.Count(r => r.IsDirty)} changed · {Rows.Count} rows";
 
     private string _status = "";
     public string Status { get => _status; private set => SetField(ref _status, value); }
@@ -168,7 +168,7 @@ public sealed class TagGridViewModel : ViewModelBase
     {
         _lastFiles = files.ToList();
         var snapshot = _lastFiles.ToList();
-        Status = "Tabel laden…";
+        Status = "Loading table…";
         Task.Run(() =>
         {
             var rows = new List<TagRowViewModel>();
@@ -224,7 +224,7 @@ public sealed class TagGridViewModel : ViewModelBase
         foreach (var r in Rows) fn(r);
         OnPropertyChanged(nameof(DirtyText));
         SaveCommand.RaiseCanExecuteChanged();
-        Status = "Actie toegepast — controleer de tabel en klik Bewaar.";
+        Status = "Action applied — review the table and click Save.";
     }
 
     private void Save()
@@ -233,7 +233,7 @@ public sealed class TagGridViewModel : ViewModelBase
         if (dirty.Count == 0) return;
         _busy = true;
         SaveCommand.RaiseCanExecuteChanged();
-        Status = $"{dirty.Count} bestanden opslaan…";
+        Status = $"Saving {dirty.Count} files…";
         var before = dirty.Select(r => r.Snapshot()).ToList();
 
         Task.Run(() =>
@@ -254,7 +254,7 @@ public sealed class TagGridViewModel : ViewModelBase
                 }
                 catch { }
             }
-            _undo?.RecordTags($"Tags bewerkt: {n} nummers", before);
+            _undo?.RecordTags($"Tags edited: {n} tracks", before);
             _lib?.RefreshConfigured();
             Dispatcher.UIThread.Post(() =>
             {
@@ -262,7 +262,7 @@ public sealed class TagGridViewModel : ViewModelBase
                 _busy = false;
                 OnPropertyChanged(nameof(DirtyText));
                 SaveCommand.RaiseCanExecuteChanged();
-                Status = $"{n} bestanden opgeslagen (Cmd+Z = ongedaan maken).";
+                Status = $"{n} files saved (Cmd+Z = undo).";
             });
         });
     }
@@ -287,7 +287,7 @@ public sealed class TagGridViewModel : ViewModelBase
         }
         OnPropertyChanged(nameof(DirtyText));
         SaveCommand.RaiseCanExecuteChanged();
-        Status = $"{hit}/{Rows.Count} bestandsnamen gematcht — controleer de tabel en klik Bewaar.";
+        Status = $"{hit}/{Rows.Count} filenames matched — review the table and click Save.";
     }
 
     private void ApplyT2F()
@@ -306,11 +306,11 @@ public sealed class TagGridViewModel : ViewModelBase
             if (!taken.Add(dest)) continue;       // botsing binnen de selectie
             jobs.Add((r, dest));
         }
-        if (jobs.Count == 0) { Status = "Niets te hernoemen."; return; }
+        if (jobs.Count == 0) { Status = "Nothing to rename."; return; }
 
         _busy = true;
         ApplyT2FCommand.RaiseCanExecuteChanged();
-        Status = $"{jobs.Count} bestanden hernoemen…";
+        Status = $"Renaming {jobs.Count} files…";
         Task.Run(() =>
         {
             var ops = new List<UndoJournal.MoveOp>();
@@ -328,14 +328,14 @@ public sealed class TagGridViewModel : ViewModelBase
                 }
                 catch { skipped++; }
             }
-            _undo?.Record($"Hernoemd: {n} bestanden", ops);
+            _undo?.Record($"Renamed: {n} files", ops);
             _lib?.RefreshConfigured();
             Dispatcher.UIThread.Post(() =>
             {
                 _busy = false;
                 ApplyT2FCommand.RaiseCanExecuteChanged();
                 UpdatePreviews();
-                Status = $"{n} hernoemd" + (skipped > 0 ? $", {skipped} overgeslagen" : "") + " (Cmd+Z = ongedaan maken).";
+                Status = $"{n} renamed" + (skipped > 0 ? $", {skipped} skipped" : "") + " (Cmd+Z = undo).";
             });
         });
     }
@@ -343,11 +343,11 @@ public sealed class TagGridViewModel : ViewModelBase
     private void UpdatePreviews()
     {
         var r = Rows.FirstOrDefault();
-        if (r == null) { PreviewF2T = "(geen bestanden geladen)"; PreviewT2F = "(geen bestanden geladen)"; return; }
+        if (r == null) { PreviewF2T = "(no files loaded)"; PreviewT2F = "(no files loaded)"; return; }
         var name = System.IO.Path.GetFileNameWithoutExtension(r.FileName);
         var d = TagPattern.Parse(PatternF2T, name);
         PreviewF2T = d == null
-            ? $"„{name}”  →  (geen match met patroon)"
+            ? $"„{name}”  →  (no match for pattern)"
             : $"„{name}”  →  " + string.Join("  ·  ", d.Select(kv => $"{kv.Key}={kv.Value}"));
         var ext = System.IO.Path.GetExtension(r.FileName);
         PreviewT2F = $"„{r.FileName}”  →  „{TagPattern.Format(PatternT2F, r)}{ext}”";

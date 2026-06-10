@@ -15,7 +15,7 @@ public class ConvertItemViewModel : ViewModelBase
         SourcePath = sourcePath;
         FileName = System.IO.Path.GetFileName(sourcePath);
         _onShow = onShow;
-        _status = "Wachtrij";
+        _status = "Queued";
         ShowCommand = new RelayCommand(() => _onShow(Detail));
     }
 
@@ -37,9 +37,9 @@ public class ConvertItemViewModel : ViewModelBase
 
     public IBrush StatusBrush => Status switch
     {
-        "Klaar" => new SolidColorBrush(Color.Parse("#2E7D43")),
-        "Mislukt" => new SolidColorBrush(Color.Parse("#B23A2E")),
-        "Bezig" => new SolidColorBrush(Color.Parse("#3568C4")),
+        "Done" => new SolidColorBrush(Color.Parse("#2E7D43")),
+        "Failed" => new SolidColorBrush(Color.Parse("#B23A2E")),
+        "Busy" => new SolidColorBrush(Color.Parse("#3568C4")),
         _ => new SolidColorBrush(Color.Parse("#8A8370")),
     };
 }

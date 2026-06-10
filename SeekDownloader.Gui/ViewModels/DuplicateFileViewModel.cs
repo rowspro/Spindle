@@ -26,7 +26,7 @@ public class DuplicateFileViewModel : ViewModelBase
         try
         {
             var t = new Track(path);
-            Album = string.IsNullOrWhiteSpace(t.Album) ? "(geen album)" : t.Album + (t.Year > 0 ? $" ({t.Year})" : "");
+            Album = string.IsNullOrWhiteSpace(t.Album) ? "(no album)" : t.Album + (t.Year > 0 ? $" ({t.Year})" : "");
             var ext = System.IO.Path.GetExtension(path).TrimStart('.').ToUpperInvariant();
             int bitrate = t.Bitrate;
             double sr = t.SampleRate;
@@ -59,7 +59,7 @@ public class DuplicateFileViewModel : ViewModelBase
         set { if (SetField(ref _keep, value)) { OnPropertyChanged(nameof(KeepLabel)); OnPropertyChanged(nameof(KeepBrush)); } }
     }
 
-    public string KeepLabel => Keep ? "✓ Behouden" : "wordt verwijderd";
+    public string KeepLabel => Keep ? "✓ Behouden" : "will be removed";
     public IBrush KeepBrush => Keep
         ? new SolidColorBrush(Color.Parse("#2E7D43"))
         : new SolidColorBrush(Color.Parse("#B23A2E"));

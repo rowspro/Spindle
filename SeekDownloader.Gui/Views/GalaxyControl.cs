@@ -183,7 +183,7 @@ internal sealed class GalaxyDrawOp : ICustomDrawOperation
         {
             paint.Color = new SKColor(0xFF737783);
             paint.TextSize = 14;
-            c.DrawText("Nog geen punten — de index bouwt of de bieb is leeg.", 20, h / 2, paint);
+            c.DrawText("No points yet — the index is building or the library is empty.", 20, h / 2, paint);
             c.Restore();
             return;
         }
