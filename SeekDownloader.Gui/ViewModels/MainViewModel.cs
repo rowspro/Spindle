@@ -58,7 +58,7 @@ public class MainViewModel : ViewModelBase
             {
                 Meta.LoadFiles(files, status);
                 SelectedTabIndex = 3; // Metadata
-            });
+            }, lib: Lib, undo: Undo);
 
         Staging = new StagingViewModel(
             onFix: (files, status) => { Meta.LoadFiles(files, status); SelectedTabIndex = 3; }, // Metadata
@@ -69,7 +69,8 @@ public class MainViewModel : ViewModelBase
                 Sort.TestMode = false;
                 SelectedTabIndex = 1;               // Sorteren
                 if (Sort.SortCommand.CanExecute(null)) Sort.SortCommand.Execute(null);
-            });
+            },
+            lib: Lib, undo: Undo);
 
         LoadFromConfig(Settings.Load());
 
@@ -86,6 +87,20 @@ public class MainViewModel : ViewModelBase
         Staging.NieuwFolder = DownloadFilePath;
         Staging.LibraryFolder = MusicLibrary;
 
+        // Fase 0: watchers + globale statusbalk — index ververst zichzelf op bestandswijzigingen.
+        Lib.ScanProgress += (sroot, d, t) =>
+        {
+            IndexBusy = true;
+            IndexPercent = t > 0 ? 100.0 * d / t : 0;
+            GlobalStatus = $"Indexeren… {d}/{t} — {System.IO.Path.GetFileName(sroot.TrimEnd('/'))}";
+        };
+        Lib.Changed += () =>
+        {
+            IndexBusy = false;
+            GlobalStatus = $"{Lib.Index.TrackCount():N0} nummers geïndexeerd";
+        };
+        Lib.Configure(MusicLibrary, DownloadFilePath);
+
         // Restore unfinished downloads from the previous session so they can be resumed (no re-search).
         foreach (var e in QueueStore.Load())
         {
@@ -94,6 +109,29 @@ public class MainViewModel : ViewModelBase
             _queueByKey[item.Key] = item;
             Queue.Add(item);
         }
+    }
+
+    // ---- Fase 0: index-service, globale statusbalk en undo-journal ----
+    public LibraryService Lib { get; } = new();
+    public UndoJournal Undo { get; } = new();
+
+    private string _globalStatus = "Klaar.";
+    public string GlobalStatus { get => _globalStatus; private set => SetField(ref _globalStatus, value); }
+
+    private bool _indexBusy;
+    public bool IndexBusy { get => _indexBusy; private set => SetField(ref _indexBusy, value); }
+
+    private double _indexPercent;
+    public double IndexPercent { get => _indexPercent; private set => SetField(ref _indexPercent, value); }
+
+    public void UndoLast()
+    {
+        var (done, total, label) = Undo.UndoLast();
+        GlobalStatus = total == 0
+            ? "Niets om ongedaan te maken."
+            : $"Ongedaan gemaakt: {label} — {done}/{total} teruggezet.";
+        if (total > 0)
+            Task.Run(() => { Lib.Refresh(MusicLibrary); Lib.Refresh(DownloadFilePath); });
     }
 
     // ---- Connection pill (sidebar) ----
@@ -1072,5 +1110,9 @@ public class MainViewModel : ViewModelBase
     }
 
     // Called when the window closes so tool folders (and other settings) survive a restart.
-    public void SaveSettings() => Settings.Save(BuildConfig());
+    public void SaveSettings()
+    {
+        Settings.Save(BuildConfig());
+        Lib.Configure(MusicLibrary, DownloadFilePath);
+    }
 }

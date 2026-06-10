@@ -79,13 +79,17 @@ public class StagingViewModel : ViewModelBase
 
     private readonly Action<IReadOnlyList<string>, string> _onFix;
     private readonly Action _onSortLibrary;
+    private readonly LibraryService _lib;
+    private readonly UndoJournal _undo;
     private readonly List<StagingAlbumViewModel> _all = new();
     private CancellationTokenSource? _cts;
 
-    public StagingViewModel(Action<IReadOnlyList<string>, string> onFix, Action onSortLibrary)
+    public StagingViewModel(Action<IReadOnlyList<string>, string> onFix, Action onSortLibrary, LibraryService lib, UndoJournal undo)
     {
         _onFix = onFix;
         _onSortLibrary = onSortLibrary;
+        _lib = lib;
+        _undo = undo;
         ScanCommand = new RelayCommand(Scan, () => !IsBusy && !string.IsNullOrWhiteSpace(NieuwFolder));
         ApproveCommand = new RelayCommand(Approve, () => !IsBusy && _all.Any(a => a.IsSelected));
         SelectAllCommand = new RelayCommand(() => SetSelection(_ => true));
@@ -185,7 +189,8 @@ public class StagingViewModel : ViewModelBase
         {
             var parent = Path.GetDirectoryName(Path.GetFullPath(NieuwFolder).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
             var trash = parent != null ? Path.Combine(parent, "_Verwijderd (Spindle)") : Path.Combine(NieuwFolder, "_Verwijderd");
-            MoveInto(file.Path, trash);
+            var dest = MoveInto(file.Path, trash);
+            _undo.Record($"Bestand verwijderd: {file.FileName}", new List<UndoJournal.MoveOp> { new(file.Path, dest) });
         }
         catch { try { File.Delete(file.Path); } catch { } }
         DetailFiles.Remove(file);
@@ -244,40 +249,35 @@ public class StagingViewModel : ViewModelBase
 
         Task.Run(() =>
         {
-            var have = BuildLibraryIndex(lib);
-            var files = Directory.EnumerateFiles(nieuw, "*.*", SearchOption.AllDirectories)
-                .Where(f => AudioExt.Contains(Path.GetExtension(f).ToLowerInvariant()) && !Path.GetFileName(f).StartsWith("._"))
-                .ToList();
+            // Fase 0: beide roots incrementeel verversen en uit de index lezen.
+            _lib.Refresh(lib, token);
+            _lib.Refresh(nieuw, token);
+            var have = new HashSet<string>(_lib.Index.AllTracks(lib)
+                .Select(r => Norm(!string.IsNullOrWhiteSpace(r.AlbumArtist) ? r.AlbumArtist : r.Artist) + "|" + Norm(r.Album)));
+            var files = _lib.Index.AllTracks(nieuw);
 
             var groups = new Dictionary<string, (string Artist, string Album, string Year, List<string> Files,
                 int Lossy, int Untagged, int NoCover, int MissingYg, HashSet<string> Dirs, HashSet<int> Tracks, bool DupTrack)>();
 
-            foreach (var f in files)
+            foreach (var r in files)
             {
                 if (token.IsCancellationRequested) break;
-                try
-                {
-                    var t = new Track(f);
-                    var artist = !string.IsNullOrWhiteSpace(t.AlbumArtist) ? t.AlbumArtist : (t.Artist ?? "");
-                    var album = t.Album ?? "";
-                    var key = Norm(artist) + "|" + Norm(album);
-                    if (!groups.TryGetValue(key, out var g))
-                        g = (artist, album, t.Year > 0 ? t.Year.ToString() : "", new List<string>(), 0, 0, 0, 0, new HashSet<string>(), new HashSet<int>(), false);
+                var artist = !string.IsNullOrWhiteSpace(r.AlbumArtist) ? r.AlbumArtist : r.Artist;
+                var key = Norm(artist) + "|" + Norm(r.Album);
+                if (!groups.TryGetValue(key, out var g))
+                    g = (artist, r.Album, r.Year > 0 ? r.Year.ToString() : "", new List<string>(), 0, 0, 0, 0, new HashSet<string>(), new HashSet<int>(), false);
 
-                    g.Files.Add(f);
-                    var dir = Path.GetDirectoryName(f);
-                    if (dir != null) g.Dirs.Add(dir);
-                    if (!Lossless.Contains(Path.GetExtension(f).ToLowerInvariant())) g.Lossy++;
-                    if (string.IsNullOrWhiteSpace(t.Title) || string.IsNullOrWhiteSpace(artist)) g.Untagged++;
-                    if (t.EmbeddedPictures.Count == 0) g.NoCover++;
-                    if (t.Year <= 0 || string.IsNullOrWhiteSpace(t.Genre)) g.MissingYg++;
-                    var tn = t.TrackNumber ?? 0;
-                    if (tn > 0) { if (!g.Tracks.Add(tn)) g.DupTrack = true; }
-                    if (string.IsNullOrEmpty(g.Year) && t.Year > 0) g.Year = t.Year.ToString();
+                g.Files.Add(r.Path);
+                var dir = Path.GetDirectoryName(r.Path);
+                if (dir != null) g.Dirs.Add(dir);
+                if (!r.Lossless) g.Lossy++;
+                if (r.MissingTags) g.Untagged++;
+                if (!r.HasCover) g.NoCover++;
+                if (r.Year <= 0 || string.IsNullOrWhiteSpace(r.Genre)) g.MissingYg++;
+                if (r.TrackNo > 0) { if (!g.Tracks.Add(r.TrackNo)) g.DupTrack = true; }
+                if (string.IsNullOrEmpty(g.Year) && r.Year > 0) g.Year = r.Year.ToString();
 
-                    groups[key] = g;
-                }
-                catch { }
+                groups[key] = g;
             }
 
             var albums = new List<StagingAlbumViewModel>();
@@ -337,16 +337,19 @@ public class StagingViewModel : ViewModelBase
         {
             int moved = 0;
             var dirs = new HashSet<string>();
+            var ops = new List<UndoJournal.MoveOp>();
             foreach (var album in selected)
             {
                 foreach (var f in album.Files)
                 {
-                    try { MoveInto(f, lib); moved++; } catch { }
+                    try { var dest = MoveInto(f, lib); ops.Add(new UndoJournal.MoveOp(f, dest)); moved++; } catch { }
                 }
                 foreach (var d in album.SourceDirs) dirs.Add(d);
             }
             // opruimen: bronmappen die helemaal leeg zijn van audio → naar prullenbak (incl. hoezen/.nfo).
-            foreach (var d in dirs) CleanConsumedSourceDir(d);
+            foreach (var d in dirs) CleanConsumedSourceDir(d, ops);
+            _undo.Record($"Goedkeuren: {selected.Count} album(s) naar bieb", ops);
+            _lib.Refresh(NieuwFolder);
 
             Dispatcher.UIThread.Post(() =>
             {
@@ -359,13 +362,14 @@ public class StagingViewModel : ViewModelBase
     }
 
     // Move a file into a folder, handling cross-volume moves and name clashes.
-    private static void MoveInto(string file, string destDir)
+    private static string MoveInto(string file, string destDir)
     {
         Directory.CreateDirectory(destDir);
         var dest = Path.Combine(destDir, Path.GetFileName(file));
         if (File.Exists(dest)) dest = Unique(dest);
         try { File.Move(file, dest); }
         catch (IOException) { File.Copy(file, dest, false); File.Delete(file); }
+        return dest;
     }
 
     private static string Unique(string path)
@@ -382,7 +386,7 @@ public class StagingViewModel : ViewModelBase
 
     // After moving an album's audio out, a wholly-consumed source folder may still hold sidecars
     // (folder.jpg, .nfo, .cue, .log). Move that whole folder to the trash so 'Nieuw' is left clean.
-    private void CleanConsumedSourceDir(string dir)
+    private void CleanConsumedSourceDir(string dir, List<UndoJournal.MoveOp>? ops = null)
     {
         try
         {
@@ -402,6 +406,7 @@ public class StagingViewModel : ViewModelBase
             for (int i = 2; Directory.Exists(dest); i++) dest = Path.Combine(trash, $"{Path.GetFileName(dirFull)} ({i})");
             try { Directory.Move(dir, dest); }
             catch { CopyDir(dir, dest); try { Directory.Delete(dir, true); } catch { } }
+            ops?.Add(new UndoJournal.MoveOp(dirFull, dest));
 
             CleanEmptyParents(Path.GetDirectoryName(dirFull), nieuwFull);
         }
@@ -435,31 +440,6 @@ public class StagingViewModel : ViewModelBase
             CopyDir(d, Path.Combine(dest, Path.GetFileName(d)));
     }
 
-    private static HashSet<string> BuildLibraryIndex(string folder)
-    {
-        var set = new HashSet<string>();
-        try
-        {
-            if (string.IsNullOrWhiteSpace(folder) || !Directory.Exists(folder)) return set;
-            var files = Directory.EnumerateFiles(folder, "*.*", SearchOption.AllDirectories)
-                .Where(f => AudioExt.Contains(Path.GetExtension(f).ToLowerInvariant()) && !Path.GetFileName(f).StartsWith("._"));
-            var bag = new ConcurrentBag<string>();
-            Parallel.ForEach(files, new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount }, f =>
-            {
-                try
-                {
-                    var t = new Track(f);
-                    var artist = !string.IsNullOrWhiteSpace(t.AlbumArtist) ? t.AlbumArtist : (t.Artist ?? "");
-                    if (!string.IsNullOrWhiteSpace(artist) && !string.IsNullOrWhiteSpace(t.Album))
-                        bag.Add(Norm(artist) + "|" + Norm(t.Album));
-                }
-                catch { }
-            });
-            foreach (var k in bag) set.Add(k);
-        }
-        catch { }
-        return set;
-    }
 
     private static string Norm(string? s) => Regex.Replace((s ?? "").ToLowerInvariant(), "[^a-z0-9]", "");
 }

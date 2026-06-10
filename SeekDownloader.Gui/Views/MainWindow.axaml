@@ -380,7 +380,7 @@
         </Border>
 
         <!-- ===== Content ===== -->
-        <Grid Grid.Column="1" RowDefinitions="Auto,*">
+        <Grid Grid.Column="1" RowDefinitions="Auto,*,Auto">
 
             <!-- Sticky top bar -->
             <Border Grid.Row="0" Height="52" Background="{StaticResource Surface}"
@@ -1224,6 +1224,18 @@
                 </Grid>
             </TabItem>
         </TabControl>
+
+            <!-- Globale statusbalk (fase 0): indexvoortgang + laatste actie -->
+            <Border Grid.Row="2" Background="{StaticResource SidebarBg}" BorderBrush="{StaticResource CardBorder}"
+                    BorderThickness="0,1,0,0" Padding="24,5">
+                <Grid ColumnDefinitions="*,Auto">
+                    <TextBlock Grid.Column="0" Classes="caption" VerticalAlignment="Center" Text="{Binding GlobalStatus}" />
+                    <ProgressBar Grid.Column="1" Width="160" Height="6" CornerRadius="3" Minimum="0" Maximum="100"
+                                 Value="{Binding IndexPercent}" IsVisible="{Binding IndexBusy}"
+                                 Background="{StaticResource SurfaceVariant}" Foreground="{StaticResource Accent}"
+                                 VerticalAlignment="Center" Margin="12,0,0,0" />
+                </Grid>
+            </Border>
         </Grid>
 
         <!-- ===== Cmd+F command palette ===== -->

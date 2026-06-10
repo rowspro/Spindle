@@ -87,10 +87,15 @@ public class LibraryViewModel : ViewModelBase
     private List<string> _noCoverFiles = new();
     private CancellationTokenSource? _cts;
 
-    public LibraryViewModel(Action<List<string>> onDownload, Action<IReadOnlyList<string>, string> onEdit)
+    private readonly LibraryService _lib;
+    private readonly UndoJournal _undo;
+
+    public LibraryViewModel(Action<List<string>> onDownload, Action<IReadOnlyList<string>, string> onEdit, LibraryService lib, UndoJournal undo)
     {
         _onDownload = onDownload;
         _onEdit = onEdit;
+        _lib = lib;
+        _undo = undo;
         ScanCommand = new RelayCommand(Scan, () => !IsBusy && !string.IsNullOrWhiteSpace(LibraryFolder));
         RepairCoversCommand = new RelayCommand(RepairCovers, () => !IsBusy && _albums.Count > 0);
         FindUpgradesCommand = new RelayCommand(FindUpgrades, () => !IsBusy && _albums.Count > 0);
@@ -260,43 +265,26 @@ public class LibraryViewModel : ViewModelBase
 
         Task.Run(() =>
         {
-            var files = Directory.EnumerateFiles(lib, "*.*", SearchOption.AllDirectories)
-                .Where(f => AudioExt.Contains(Path.GetExtension(f).ToLowerInvariant()) && !Path.GetFileName(f).StartsWith("._"))
-                .ToList();
+            // Fase 0: lees uit de persistente index (incrementele refresh — alleen gewijzigde bestanden).
+            _lib.Refresh(lib, token);
+            var files = _lib.Index.AllTracks(lib);
 
-            int noTags = 0, lossyFiles = 0;
-            var noTagBag = new ConcurrentBag<string>();
+            int noTags = files.Count(r => r.MissingTags);
+            int lossyFiles = files.Count(r => !r.Lossless);
+            var noTagBag = new ConcurrentBag<string>(files.Where(r => r.MissingTags).Select(r => r.Path));
             var groups = new ConcurrentDictionary<string, Album>();
-            int scanned = 0;
 
-            Parallel.ForEach(files, new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount, CancellationToken = token }, f =>
+            foreach (var r in files)
             {
-                try
-                {
-                    var t = new Track(f);
-                    var artist = !string.IsNullOrWhiteSpace(t.AlbumArtist) ? t.AlbumArtist : (t.Artist ?? "");
-                    var album = t.Album ?? "";
-                    bool untagged = string.IsNullOrWhiteSpace(t.Title) || string.IsNullOrWhiteSpace(artist);
-                    if (untagged) { Interlocked.Increment(ref noTags); noTagBag.Add(f); }
-                    bool lossy = !Lossless.Contains(Path.GetExtension(f).ToLowerInvariant());
-                    if (lossy) Interlocked.Increment(ref lossyFiles);
-                    bool hasCover = t.EmbeddedPictures.Count > 0;
-
-                    var key = Norm(artist) + "|" + Norm(album);
-                    var a = groups.GetOrAdd(key, _ => new Album { Artist = artist, Name = album, AllLossy = true });
-                    lock (a)
-                    {
-                        a.Files.Add(f);
-                        if (hasCover) a.HasCover = true;
-                        if (!lossy) a.AllLossy = false;
-                        if (lossy) a.LossyCount++;
-                        if (untagged) a.Untagged++;
-                    }
-                }
-                catch { }
-                var s = Interlocked.Increment(ref scanned);
-                if (s % 200 == 0) Dispatcher.UIThread.Post(() => Status = $"Scannen… {s}");
-            });
+                if (token.IsCancellationRequested) break;
+                var artist = !string.IsNullOrWhiteSpace(r.AlbumArtist) ? r.AlbumArtist : r.Artist;
+                var a = groups.GetOrAdd(Norm(artist) + "|" + Norm(r.Album),
+                    _ => new Album { Artist = artist, Name = r.Album, AllLossy = true });
+                a.Files.Add(r.Path);
+                if (r.HasCover) a.HasCover = true;
+                if (r.Lossless) a.AllLossy = false; else a.LossyCount++;
+                if (r.MissingTags) a.Untagged++;
+            }
 
             var albums = groups.Values.Where(a => a.Files.Count > 0).ToList();
             int noCover = albums.Count(a => !a.HasCover);
@@ -363,6 +351,7 @@ public class LibraryViewModel : ViewModelBase
             : Path.Combine(libFull, "_Verwijderd");
 
         int moved = 0;
+        var ops = new List<UndoJournal.MoveOp>();
         foreach (var f in album.Files)
         {
             try
@@ -373,10 +362,12 @@ public class LibraryViewModel : ViewModelBase
                 Directory.CreateDirectory(Path.GetDirectoryName(dest)!);
                 if (File.Exists(dest)) File.Delete(dest);
                 File.Move(f, dest);
+                ops.Add(new UndoJournal.MoveOp(f, dest));
                 moved++;
             }
             catch { }
         }
+        _undo.Record($"Album verwijderd: {album.Title}", ops);
         ProblemAlbums.Remove(album);
         FileCount = Math.Max(0, FileCount - album.Files.Count);
         AlbumCount = Math.Max(0, AlbumCount - 1);

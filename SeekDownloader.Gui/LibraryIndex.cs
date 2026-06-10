@@ -24,7 +24,7 @@ public sealed class IndexedTrack
     public bool Lossless;
     public int Bitrate;
     public bool HasCover;
-    public bool MissingTags;    // no title or no artist
+    public bool MissingTags;    // no title or no (album)artist
 }
 
 public sealed class ScanStats
@@ -41,15 +41,17 @@ public sealed record AlbumAgg(string AlbumArtist, string Album, int Tracks, int 
 /// <summary>
 /// Persistent SQLite index of the music library (fase 0 van PLAN.md). Scans are incremental:
 /// only files whose mtime/size changed are re-read with ATL; deleted files are pruned. After the
-/// first scan every view (health, browser, galaxy) reads from here instantly.
+/// first scan every view (health, browser, galaxy) reads from here instantly. All db access is
+/// serialized behind one lock so background scans and UI reads can interleave safely.
 /// </summary>
 public sealed class LibraryIndex : IDisposable
 {
     private static readonly string[] AudioExt = { ".flac", ".mp3", ".m4a", ".wav", ".aiff", ".aif", ".opus" };
     private static readonly string[] LosslessExt = { ".flac", ".wav", ".aiff", ".aif" };
+    private const string EffArtist = "CASE WHEN album_artist <> '' THEN album_artist ELSE artist END";
 
     private readonly SqliteConnection _db;
-    private readonly object _writeLock = new();
+    private readonly object _dbLock = new();
 
     public static string DefaultDbPath =>
         System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
@@ -75,7 +77,7 @@ public sealed class LibraryIndex : IDisposable
         Exec("CREATE TABLE IF NOT EXISTS meta(key TEXT PRIMARY KEY, value TEXT);");
     }
 
-    public void Dispose() => _db.Dispose();
+    public void Dispose() { lock (_dbLock) _db.Dispose(); }
 
     private void Exec(string sql)
     {
@@ -86,7 +88,7 @@ public sealed class LibraryIndex : IDisposable
 
     /// <summary>
     /// Incremental scan of one root folder. Reads only new/changed files (parallel, ATL), prunes
-    /// rows for files that no longer exist under the root. Thread-safe for one scan at a time.
+    /// rows for files that no longer exist under the root.
     /// </summary>
     public ScanStats ScanFolder(string root, CancellationToken ct = default, Action<int, int>? progress = null)
     {
@@ -94,10 +96,10 @@ public sealed class LibraryIndex : IDisposable
         var stats = new ScanStats();
         var rootFull = System.IO.Path.GetFullPath(root);
 
-        // Snapshot of what the index already knows about this root.
         var existing = new Dictionary<string, (long Mtime, long Size)>(StringComparer.Ordinal);
-        using (var cmd = _db.CreateCommand())
+        lock (_dbLock)
         {
+            using var cmd = _db.CreateCommand();
             cmd.CommandText = "SELECT path, mtime, size FROM tracks WHERE root = $r";
             cmd.Parameters.AddWithValue("$r", rootFull);
             using var rd = cmd.ExecuteReader();
@@ -120,11 +122,10 @@ public sealed class LibraryIndex : IDisposable
             toRead.Add((f, mtime, size, !existing.ContainsKey(f)));
         }
 
-        // Read the new/changed files in parallel (tag parsing is the slow part).
         var rows = new ConcurrentBag<IndexedTrack>();
         int done = 0;
         Parallel.ForEach(toRead,
-            new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount, CancellationToken = CancellationToken.None },
+            new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount },
             item =>
             {
                 if (ct.IsCancellationRequested) return;
@@ -134,8 +135,7 @@ public sealed class LibraryIndex : IDisposable
                 progress?.Invoke(d, toRead.Count);
             });
 
-        // Single write transaction: upserts + prune of deleted files.
-        lock (_writeLock)
+        lock (_dbLock)
         {
             using var tx = _db.BeginTransaction();
             using (var up = _db.CreateCommand())
@@ -210,66 +210,102 @@ public sealed class LibraryIndex : IDisposable
 
     public int TrackCount(string? root = null)
     {
-        using var cmd = _db.CreateCommand();
-        cmd.CommandText = root == null ? "SELECT COUNT(*) FROM tracks" : "SELECT COUNT(*) FROM tracks WHERE root=$r";
-        if (root != null) cmd.Parameters.AddWithValue("$r", System.IO.Path.GetFullPath(root));
-        return Convert.ToInt32(cmd.ExecuteScalar());
+        lock (_dbLock)
+        {
+            using var cmd = _db.CreateCommand();
+            cmd.CommandText = root == null ? "SELECT COUNT(*) FROM tracks" : "SELECT COUNT(*) FROM tracks WHERE root=$r";
+            if (root != null) cmd.Parameters.AddWithValue("$r", System.IO.Path.GetFullPath(root));
+            return Convert.ToInt32(cmd.ExecuteScalar());
+        }
+    }
+
+    public List<IndexedTrack> AllTracks(string? root = null)
+    {
+        lock (_dbLock)
+        {
+            var list = new List<IndexedTrack>();
+            using var cmd = _db.CreateCommand();
+            cmd.CommandText = "SELECT path,mtime,size,title,artist,album_artist,album,genre,year,track,disc,duration,format,lossless,bitrate,has_cover,missing_tags FROM tracks"
+                              + (root == null ? "" : " WHERE root=$r");
+            if (root != null) cmd.Parameters.AddWithValue("$r", System.IO.Path.GetFullPath(root));
+            using var rd = cmd.ExecuteReader();
+            while (rd.Read())
+                list.Add(new IndexedTrack
+                {
+                    Path = rd.GetString(0), Mtime = rd.GetInt64(1), Size = rd.GetInt64(2),
+                    Title = rd.GetString(3), Artist = rd.GetString(4), AlbumArtist = rd.GetString(5),
+                    Album = rd.GetString(6), Genre = rd.GetString(7), Year = rd.GetInt32(8),
+                    TrackNo = rd.GetInt32(9), Disc = rd.GetInt32(10), Duration = rd.GetInt32(11),
+                    Format = rd.GetString(12), Lossless = rd.GetInt32(13) == 1, Bitrate = rd.GetInt32(14),
+                    HasCover = rd.GetInt32(15) == 1, MissingTags = rd.GetInt32(16) == 1,
+                });
+            return list;
+        }
     }
 
     public (int Files, int Albums, int Lossy, int MissingTags, int AlbumsNoCover, int AllLossyAlbums) HealthCounts(string? root = null)
     {
-        var where = root == null ? "" : " WHERE root=$r";
-        int files, lossy, missing;
-        using (var cmd = _db.CreateCommand())
+        lock (_dbLock)
         {
-            cmd.CommandText = $"SELECT COUNT(*), COALESCE(SUM(1-lossless),0), COALESCE(SUM(missing_tags),0) FROM tracks{where}";
-            if (root != null) cmd.Parameters.AddWithValue("$r", System.IO.Path.GetFullPath(root));
-            using var rd = cmd.ExecuteReader();
-            rd.Read();
-            files = rd.GetInt32(0); lossy = rd.GetInt32(1); missing = rd.GetInt32(2);
+            var where = root == null ? "" : " WHERE root=$r";
+            int files, lossy, missing;
+            using (var cmd = _db.CreateCommand())
+            {
+                cmd.CommandText = $"SELECT COUNT(*), COALESCE(SUM(1-lossless),0), COALESCE(SUM(missing_tags),0) FROM tracks{where}";
+                if (root != null) cmd.Parameters.AddWithValue("$r", System.IO.Path.GetFullPath(root));
+                using var rd = cmd.ExecuteReader();
+                rd.Read();
+                files = rd.GetInt32(0); lossy = rd.GetInt32(1); missing = rd.GetInt32(2);
+            }
+            int albums, noCover, allLossy;
+            using (var cmd = _db.CreateCommand())
+            {
+                cmd.CommandText = $@"SELECT COUNT(*), COALESCE(SUM(nc),0), COALESCE(SUM(al),0) FROM (
+                    SELECT MAX(has_cover)=0 AS nc, MIN(1-lossless)=1 AS al
+                    FROM tracks{where} GROUP BY lower({EffArtist}), lower(album))";
+                if (root != null) cmd.Parameters.AddWithValue("$r", System.IO.Path.GetFullPath(root));
+                using var rd = cmd.ExecuteReader();
+                rd.Read();
+                albums = rd.GetInt32(0); noCover = rd.GetInt32(1); allLossy = rd.GetInt32(2);
+            }
+            return (files, albums, lossy, missing, noCover, allLossy);
         }
-        int albums, noCover, allLossy;
-        using (var cmd = _db.CreateCommand())
-        {
-            cmd.CommandText = $@"SELECT COUNT(*), COALESCE(SUM(nc),0), COALESCE(SUM(al),0) FROM (
-                SELECT MAX(has_cover)=0 AS nc, MIN(1-lossless)=1 AS al
-                FROM tracks{where} GROUP BY lower(CASE WHEN album_artist <> '' THEN album_artist ELSE artist END), lower(album))";
-            if (root != null) cmd.Parameters.AddWithValue("$r", System.IO.Path.GetFullPath(root));
-            using var rd = cmd.ExecuteReader();
-            rd.Read();
-            albums = rd.GetInt32(0); noCover = rd.GetInt32(1); allLossy = rd.GetInt32(2);
-        }
-        return (files, albums, lossy, missing, noCover, allLossy);
     }
 
     public List<AlbumAgg> Albums(string? root = null)
     {
-        var where = root == null ? "" : " WHERE root=$r";
-        var list = new List<AlbumAgg>();
-        using var cmd = _db.CreateCommand();
-        cmd.CommandText = $@"SELECT CASE WHEN album_artist <> '' THEN album_artist ELSE artist END AS eff, album, COUNT(*), MAX(year),
-                COALESCE(SUM(1-lossless),0), COALESCE(SUM(missing_tags),0), MAX(has_cover)
-            FROM tracks{where}
-            GROUP BY lower(eff), lower(album)
-            ORDER BY lower(eff), lower(album)";
-        if (root != null) cmd.Parameters.AddWithValue("$r", System.IO.Path.GetFullPath(root));
-        using var rd = cmd.ExecuteReader();
-        while (rd.Read())
-            list.Add(new AlbumAgg(rd.GetString(0), rd.GetString(1), rd.GetInt32(2), rd.GetInt32(3),
-                rd.GetInt32(4), rd.GetInt32(5), rd.GetInt32(6) == 1));
-        return list;
+        lock (_dbLock)
+        {
+            var where = root == null ? "" : " WHERE root=$r";
+            var list = new List<AlbumAgg>();
+            using var cmd = _db.CreateCommand();
+            cmd.CommandText = $@"SELECT {EffArtist} AS eff, album, COUNT(*), MAX(year),
+                    COALESCE(SUM(1-lossless),0), COALESCE(SUM(missing_tags),0), MAX(has_cover)
+                FROM tracks{where}
+                GROUP BY lower(eff), lower(album)
+                ORDER BY lower(eff), lower(album)";
+            if (root != null) cmd.Parameters.AddWithValue("$r", System.IO.Path.GetFullPath(root));
+            using var rd = cmd.ExecuteReader();
+            while (rd.Read())
+                list.Add(new AlbumAgg(rd.GetString(0), rd.GetString(1), rd.GetInt32(2), rd.GetInt32(3),
+                    rd.GetInt32(4), rd.GetInt32(5), rd.GetInt32(6) == 1));
+            return list;
+        }
     }
 
     public List<string> TrackPaths(string albumArtist, string album)
     {
-        var list = new List<string>();
-        using var cmd = _db.CreateCommand();
-        cmd.CommandText = @"SELECT path FROM tracks
-            WHERE lower(CASE WHEN album_artist <> '' THEN album_artist ELSE artist END)=lower($aa) AND lower(album)=lower($al) ORDER BY disc, track, path";
-        cmd.Parameters.AddWithValue("$aa", albumArtist);
-        cmd.Parameters.AddWithValue("$al", album);
-        using var rd = cmd.ExecuteReader();
-        while (rd.Read()) list.Add(rd.GetString(0));
-        return list;
+        lock (_dbLock)
+        {
+            var list = new List<string>();
+            using var cmd = _db.CreateCommand();
+            cmd.CommandText = $@"SELECT path FROM tracks
+                WHERE lower({EffArtist})=lower($aa) AND lower(album)=lower($al) ORDER BY disc, track, path";
+            cmd.Parameters.AddWithValue("$aa", albumArtist);
+            cmd.Parameters.AddWithValue("$al", album);
+            using var rd = cmd.ExecuteReader();
+            while (rd.Read()) list.Add(rd.GetString(0));
+            return list;
+        }
     }
 }

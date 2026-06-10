@@ -36,6 +36,14 @@ public partial class MainWindow : Window
             e.Handled = true;
             return;
         }
+        // Cmd+Z: globale undo van bestandsoperaties (niet in tekstvelden).
+        if (e.Key == Key.Z && e.KeyModifiers.HasFlag(KeyModifiers.Meta) && e.Source is not TextBox)
+        {
+            Vm.UndoLast();
+            e.Handled = true;
+            return;
+        }
+
         if (Vm.IsPaletteOpen)
         {
             switch (e.Key)
