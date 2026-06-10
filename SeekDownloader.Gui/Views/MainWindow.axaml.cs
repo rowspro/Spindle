@@ -5,6 +5,7 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using Avalonia.Platform.Storage;
+using Avalonia.Styling;
 using SeekDownloader.Gui.ViewModels;
 
 namespace SeekDownloader.Gui.Views;
@@ -18,6 +19,9 @@ public partial class MainWindow : Window
         AddHandler(KeyDownEvent, OnWindowKeyDown, Avalonia.Interactivity.RoutingStrategies.Tunnel, handledEventsToo: true);
         // Remember tool folders (and other settings) across launches.
         Closing += (_, _) => Vm?.SaveSettings();
+        // Fase 5: pas het opgeslagen thema toe en volg de toggle.
+        DataContextChanged += (_, _) => HookTheme();
+        HookTheme();
     }
 
     private void InitializeComponent() => AvaloniaXamlLoader.Load(this);
@@ -78,6 +82,26 @@ public partial class MainWindow : Window
     }
 
     private MainViewModel? Vm => DataContext as MainViewModel;
+
+    private bool _themeHooked;
+
+    private void HookTheme()
+    {
+        if (_themeHooked || Vm == null) return;
+        _themeHooked = true;
+        ApplyTheme();
+        Vm.PropertyChanged += (_, e) => { if (e.PropertyName == nameof(MainViewModel.DarkMode)) ApplyTheme(); };
+    }
+
+    private void ApplyTheme()
+    {
+        if (Vm != null) RequestedThemeVariant = Vm.DarkMode ? ThemeVariant.Dark : ThemeVariant.Light;
+    }
+
+    private void OnToggleTheme(object? sender, RoutedEventArgs e)
+    {
+        if (Vm != null) Vm.DarkMode = !Vm.DarkMode;
+    }
 
     private void OnPaletteBackdrop(object? sender, Avalonia.Input.PointerPressedEventArgs e) => Vm?.ClosePalette();
 

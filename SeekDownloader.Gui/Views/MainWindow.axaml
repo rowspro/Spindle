@@ -7,36 +7,81 @@
         x:CompileBindings="True"
         Width="1040" Height="840" MinWidth="900" MinHeight="640"
         Title="Spindle"
-        Background="#F9F9FB"
+        Background="{DynamicResource Surface}"
         FontFamily="{StaticResource InterFontFamily}">
 
     <Window.Resources>
-        <!-- Material 3 light tokens (Spindle design system) -->
-        <SolidColorBrush x:Key="Card" Color="#FFFFFF" />              <!-- surface-container-lowest -->
-        <SolidColorBrush x:Key="CardBorder" Color="#C3C6D4" />        <!-- outline-variant -->
-        <SolidColorBrush x:Key="Recess" Color="#F3F3F5" />            <!-- surface-container-low (inputs) -->
-        <SolidColorBrush x:Key="Accent" Color="#0F4FAA" />           <!-- primary -->
-        <SolidColorBrush x:Key="HeaderBlue" Color="#0F4FAA" />       <!-- primary (section headers) -->
-        <SolidColorBrush x:Key="Success" Color="#2E7D43" />
-        <SolidColorBrush x:Key="ErrorBrush" Color="#BA1A1A" />       <!-- error -->
-        <SolidColorBrush x:Key="TextPrimary" Color="#1A1C1D" />      <!-- on-surface -->
-        <SolidColorBrush x:Key="TextSecondary" Color="#434752" />    <!-- on-surface-variant -->
-        <SolidColorBrush x:Key="TextMuted" Color="#737783" />        <!-- outline -->
-        <!-- shell / accents -->
-        <SolidColorBrush x:Key="Surface" Color="#F9F9FB" />
-        <SolidColorBrush x:Key="SidebarBg" Color="#F3F3F5" />
-        <SolidColorBrush x:Key="SurfaceContainer" Color="#EEEEF0" />
-        <SolidColorBrush x:Key="SurfaceVariant" Color="#E2E2E4" />
-        <SolidColorBrush x:Key="PrimaryContainer" Color="#3568C4" />
-        <SolidColorBrush x:Key="OnPrimaryContainer" Color="#E7ECFF" />
-        <SolidColorBrush x:Key="PrimaryFixed" Color="#D8E2FF" />
-        <LinearGradientBrush x:Key="AccentGradient" StartPoint="0%,0%" EndPoint="100%,0%">
-            <GradientStop Offset="0" Color="#0F4FAA" />
-            <GradientStop Offset="1" Color="#3568C4" />
-        </LinearGradientBrush>
-        <SolidColorBrush x:Key="Tertiary" Color="#A55600" />
-        <SolidColorBrush x:Key="PrimaryHover" Color="#EAF0FB" />
-        <FontFamily x:Key="IconFont">avares://Spindle/Assets/MaterialIcons.ttf#Material Icons</FontFamily>
+        <ResourceDictionary>
+            <ResourceDictionary.ThemeDictionaries>
+                <!-- Material 3 light (Spindle design system) -->
+                <ResourceDictionary x:Key="Light">
+                    <SolidColorBrush x:Key="Card" Color="#FFFFFF" />
+                    <SolidColorBrush x:Key="CardBorder" Color="#C3C6D4" />
+                    <SolidColorBrush x:Key="Recess" Color="{DynamicResource Recess}" />
+                    <SolidColorBrush x:Key="Accent" Color="#0F4FAA" />
+                    <SolidColorBrush x:Key="HeaderBlue" Color="#0F4FAA" />
+                    <SolidColorBrush x:Key="PrimaryBtn" Color="#0F4FAA" />
+                    <SolidColorBrush x:Key="PrimaryBtnHover" Color="#3568C4" />
+                    <SolidColorBrush x:Key="Success" Color="{DynamicResource Success}" />
+                    <SolidColorBrush x:Key="SuccessBg" Color="{DynamicResource SuccessBg}" />
+                    <SolidColorBrush x:Key="ErrorBrush" Color="#BA1A1A" />
+                    <SolidColorBrush x:Key="ErrorBg" Color="{DynamicResource ErrorBg}" />
+                    <SolidColorBrush x:Key="ErrorBorder" Color="{DynamicResource ErrorBorder}" />
+                    <SolidColorBrush x:Key="WarnFg" Color="{DynamicResource WarnFg}" />
+                    <SolidColorBrush x:Key="WarnBg" Color="{DynamicResource WarnBg}" />
+                    <SolidColorBrush x:Key="TextPrimary" Color="#1A1C1D" />
+                    <SolidColorBrush x:Key="TextSecondary" Color="#434752" />
+                    <SolidColorBrush x:Key="TextMuted" Color="#737783" />
+                    <SolidColorBrush x:Key="Surface" Color="#F9F9FB" />
+                    <SolidColorBrush x:Key="SidebarBg" Color="{DynamicResource Recess}" />
+                    <SolidColorBrush x:Key="SurfaceContainer" Color="#EEEEF0" />
+                    <SolidColorBrush x:Key="SurfaceVariant" Color="{DynamicResource SurfaceVariant}" />
+                    <SolidColorBrush x:Key="PrimaryContainer" Color="#3568C4" />
+                    <SolidColorBrush x:Key="OnPrimaryContainer" Color="#E7ECFF" />
+                    <SolidColorBrush x:Key="PrimaryFixed" Color="#D8E2FF" />
+                    <SolidColorBrush x:Key="PrimaryHover" Color="#EAF0FB" />
+                    <SolidColorBrush x:Key="Tertiary" Color="{DynamicResource WarnFg}" />
+                    <LinearGradientBrush x:Key="AccentGradient" StartPoint="0%,0%" EndPoint="100%,0%">
+                        <GradientStop Offset="0" Color="#0F4FAA" />
+                        <GradientStop Offset="1" Color="#3568C4" />
+                    </LinearGradientBrush>
+                </ResourceDictionary>
+                <!-- Material 3 dark (fase 5) -->
+                <ResourceDictionary x:Key="Dark">
+                    <SolidColorBrush x:Key="Card" Color="#1E2026" />
+                    <SolidColorBrush x:Key="CardBorder" Color="#383B45" />
+                    <SolidColorBrush x:Key="Recess" Color="#171920" />
+                    <SolidColorBrush x:Key="Accent" Color="#8AB0FF" />
+                    <SolidColorBrush x:Key="HeaderBlue" Color="#8AB0FF" />
+                    <SolidColorBrush x:Key="PrimaryBtn" Color="#3D67C9" />
+                    <SolidColorBrush x:Key="PrimaryBtnHover" Color="#5380E0" />
+                    <SolidColorBrush x:Key="Success" Color="#74D193" />
+                    <SolidColorBrush x:Key="SuccessBg" Color="#20392A" />
+                    <SolidColorBrush x:Key="ErrorBrush" Color="#FF6E66" />
+                    <SolidColorBrush x:Key="ErrorBg" Color="#43211E" />
+                    <SolidColorBrush x:Key="ErrorBorder" Color="#6B342E" />
+                    <SolidColorBrush x:Key="WarnFg" Color="#FFB570" />
+                    <SolidColorBrush x:Key="WarnBg" Color="#41301A" />
+                    <SolidColorBrush x:Key="TextPrimary" Color="#E6E7EC" />
+                    <SolidColorBrush x:Key="TextSecondary" Color="#B8BCC8" />
+                    <SolidColorBrush x:Key="TextMuted" Color="#818694" />
+                    <SolidColorBrush x:Key="Surface" Color="#121318" />
+                    <SolidColorBrush x:Key="SidebarBg" Color="#1A1C22" />
+                    <SolidColorBrush x:Key="SurfaceContainer" Color="#262933" />
+                    <SolidColorBrush x:Key="SurfaceVariant" Color="#303440" />
+                    <SolidColorBrush x:Key="PrimaryContainer" Color="#34508C" />
+                    <SolidColorBrush x:Key="OnPrimaryContainer" Color="#DEE7FF" />
+                    <SolidColorBrush x:Key="PrimaryFixed" Color="#2B3F66" />
+                    <SolidColorBrush x:Key="PrimaryHover" Color="#232C3D" />
+                    <SolidColorBrush x:Key="Tertiary" Color="#FFB570" />
+                    <LinearGradientBrush x:Key="AccentGradient" StartPoint="0%,0%" EndPoint="100%,0%">
+                        <GradientStop Offset="0" Color="#3D67C9" />
+                        <GradientStop Offset="1" Color="#6C95F0" />
+                    </LinearGradientBrush>
+                </ResourceDictionary>
+            </ResourceDictionary.ThemeDictionaries>
+            <FontFamily x:Key="IconFont">avares://Spindle/Assets/MaterialIcons.ttf#Material Icons</FontFamily>
+        </ResourceDictionary>
     </Window.Resources>
 
     <Window.Styles>
@@ -45,25 +90,25 @@
             <Setter Property="FontSize" Value="28" />
             <Setter Property="FontWeight" Value="Bold" />
             <Setter Property="LineHeight" Value="34" />
-            <Setter Property="Foreground" Value="{StaticResource TextPrimary}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
         </Style>
         <Style Selector="TextBlock.h2">
             <Setter Property="FontSize" Value="20" />
             <Setter Property="FontWeight" Value="SemiBold" />
-            <Setter Property="Foreground" Value="{StaticResource TextPrimary}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
         </Style>
         <Style Selector="TextBlock.title">
             <Setter Property="FontSize" Value="15" />
             <Setter Property="FontWeight" Value="SemiBold" />
-            <Setter Property="Foreground" Value="{StaticResource TextPrimary}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
         </Style>
         <Style Selector="TextBlock.body">
             <Setter Property="FontSize" Value="14" />
-            <Setter Property="Foreground" Value="{StaticResource TextSecondary}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
         </Style>
         <Style Selector="TextBlock.caption">
             <Setter Property="FontSize" Value="12" />
-            <Setter Property="Foreground" Value="{StaticResource TextMuted}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextMuted}" />
         </Style>
 
         <!-- Icon glyph -->
@@ -81,69 +126,69 @@
         </Style>
 
         <Style Selector="Border.card">
-            <Setter Property="Background" Value="{StaticResource Card}" />
-            <Setter Property="BorderBrush" Value="{StaticResource CardBorder}" />
+            <Setter Property="Background" Value="{DynamicResource Card}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource CardBorder}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="CornerRadius" Value="12" />
             <Setter Property="Padding" Value="20" />
             <Setter Property="BoxShadow" Value="0 1 3 0 #11000000" />
         </Style>
         <Style Selector="TextBlock.section">
-            <Setter Property="Foreground" Value="{StaticResource TextMuted}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextMuted}" />
             <Setter Property="FontSize" Value="11" />
             <Setter Property="FontWeight" Value="Bold" />
             <Setter Property="Margin" Value="0,0,0,12" />
         </Style>
         <Style Selector="TextBlock.label">
-            <Setter Property="Foreground" Value="{StaticResource TextSecondary}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
             <Setter Property="FontSize" Value="13" />
             <Setter Property="VerticalAlignment" Value="Center" />
             <Setter Property="Margin" Value="0,0,10,0" />
         </Style>
         <Style Selector="TextBox">
-            <Setter Property="Background" Value="{StaticResource Recess}" />
-            <Setter Property="BorderBrush" Value="{StaticResource CardBorder}" />
+            <Setter Property="Background" Value="{DynamicResource Recess}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource CardBorder}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="CornerRadius" Value="8" />
-            <Setter Property="Foreground" Value="{StaticResource TextPrimary}" />
-            <Setter Property="CaretBrush" Value="{StaticResource Accent}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+            <Setter Property="CaretBrush" Value="{DynamicResource Accent}" />
             <Setter Property="Padding" Value="12,8" />
             <Setter Property="MinHeight" Value="38" />
             <Setter Property="FontSize" Value="13" />
         </Style>
         <Style Selector="TextBox:focus">
-            <Setter Property="BorderBrush" Value="{StaticResource Accent}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Accent}" />
         </Style>
         <Style Selector="TextBox:focus /template/ Border#PART_BorderElement">
-            <Setter Property="BorderBrush" Value="{StaticResource Accent}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Accent}" />
         </Style>
         <Style Selector="NumericUpDown">
-            <Setter Property="Background" Value="{StaticResource Recess}" />
-            <Setter Property="BorderBrush" Value="{StaticResource CardBorder}" />
+            <Setter Property="Background" Value="{DynamicResource Recess}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource CardBorder}" />
             <Setter Property="CornerRadius" Value="8" />
-            <Setter Property="Foreground" Value="{StaticResource TextPrimary}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
             <Setter Property="MinHeight" Value="34" />
             <Setter Property="FontSize" Value="13" />
         </Style>
         <Style Selector="CheckBox">
-            <Setter Property="Foreground" Value="{StaticResource TextPrimary}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
             <Setter Property="FontSize" Value="13" />
         </Style>
         <Style Selector="CheckBox:checked /template/ Border#NormalRectangle">
-            <Setter Property="Background" Value="{StaticResource Accent}" />
-            <Setter Property="BorderBrush" Value="{StaticResource Accent}" />
+            <Setter Property="Background" Value="{DynamicResource Accent}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Accent}" />
         </Style>
         <Style Selector="CheckBox:indeterminate /template/ Border#NormalRectangle">
-            <Setter Property="Background" Value="{StaticResource Accent}" />
-            <Setter Property="BorderBrush" Value="{StaticResource Accent}" />
+            <Setter Property="Background" Value="{DynamicResource Accent}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Accent}" />
         </Style>
 
         <Style Selector="ComboBox">
-            <Setter Property="Background" Value="{StaticResource Recess}" />
-            <Setter Property="BorderBrush" Value="{StaticResource CardBorder}" />
+            <Setter Property="Background" Value="{DynamicResource Recess}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource CardBorder}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="CornerRadius" Value="8" />
-            <Setter Property="Foreground" Value="{StaticResource TextPrimary}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
             <Setter Property="MinHeight" Value="36" />
             <Setter Property="FontSize" Value="13" />
             <Setter Property="Padding" Value="12,6" />
@@ -161,7 +206,7 @@
             <Setter Property="Height" Value="8" />
         </Style>
         <Style Selector="Button.primary">
-            <Setter Property="Background" Value="{StaticResource Accent}" />
+            <Setter Property="Background" Value="{DynamicResource PrimaryBtn}" />
             <Setter Property="Foreground" Value="White" />
             <Setter Property="FontWeight" Value="SemiBold" />
             <Setter Property="CornerRadius" Value="8" />
@@ -169,44 +214,44 @@
             <Setter Property="HorizontalContentAlignment" Value="Center" />
         </Style>
         <Style Selector="Button.primary:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="#3568C4" />
+            <Setter Property="Background" Value="{DynamicResource PrimaryBtnHover}" />
         </Style>
         <Style Selector="Button.ghost">
-            <Setter Property="Background" Value="{StaticResource Card}" />
-            <Setter Property="BorderBrush" Value="{StaticResource CardBorder}" />
+            <Setter Property="Background" Value="{DynamicResource Card}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource CardBorder}" />
             <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="Foreground" Value="{StaticResource TextPrimary}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
             <Setter Property="CornerRadius" Value="8" />
             <Setter Property="Padding" Value="14,8" />
         </Style>
         <Style Selector="Button.ghost:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="{StaticResource SurfaceVariant}" />
+            <Setter Property="Background" Value="{DynamicResource SurfaceVariant}" />
         </Style>
         <Style Selector="Border.chip">
             <Setter Property="CornerRadius" Value="8" />
             <Setter Property="Padding" Value="10,5" />
-            <Setter Property="Background" Value="{StaticResource SurfaceContainer}" />
-            <Setter Property="BorderBrush" Value="{StaticResource CardBorder}" />
+            <Setter Property="Background" Value="{DynamicResource SurfaceContainer}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource CardBorder}" />
             <Setter Property="BorderThickness" Value="1" />
         </Style>
         <Style Selector="Border.chip TextBlock.k">
-            <Setter Property="Foreground" Value="{StaticResource TextMuted}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextMuted}" />
             <Setter Property="FontSize" Value="12" />
             <Setter Property="VerticalAlignment" Value="Center" />
         </Style>
         <Style Selector="Border.chip TextBlock.v">
-            <Setter Property="Foreground" Value="{StaticResource TextPrimary}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
             <Setter Property="FontSize" Value="13" />
             <Setter Property="FontWeight" Value="SemiBold" />
             <Setter Property="VerticalAlignment" Value="Center" />
             <Setter Property="Margin" Value="5,0,0,0" />
         </Style>
         <Style Selector="TabItem">
-            <Setter Property="Foreground" Value="{StaticResource TextSecondary}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
             <Setter Property="FontSize" Value="14" />
         </Style>
         <Style Selector="TabItem:selected">
-            <Setter Property="Foreground" Value="{StaticResource HeaderBlue}" />
+            <Setter Property="Foreground" Value="{DynamicResource HeaderBlue}" />
         </Style>
         <Style Selector="Expander">
             <Setter Property="Background" Value="Transparent" />
@@ -217,7 +262,7 @@
         <Style Selector="Button.nav">
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="Foreground" Value="{StaticResource TextSecondary}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
             <Setter Property="FontSize" Value="14" />
             <Setter Property="CornerRadius" Value="8" />
             <Setter Property="Padding" Value="12,8" />
@@ -226,23 +271,23 @@
             <Setter Property="HorizontalContentAlignment" Value="Left" />
         </Style>
         <Style Selector="Button.nav:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="{StaticResource SurfaceVariant}" />
+            <Setter Property="Background" Value="{DynamicResource SurfaceVariant}" />
         </Style>
         <Style Selector="Button.nav.active /template/ ContentPresenter">
-            <Setter Property="Background" Value="{StaticResource PrimaryContainer}" />
+            <Setter Property="Background" Value="{DynamicResource PrimaryContainer}" />
         </Style>
         <Style Selector="Button.nav.active">
-            <Setter Property="Foreground" Value="{StaticResource OnPrimaryContainer}" />
+            <Setter Property="Foreground" Value="{DynamicResource OnPrimaryContainer}" />
             <Setter Property="FontWeight" Value="SemiBold" />
         </Style>
         <Style Selector="Button.nav TextBlock">
-            <Setter Property="Foreground" Value="{StaticResource TextSecondary}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
         </Style>
         <Style Selector="Button.nav.active TextBlock">
-            <Setter Property="Foreground" Value="{StaticResource OnPrimaryContainer}" />
+            <Setter Property="Foreground" Value="{DynamicResource OnPrimaryContainer}" />
         </Style>
         <Style Selector="TextBlock.navGroup">
-            <Setter Property="Foreground" Value="{StaticResource TextMuted}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextMuted}" />
             <Setter Property="FontSize" Value="11" />
             <Setter Property="FontWeight" Value="SemiBold" />
             <Setter Property="Margin" Value="12,14,0,4" />
@@ -250,23 +295,23 @@
 
         <!-- Filter-chips (Bibliotheek-browser) -->
         <Style Selector="Button.chipbtn">
-            <Setter Property="Background" Value="{StaticResource SurfaceContainer}" />
-            <Setter Property="BorderBrush" Value="{StaticResource CardBorder}" />
+            <Setter Property="Background" Value="{DynamicResource SurfaceContainer}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource CardBorder}" />
             <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="Foreground" Value="{StaticResource TextSecondary}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
             <Setter Property="CornerRadius" Value="9999" />
             <Setter Property="Padding" Value="14,6" />
             <Setter Property="FontSize" Value="12" />
         </Style>
         <Style Selector="Button.chipbtn:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="{StaticResource SurfaceVariant}" />
+            <Setter Property="Background" Value="{DynamicResource SurfaceVariant}" />
         </Style>
         <Style Selector="Button.chipbtn.active /template/ ContentPresenter">
-            <Setter Property="Background" Value="{StaticResource PrimaryFixed}" />
-            <Setter Property="BorderBrush" Value="{StaticResource PrimaryContainer}" />
+            <Setter Property="Background" Value="{DynamicResource PrimaryFixed}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource PrimaryContainer}" />
         </Style>
         <Style Selector="Button.chipbtn.active">
-            <Setter Property="Foreground" Value="{StaticResource Accent}" />
+            <Setter Property="Foreground" Value="{DynamicResource Accent}" />
             <Setter Property="FontWeight" Value="SemiBold" />
         </Style>
 
@@ -275,18 +320,18 @@
             <Setter Property="CornerRadius" Value="4" />
             <Setter Property="Padding" Value="6,2" />
             <Setter Property="VerticalAlignment" Value="Center" />
-            <Setter Property="Background" Value="{StaticResource SurfaceVariant}" />
+            <Setter Property="Background" Value="{DynamicResource SurfaceVariant}" />
         </Style>
         <Style Selector="Border.badge TextBlock">
-            <Setter Property="Foreground" Value="{StaticResource TextSecondary}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
             <Setter Property="FontSize" Value="10" />
             <Setter Property="FontWeight" Value="Bold" />
         </Style>
         <Style Selector="Border.badge.lossless">
-            <Setter Property="Background" Value="{StaticResource PrimaryFixed}" />
+            <Setter Property="Background" Value="{DynamicResource PrimaryFixed}" />
         </Style>
         <Style Selector="Border.badge.lossless TextBlock">
-            <Setter Property="Foreground" Value="{StaticResource Accent}" />
+            <Setter Property="Foreground" Value="{DynamicResource Accent}" />
         </Style>
 
         <!-- Glass stat cards (Gezondheid) -->
@@ -294,8 +339,8 @@
             <Setter Property="CornerRadius" Value="14" />
             <Setter Property="Padding" Value="18,16" />
             <Setter Property="Margin" Value="6" />
-            <Setter Property="Background" Value="{StaticResource Card}" />
-            <Setter Property="BorderBrush" Value="{StaticResource CardBorder}" />
+            <Setter Property="Background" Value="{DynamicResource Card}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource CardBorder}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="BoxShadow" Value="0 2 8 0 #14000000" />
         </Style>
@@ -304,26 +349,26 @@
             <Setter Property="CornerRadius" Value="14" />
             <Setter Property="Padding" Value="18,16" />
             <Setter Property="Margin" Value="6" />
-            <Setter Property="Background" Value="{StaticResource Card}" />
-            <Setter Property="BorderBrush" Value="{StaticResource CardBorder}" />
+            <Setter Property="Background" Value="{DynamicResource Card}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource CardBorder}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="HorizontalAlignment" Value="Stretch" />
             <Setter Property="HorizontalContentAlignment" Value="Stretch" />
             <Setter Property="Cursor" Value="Hand" />
         </Style>
         <Style Selector="Button.statbtn:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="{StaticResource PrimaryHover}" />
-            <Setter Property="BorderBrush" Value="{StaticResource PrimaryContainer}" />
+            <Setter Property="Background" Value="{DynamicResource PrimaryHover}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource PrimaryContainer}" />
         </Style>
         <Style Selector="TextBlock.statNum">
             <Setter Property="FontSize" Value="28" />
             <Setter Property="FontWeight" Value="Bold" />
-            <Setter Property="Foreground" Value="{StaticResource TextPrimary}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
         </Style>
         <Style Selector="TextBlock.statLbl">
             <Setter Property="FontSize" Value="12" />
             <Setter Property="FontWeight" Value="SemiBold" />
-            <Setter Property="Foreground" Value="{StaticResource TextSecondary}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
             <Setter Property="Margin" Value="0,4,0,0" />
         </Style>
 
@@ -336,8 +381,8 @@
     <Grid ColumnDefinitions="240,*">
 
         <!-- ===== Sidebar ===== -->
-        <Border Grid.Column="0" Background="{StaticResource SidebarBg}"
-                BorderBrush="{StaticResource CardBorder}" BorderThickness="0,0,1,0">
+        <Border Grid.Column="0" Background="{DynamicResource SidebarBg}"
+                BorderBrush="{DynamicResource CardBorder}" BorderThickness="0,0,1,0">
             <Grid RowDefinitions="Auto,*,Auto" Margin="12,16,12,14">
 
                 <!-- Logo -->
@@ -346,8 +391,8 @@
                         <Image Source="avares://Spindle/Assets/spindle_1024.png" />
                     </Border>
                     <StackPanel Grid.Column="1" Margin="10,0,0,0" VerticalAlignment="Center">
-                        <TextBlock Text="Spindle" Foreground="{StaticResource TextPrimary}" FontSize="20" FontWeight="Bold" />
-                        <TextBlock Text="Music Manager" Foreground="{StaticResource TextMuted}" FontSize="11" />
+                        <TextBlock Text="Spindle" Foreground="{DynamicResource TextPrimary}" FontSize="20" FontWeight="Bold" />
+                        <TextBlock Text="Music Manager" Foreground="{DynamicResource TextMuted}" FontSize="11" />
                     </StackPanel>
                 </Grid>
 
@@ -416,14 +461,17 @@
         <Grid Grid.Column="1" RowDefinitions="Auto,*,Auto">
 
             <!-- Sticky top bar -->
-            <Border Grid.Row="0" Height="52" Background="{StaticResource Surface}"
-                    BorderBrush="{StaticResource CardBorder}" BorderThickness="0,0,0,1">
+            <Border Grid.Row="0" Height="52" Background="{DynamicResource Surface}"
+                    BorderBrush="{DynamicResource CardBorder}" BorderThickness="0,0,0,1">
                 <Grid ColumnDefinitions="*,Auto" Margin="24,0">
                     <TextBlock Grid.Column="0" VerticalAlignment="Center" Text="{Binding CurrentSection}"
-                               FontSize="19" FontWeight="Bold" Foreground="{StaticResource TextPrimary}" />
+                               FontSize="19" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}" />
                     <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Spacing="16">
-                        <TextBlock Classes="icon" FontSize="20" Text="&#xE7F4;" Foreground="{StaticResource TextMuted}" />
-                        <Border Width="32" Height="32" CornerRadius="16" Background="{StaticResource PrimaryContainer}">
+                        <Button Classes="ghost" Padding="8,4" Click="OnToggleTheme" ToolTip.Tip="Licht/donker thema">
+                            <TextBlock Classes="icon" FontSize="18" Text="{Binding ThemeIcon}" />
+                        </Button>
+                        <TextBlock Classes="icon" FontSize="20" Text="&#xE7F4;" Foreground="{DynamicResource TextMuted}" />
+                        <Border Width="32" Height="32" CornerRadius="16" Background="{DynamicResource PrimaryContainer}">
                             <TextBlock Text="{Binding UserInitial}" HorizontalAlignment="Center" VerticalAlignment="Center"
                                        Foreground="White" FontSize="13" FontWeight="SemiBold" />
                         </Border>
@@ -461,15 +509,15 @@
                         <TreeView ItemsSource="{Binding Tree}">
                             <TreeView.DataTemplates>
                                 <TreeDataTemplate DataType="vm:SortArtistGroupViewModel" ItemsSource="{Binding Albums}">
-                                    <TextBlock Text="{Binding Header}" FontWeight="SemiBold" FontSize="13" Foreground="{StaticResource TextPrimary}" />
+                                    <TextBlock Text="{Binding Header}" FontWeight="SemiBold" FontSize="13" Foreground="{DynamicResource TextPrimary}" />
                                 </TreeDataTemplate>
                                 <TreeDataTemplate DataType="vm:SortAlbumGroupViewModel" ItemsSource="{Binding Files}">
-                                    <TextBlock Text="{Binding Header}" FontSize="12" Foreground="{StaticResource TextSecondary}" />
+                                    <TextBlock Text="{Binding Header}" FontSize="12" Foreground="{DynamicResource TextSecondary}" />
                                 </TreeDataTemplate>
                                 <DataTemplate DataType="vm:SortItemViewModel">
                                     <Button Classes="ghost" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="6,2" Command="{Binding ShowCommand}">
                                         <Grid ColumnDefinitions="*,Auto">
-                                            <TextBlock Grid.Column="0" Text="{Binding FileName}" Foreground="{StaticResource TextPrimary}" FontSize="12" TextTrimming="CharacterEllipsis" />
+                                            <TextBlock Grid.Column="0" Text="{Binding FileName}" Foreground="{DynamicResource TextPrimary}" FontSize="12" TextTrimming="CharacterEllipsis" />
                                             <TextBlock Grid.Column="1" Text="{Binding Status}" Foreground="{Binding StatusBrush}" FontSize="12" FontWeight="SemiBold" Margin="8,0,0,0" />
                                         </Grid>
                                     </Button>
@@ -477,12 +525,12 @@
                             </TreeView.DataTemplates>
                         </TreeView>
                     </Border>
-                    <Border Grid.Row="5" Margin="0,10,0,0" Padding="10" CornerRadius="8" Background="#EEEEF0" BorderBrush="{StaticResource CardBorder}" BorderThickness="1"
+                    <Border Grid.Row="5" Margin="0,10,0,0" Padding="10" CornerRadius="8" Background="#EEEEF0" BorderBrush="{DynamicResource CardBorder}" BorderThickness="1"
                             IsVisible="{Binding Detail, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
-                        <SelectableTextBlock Text="{Binding Detail}" Foreground="{StaticResource TextPrimary}" FontSize="12" TextWrapping="Wrap" />
+                        <SelectableTextBlock Text="{Binding Detail}" Foreground="{DynamicResource TextPrimary}" FontSize="12" TextWrapping="Wrap" />
                     </Border>
                     <Grid Grid.Row="6" ColumnDefinitions="*,Auto,Auto" Margin="0,12,0,0">
-                        <SelectableTextBlock Grid.Column="0" VerticalAlignment="Center" Foreground="{StaticResource TextSecondary}" Text="{Binding Status}" />
+                        <SelectableTextBlock Grid.Column="0" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondary}" Text="{Binding Status}" />
                         <Button Grid.Column="1" Classes="ghost" Content="Ongedaan maken" Command="{Binding UndoCommand}"
                                 ToolTip.Tip="Zet de laatste sorteer-/organiseer-actie terug (laatste batch verplaatsingen)." />
                         <Button Grid.Column="2" Classes="primary" Content="Sorteer" Margin="8,0,0,0" Command="{Binding SortCommand}" />
@@ -528,9 +576,9 @@
                                     <DataTemplate>
                                         <Button Classes="ghost" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="8,4" Margin="0,0,0,4" Command="{Binding ShowCommand}">
                                             <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="*,Auto">
-                                                <TextBlock Grid.Row="0" Grid.Column="0" Text="{Binding FileName}" Foreground="{StaticResource TextPrimary}" FontSize="12" TextTrimming="CharacterEllipsis" />
+                                                <TextBlock Grid.Row="0" Grid.Column="0" Text="{Binding FileName}" Foreground="{DynamicResource TextPrimary}" FontSize="12" TextTrimming="CharacterEllipsis" />
                                                 <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding Status}" Foreground="{Binding StatusBrush}" FontSize="12" FontWeight="SemiBold" Margin="8,0,0,0" />
-                                                <TextBlock Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Text="{Binding Target}" Foreground="{StaticResource TextMuted}" FontSize="11" TextTrimming="CharacterEllipsis" />
+                                                <TextBlock Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Text="{Binding Target}" Foreground="{DynamicResource TextMuted}" FontSize="11" TextTrimming="CharacterEllipsis" />
                                             </Grid>
                                         </Button>
                                     </DataTemplate>
@@ -538,12 +586,12 @@
                             </ItemsControl>
                         </ScrollViewer>
                     </Border>
-                    <Border Grid.Row="5" Margin="0,10,0,0" Padding="10" CornerRadius="8" Background="#EEEEF0" BorderBrush="{StaticResource CardBorder}" BorderThickness="1"
+                    <Border Grid.Row="5" Margin="0,10,0,0" Padding="10" CornerRadius="8" Background="#EEEEF0" BorderBrush="{DynamicResource CardBorder}" BorderThickness="1"
                             IsVisible="{Binding Detail, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
-                        <SelectableTextBlock Text="{Binding Detail}" Foreground="{StaticResource TextPrimary}" FontSize="12" TextWrapping="Wrap" />
+                        <SelectableTextBlock Text="{Binding Detail}" Foreground="{DynamicResource TextPrimary}" FontSize="12" TextWrapping="Wrap" />
                     </Border>
                     <Grid Grid.Row="6" ColumnDefinitions="*,Auto,Auto,Auto" Margin="0,12,0,0">
-                        <SelectableTextBlock Grid.Column="0" VerticalAlignment="Center" Foreground="{StaticResource TextSecondary}" Text="{Binding Status}" />
+                        <SelectableTextBlock Grid.Column="0" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondary}" Text="{Binding Status}" />
                         <Button Grid.Column="1" Classes="ghost" Content="Ongedaan maken" Command="{Binding UndoCommand}"
                                 ToolTip.Tip="Zet de laatste sorteer-/organiseer-actie terug." />
                         <Button Grid.Column="2" Classes="ghost" Content="Stop" Width="90" Margin="8,0,0,0" Command="{Binding StopCommand}" HorizontalContentAlignment="Center" />
@@ -590,7 +638,7 @@
                                     <DataTemplate>
                                         <Button Classes="ghost" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="8,4" Margin="0,0,0,4" Command="{Binding ShowCommand}">
                                             <Grid ColumnDefinitions="*,Auto">
-                                                <TextBlock Grid.Column="0" Text="{Binding FileName}" Foreground="{StaticResource TextPrimary}" FontSize="12" TextTrimming="CharacterEllipsis" />
+                                                <TextBlock Grid.Column="0" Text="{Binding FileName}" Foreground="{DynamicResource TextPrimary}" FontSize="12" TextTrimming="CharacterEllipsis" />
                                                 <TextBlock Grid.Column="1" Text="{Binding Status}" Foreground="{Binding StatusBrush}" FontSize="12" FontWeight="SemiBold" Margin="8,0,0,0" />
                                             </Grid>
                                         </Button>
@@ -599,12 +647,12 @@
                             </ItemsControl>
                         </ScrollViewer>
                     </Border>
-                    <Border Grid.Row="5" Margin="0,10,0,0" Padding="10" CornerRadius="8" Background="#EEEEF0" BorderBrush="{StaticResource CardBorder}" BorderThickness="1"
+                    <Border Grid.Row="5" Margin="0,10,0,0" Padding="10" CornerRadius="8" Background="#EEEEF0" BorderBrush="{DynamicResource CardBorder}" BorderThickness="1"
                             IsVisible="{Binding Detail, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
-                        <SelectableTextBlock Text="{Binding Detail}" Foreground="{StaticResource TextPrimary}" FontSize="12" TextWrapping="Wrap" />
+                        <SelectableTextBlock Text="{Binding Detail}" Foreground="{DynamicResource TextPrimary}" FontSize="12" TextWrapping="Wrap" />
                     </Border>
                     <Grid Grid.Row="6" ColumnDefinitions="*,Auto,Auto" Margin="0,12,0,0">
-                        <SelectableTextBlock Grid.Column="0" VerticalAlignment="Center" Foreground="{StaticResource TextSecondary}" Text="{Binding Status}" />
+                        <SelectableTextBlock Grid.Column="0" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondary}" Text="{Binding Status}" />
                         <Button Grid.Column="1" Classes="ghost" Content="Stop" Width="90" Command="{Binding StopCommand}" HorizontalContentAlignment="Center" />
                         <Button Grid.Column="2" Classes="primary" Content="Converteer naar ALAC" Margin="8,0,0,0" Command="{Binding ConvertCommand}" />
                     </Grid>
@@ -623,8 +671,8 @@
                         </Button>
                         <Button Grid.Column="3" Classes="ghost" Content="Auto-fill (per track)" Margin="8,0,0,0" Command="{Binding AutoFillCommand}" />
                         <Button Grid.Column="4" Classes="ghost" Content="Apple-format" Margin="8,0,0,0" Command="{Binding ApplyAppleArtistCommand}" />
-                        <TextBlock Grid.Column="5" VerticalAlignment="Center" Margin="10,0,0,0" Foreground="{StaticResource TextSecondary}" FontSize="12" Text="{Binding FileName}" TextTrimming="CharacterEllipsis" />
-                        <TextBlock Grid.Column="6" VerticalAlignment="Center" Foreground="{StaticResource HeaderBlue}" FontSize="13" FontWeight="SemiBold" Text="{Binding Position}" />
+                        <TextBlock Grid.Column="5" VerticalAlignment="Center" Margin="10,0,0,0" Foreground="{DynamicResource TextSecondary}" FontSize="12" Text="{Binding FileName}" TextTrimming="CharacterEllipsis" />
+                        <TextBlock Grid.Column="6" VerticalAlignment="Center" Foreground="{DynamicResource HeaderBlue}" FontSize="13" FontWeight="SemiBold" Text="{Binding Position}" />
                     </Grid>
 
                     <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,10,0,0">
@@ -649,7 +697,7 @@
                             <Grid ColumnDefinitions="110,*"><TextBlock Classes="label" Text="AcoustID-key" /><TextBox Grid.Column="1" Text="{Binding AcoustIdKey}" Watermark="optioneel — voor ongetagde bestanden (gratis via acoustid.org)" /></Grid>
                         </StackPanel>
                         <StackPanel Grid.Column="1" Width="190" Margin="16,0,0,0">
-                            <Border Width="190" Height="190" Background="#F3F3F5" BorderBrush="{StaticResource CardBorder}" BorderThickness="1" CornerRadius="6">
+                            <Border Width="190" Height="190" Background="{DynamicResource Recess}" BorderBrush="{DynamicResource CardBorder}" BorderThickness="1" CornerRadius="6">
                                 <Image Source="{Binding AlbumArt}" Stretch="Uniform" />
                             </Border>
                             <Button Classes="ghost" Content="Afbeelding kiezen…" Margin="0,8,0,0" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Click="OnLoadMetaArt" />
@@ -668,7 +716,7 @@
                         </WrapPanel>
                         <DataGrid Grid.Row="1" Margin="0,10,0,0" ItemsSource="{Binding Grid.Rows}" AutoGenerateColumns="False"
                                   CanUserResizeColumns="True" GridLinesVisibility="Horizontal" HeadersVisibility="Column"
-                                  Background="{StaticResource Card}" BorderBrush="{StaticResource CardBorder}" BorderThickness="1" CornerRadius="10">
+                                  Background="{DynamicResource Card}" BorderBrush="{DynamicResource CardBorder}" BorderThickness="1" CornerRadius="10">
                             <DataGrid.Columns>
                                 <DataGridTextColumn Header="" Binding="{Binding DirtyMark}" IsReadOnly="True" Width="28" />
                                 <DataGridTextColumn Header="Bestand" Binding="{Binding FileName}" IsReadOnly="True" Width="210" />
@@ -719,7 +767,7 @@
 
                     <!-- Album-match candidate picker (overlay, alle modi) -->
                     <Border ZIndex="50" IsVisible="{Binding ShowCandidates}"
-                                Background="{StaticResource Surface}" CornerRadius="12">
+                                Background="{DynamicResource Surface}" CornerRadius="12">
                             <Border Classes="card">
                                 <Grid RowDefinitions="Auto,*,Auto">
                                     <StackPanel Grid.Row="0" Margin="0,0,0,10">
@@ -731,8 +779,8 @@
                                         <ListBox.ItemTemplate>
                                             <DataTemplate>
                                                 <Grid ColumnDefinitions="Auto,*" Margin="0,2">
-                                                    <Border Grid.Column="0" CornerRadius="9999" Padding="9,3" VerticalAlignment="Center" Background="{StaticResource PrimaryFixed}">
-                                                        <TextBlock Text="{Binding Source}" FontSize="11" FontWeight="Bold" Foreground="{StaticResource Accent}" />
+                                                    <Border Grid.Column="0" CornerRadius="9999" Padding="9,3" VerticalAlignment="Center" Background="{DynamicResource PrimaryFixed}">
+                                                        <TextBlock Text="{Binding Source}" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource Accent}" />
                                                     </Border>
                                                     <StackPanel Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center">
                                                         <TextBlock Text="{Binding Display}" Classes="title" FontSize="14" TextTrimming="CharacterEllipsis" />
@@ -752,7 +800,7 @@
                         </Border>
                     </Panel>
                     <Grid Grid.Row="3" ColumnDefinitions="*,Auto,Auto" Margin="0,12,0,0">
-                        <SelectableTextBlock Grid.Column="0" VerticalAlignment="Center" Foreground="{StaticResource TextSecondary}" Text="{Binding Status}" />
+                        <SelectableTextBlock Grid.Column="0" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondary}" Text="{Binding Status}" />
                         <Button Grid.Column="1" Classes="ghost" Content="◀ Vorige  (←)" Command="{Binding BackCommand}" />
                         <Button Grid.Column="2" Classes="primary" Content="Goedkeuren ▶  (→)" Margin="8,0,0,0" Command="{Binding ApproveNextCommand}" />
                     </Grid>
@@ -775,13 +823,13 @@
                                 <StackPanel Grid.Column="0">
                                     <TextBlock Classes="caption" Text="GEZONDHEIDSSCORE" />
                                     <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
-                                        <TextBlock Text="{Binding HealthScore}" FontSize="44" FontWeight="Bold" Foreground="{StaticResource Accent}" />
-                                        <TextBlock Text="%" FontSize="22" FontWeight="SemiBold" Foreground="{StaticResource Accent}" VerticalAlignment="Bottom" Margin="2,0,0,8" />
+                                        <TextBlock Text="{Binding HealthScore}" FontSize="44" FontWeight="Bold" Foreground="{DynamicResource Accent}" />
+                                        <TextBlock Text="%" FontSize="22" FontWeight="SemiBold" Foreground="{DynamicResource Accent}" VerticalAlignment="Bottom" Margin="2,0,0,8" />
                                     </StackPanel>
                                 </StackPanel>
                                 <StackPanel Grid.Column="1" Margin="24,0,0,0" VerticalAlignment="Center">
                                     <ProgressBar Minimum="0" Maximum="100" Value="{Binding HealthScore}" Height="10" CornerRadius="5"
-                                                 Background="{StaticResource SurfaceVariant}" Foreground="{StaticResource Accent}" />
+                                                 Background="{DynamicResource SurfaceVariant}" Foreground="{DynamicResource Accent}" />
                                     <TextBlock Classes="caption" Margin="0,8,0,0" Text="Gewogen op volledige tags, albumhoezen en lossless-aandeel." />
                                 </StackPanel>
                             </Grid>
@@ -792,14 +840,14 @@
                                 <Grid RowDefinitions="Auto,Auto,Auto">
                                     <Grid Grid.Row="0" ColumnDefinitions="*,Auto">
                                         <TextBlock Grid.Column="0" Classes="statNum" Text="{Binding FileCount, StringFormat=N0}" />
-                                        <Border Grid.Column="1" Width="38" Height="38" CornerRadius="10" Background="{StaticResource SurfaceVariant}">
-                                            <TextBlock Classes="icon" Text="&#xE030;" HorizontalAlignment="Center" Foreground="{StaticResource TextSecondary}" />
+                                        <Border Grid.Column="1" Width="38" Height="38" CornerRadius="10" Background="{DynamicResource SurfaceVariant}">
+                                            <TextBlock Classes="icon" Text="&#xE030;" HorizontalAlignment="Center" Foreground="{DynamicResource TextSecondary}" />
                                         </Border>
                                     </Grid>
                                     <TextBlock Grid.Row="1" Classes="statLbl" Text="Bestanden" />
                                     <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,8,0,0">
-                                        <TextBlock Text="Bekijken" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource Accent}" VerticalAlignment="Center" />
-                                        <TextBlock Classes="icon" FontSize="16" Text="&#xE5C8;" Margin="2,0,0,0" Foreground="{StaticResource Accent}" />
+                                        <TextBlock Text="Bekijken" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource Accent}" VerticalAlignment="Center" />
+                                        <TextBlock Classes="icon" FontSize="16" Text="&#xE5C8;" Margin="2,0,0,0" Foreground="{DynamicResource Accent}" />
                                     </StackPanel>
                                 </Grid>
                             </Button>
@@ -807,29 +855,29 @@
                                 <Grid RowDefinitions="Auto,Auto,Auto">
                                     <Grid Grid.Row="0" ColumnDefinitions="*,Auto">
                                         <TextBlock Grid.Column="0" Classes="statNum" Text="{Binding AlbumCount, StringFormat=N0}" />
-                                        <Border Grid.Column="1" Width="38" Height="38" CornerRadius="10" Background="{StaticResource SurfaceVariant}">
-                                            <TextBlock Classes="icon" Text="&#xE019;" HorizontalAlignment="Center" Foreground="{StaticResource TextSecondary}" />
+                                        <Border Grid.Column="1" Width="38" Height="38" CornerRadius="10" Background="{DynamicResource SurfaceVariant}">
+                                            <TextBlock Classes="icon" Text="&#xE019;" HorizontalAlignment="Center" Foreground="{DynamicResource TextSecondary}" />
                                         </Border>
                                     </Grid>
                                     <TextBlock Grid.Row="1" Classes="statLbl" Text="Albums" />
                                     <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,8,0,0">
-                                        <TextBlock Text="Bekijken" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource Accent}" VerticalAlignment="Center" />
-                                        <TextBlock Classes="icon" FontSize="16" Text="&#xE5C8;" Margin="2,0,0,0" Foreground="{StaticResource Accent}" />
+                                        <TextBlock Text="Bekijken" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource Accent}" VerticalAlignment="Center" />
+                                        <TextBlock Classes="icon" FontSize="16" Text="&#xE5C8;" Margin="2,0,0,0" Foreground="{DynamicResource Accent}" />
                                     </StackPanel>
                                 </Grid>
                             </Button>
                             <Button Classes="statbtn" Command="{Binding ShowUpgradesCommand}" ToolTip.Tip="Bekijk welke albums naar FLAC te upgraden zijn en upgrade ze.">
                                 <Grid RowDefinitions="Auto,Auto,Auto">
                                     <Grid Grid.Row="0" ColumnDefinitions="*,Auto">
-                                        <TextBlock Grid.Column="0" Classes="statNum" Foreground="{StaticResource Accent}" Text="{Binding UpgradeAlbumCount, StringFormat=N0}" />
-                                        <Border Grid.Column="1" Width="38" Height="38" CornerRadius="10" Background="{StaticResource PrimaryFixed}">
-                                            <TextBlock Classes="icon" Text="&#xF0FB;" HorizontalAlignment="Center" Foreground="{StaticResource Accent}" />
+                                        <TextBlock Grid.Column="0" Classes="statNum" Foreground="{DynamicResource Accent}" Text="{Binding UpgradeAlbumCount, StringFormat=N0}" />
+                                        <Border Grid.Column="1" Width="38" Height="38" CornerRadius="10" Background="{DynamicResource PrimaryFixed}">
+                                            <TextBlock Classes="icon" Text="&#xF0FB;" HorizontalAlignment="Center" Foreground="{DynamicResource Accent}" />
                                         </Border>
                                     </Grid>
                                     <TextBlock Grid.Row="1" Classes="statLbl" Text="FLAC-upgrades mogelijk" />
                                     <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,8,0,0">
-                                        <TextBlock Text="Bekijken" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource Accent}" VerticalAlignment="Center" />
-                                        <TextBlock Classes="icon" FontSize="16" Text="&#xE5C8;" Margin="2,0,0,0" Foreground="{StaticResource Accent}" />
+                                        <TextBlock Text="Bekijken" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource Accent}" VerticalAlignment="Center" />
+                                        <TextBlock Classes="icon" FontSize="16" Text="&#xE5C8;" Margin="2,0,0,0" Foreground="{DynamicResource Accent}" />
                                     </StackPanel>
                                 </Grid>
                             </Button>
@@ -839,15 +887,15 @@
                                     ToolTip.Tip="Open deze nummers in Metadata om de tags aan te vullen.">
                                 <Grid RowDefinitions="Auto,Auto,Auto">
                                     <Grid Grid.Row="0" ColumnDefinitions="*,Auto">
-                                        <TextBlock Grid.Column="0" Classes="statNum" Foreground="#A55600" Text="{Binding NoTagCount, StringFormat=N0}" />
-                                        <Border Grid.Column="1" Width="38" Height="38" CornerRadius="10" Background="#FFE5CC">
-                                            <TextBlock Classes="icon" Text="&#xE892;" HorizontalAlignment="Center" Foreground="#A55600" />
+                                        <TextBlock Grid.Column="0" Classes="statNum" Foreground="{DynamicResource WarnFg}" Text="{Binding NoTagCount, StringFormat=N0}" />
+                                        <Border Grid.Column="1" Width="38" Height="38" CornerRadius="10" Background="{DynamicResource WarnBg}">
+                                            <TextBlock Classes="icon" Text="&#xE892;" HorizontalAlignment="Center" Foreground="{DynamicResource WarnFg}" />
                                         </Border>
                                     </Grid>
                                     <TextBlock Grid.Row="1" Classes="statLbl" Text="Zonder tags" />
                                     <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,8,0,0">
-                                        <TextBlock Text="Herstellen" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource Accent}" VerticalAlignment="Center" />
-                                        <TextBlock Classes="icon" FontSize="16" Text="&#xE5C8;" Margin="2,0,0,0" Foreground="{StaticResource Accent}" />
+                                        <TextBlock Text="Herstellen" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource Accent}" VerticalAlignment="Center" />
+                                        <TextBlock Classes="icon" FontSize="16" Text="&#xE5C8;" Margin="2,0,0,0" Foreground="{DynamicResource Accent}" />
                                     </StackPanel>
                                 </Grid>
                             </Button>
@@ -855,15 +903,15 @@
                                     ToolTip.Tip="Open de nummers uit albums zonder hoes in Metadata om een hoes te zetten.">
                                 <Grid RowDefinitions="Auto,Auto,Auto">
                                     <Grid Grid.Row="0" ColumnDefinitions="*,Auto">
-                                        <TextBlock Grid.Column="0" Classes="statNum" Foreground="#A55600" Text="{Binding NoCoverCount, StringFormat=N0}" />
-                                        <Border Grid.Column="1" Width="38" Height="38" CornerRadius="10" Background="#FFE5CC">
-                                            <TextBlock Classes="icon" Text="&#xE3AD;" HorizontalAlignment="Center" Foreground="#A55600" />
+                                        <TextBlock Grid.Column="0" Classes="statNum" Foreground="{DynamicResource WarnFg}" Text="{Binding NoCoverCount, StringFormat=N0}" />
+                                        <Border Grid.Column="1" Width="38" Height="38" CornerRadius="10" Background="{DynamicResource WarnBg}">
+                                            <TextBlock Classes="icon" Text="&#xE3AD;" HorizontalAlignment="Center" Foreground="{DynamicResource WarnFg}" />
                                         </Border>
                                     </Grid>
                                     <TextBlock Grid.Row="1" Classes="statLbl" Text="Albums zonder hoes" />
                                     <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,8,0,0">
-                                        <TextBlock Text="Herstellen" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource Accent}" VerticalAlignment="Center" />
-                                        <TextBlock Classes="icon" FontSize="16" Text="&#xE5C8;" Margin="2,0,0,0" Foreground="{StaticResource Accent}" />
+                                        <TextBlock Text="Herstellen" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource Accent}" VerticalAlignment="Center" />
+                                        <TextBlock Classes="icon" FontSize="16" Text="&#xE5C8;" Margin="2,0,0,0" Foreground="{DynamicResource Accent}" />
                                     </StackPanel>
                                 </Grid>
                             </Button>
@@ -871,15 +919,15 @@
                                     ToolTip.Tip="Bekijk de lossy bestanden en vervang ze door FLAC.">
                                 <Grid RowDefinitions="Auto,Auto,Auto">
                                     <Grid Grid.Row="0" ColumnDefinitions="*,Auto">
-                                        <TextBlock Grid.Column="0" Classes="statNum" Foreground="#A55600" Text="{Binding LossyFileCount, StringFormat=N0}" />
-                                        <Border Grid.Column="1" Width="38" Height="38" CornerRadius="10" Background="#FFE5CC">
-                                            <TextBlock Classes="icon" Text="&#xE1B8;" HorizontalAlignment="Center" Foreground="#A55600" />
+                                        <TextBlock Grid.Column="0" Classes="statNum" Foreground="{DynamicResource WarnFg}" Text="{Binding LossyFileCount, StringFormat=N0}" />
+                                        <Border Grid.Column="1" Width="38" Height="38" CornerRadius="10" Background="{DynamicResource WarnBg}">
+                                            <TextBlock Classes="icon" Text="&#xE1B8;" HorizontalAlignment="Center" Foreground="{DynamicResource WarnFg}" />
                                         </Border>
                                     </Grid>
                                     <TextBlock Grid.Row="1" Classes="statLbl" Text="Lossy (MP3/AAC)" />
                                     <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,8,0,0">
-                                        <TextBlock Text="Bekijken" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource Accent}" VerticalAlignment="Center" />
-                                        <TextBlock Classes="icon" FontSize="16" Text="&#xE5C8;" Margin="2,0,0,0" Foreground="{StaticResource Accent}" />
+                                        <TextBlock Text="Bekijken" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource Accent}" VerticalAlignment="Center" />
+                                        <TextBlock Classes="icon" FontSize="16" Text="&#xE5C8;" Margin="2,0,0,0" Foreground="{DynamicResource Accent}" />
                                     </StackPanel>
                                 </Grid>
                             </Button>
@@ -893,18 +941,18 @@
                                 <ItemsControl ItemsSource="{Binding ProblemAlbums}">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate DataType="vm:ProblemAlbumViewModel">
-                                            <Border Padding="12,9" Margin="0,0,0,6" CornerRadius="8" Background="{StaticResource Recess}">
+                                            <Border Padding="12,9" Margin="0,0,0,6" CornerRadius="8" Background="{DynamicResource Recess}">
                                                 <Grid ColumnDefinitions="*,Auto,Auto,Auto" VerticalAlignment="Center">
-                                                    <TextBlock Grid.Column="0" Text="{Binding Title}" Classes="body" Foreground="{StaticResource TextPrimary}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
-                                                    <Border Grid.Column="1" CornerRadius="9999" Padding="9,3" Margin="8,0,8,0" VerticalAlignment="Center" Background="#FFE5CC">
-                                                        <TextBlock Text="{Binding Issue}" FontSize="11" FontWeight="SemiBold" Foreground="#A55600" />
+                                                    <TextBlock Grid.Column="0" Text="{Binding Title}" Classes="body" Foreground="{DynamicResource TextPrimary}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                                    <Border Grid.Column="1" CornerRadius="9999" Padding="9,3" Margin="8,0,8,0" VerticalAlignment="Center" Background="{DynamicResource WarnBg}">
+                                                        <TextBlock Text="{Binding Issue}" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource WarnFg}" />
                                                     </Border>
                                                     <Button Grid.Column="2" Classes="ghost" Padding="12,5" Command="{Binding FixCommand}" Content="Herstel" />
                                                     <Button Grid.Column="3" Classes="ghost" Padding="10,5" Margin="6,0,0,0" Command="{Binding DeleteCommand}"
                                                             ToolTip.Tip="Verplaatst dit album naar '_Verwijderd (Spindle)' náást je bibliotheek (buiten de bieb, omkeerbaar) — zodat sorteren/organiseren het niet terugzet.">
                                                         <StackPanel Orientation="Horizontal" Spacing="6">
-                                                            <TextBlock Classes="icon" FontSize="16" Text="&#xE872;" Foreground="{StaticResource ErrorBrush}" />
-                                                            <TextBlock Text="Verwijder" VerticalAlignment="Center" Foreground="{StaticResource ErrorBrush}" />
+                                                            <TextBlock Classes="icon" FontSize="16" Text="&#xE872;" Foreground="{DynamicResource ErrorBrush}" />
+                                                            <TextBlock Text="Verwijder" VerticalAlignment="Center" Foreground="{DynamicResource ErrorBrush}" />
                                                         </StackPanel>
                                                     </Button>
                                                 </Grid>
@@ -934,7 +982,7 @@
                                 <ListBox IsVisible="{Binding ShowFilesPanel}" ItemsSource="{Binding DetailFiles}" Background="Transparent" BorderThickness="0">
                                     <ListBox.ItemTemplate>
                                         <DataTemplate>
-                                            <TextBlock Text="{Binding}" FontSize="13" Foreground="{StaticResource TextPrimary}" Padding="6,3" TextTrimming="CharacterEllipsis" />
+                                            <TextBlock Text="{Binding}" FontSize="13" Foreground="{DynamicResource TextPrimary}" Padding="6,3" TextTrimming="CharacterEllipsis" />
                                         </DataTemplate>
                                     </ListBox.ItemTemplate>
                                 </ListBox>
@@ -945,7 +993,7 @@
                                             <TextBlock Text="{Binding Name}" Classes="title" FontSize="14" />
                                         </TreeDataTemplate>
                                         <TreeDataTemplate DataType="vm:HealthAlbumNode" ItemsSource="{Binding Tracks}">
-                                            <TextBlock Text="{Binding Header}" FontSize="13" Foreground="{StaticResource TextSecondary}" FontWeight="SemiBold" />
+                                            <TextBlock Text="{Binding Header}" FontSize="13" Foreground="{DynamicResource TextSecondary}" FontWeight="SemiBold" />
                                         </TreeDataTemplate>
                                     </TreeView.DataTemplates>
                                 </TreeView>
@@ -954,7 +1002,7 @@
                                     <ItemsControl ItemsSource="{Binding DetailAlbums}">
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate>
-                                                <Border Padding="10,8" Margin="2,2,2,6" CornerRadius="8" Background="{StaticResource Recess}">
+                                                <Border Padding="10,8" Margin="2,2,2,6" CornerRadius="8" Background="{DynamicResource Recess}">
                                                     <StackPanel VerticalAlignment="Center">
                                                         <TextBlock Text="{Binding Title}" Classes="title" FontSize="13" TextTrimming="CharacterEllipsis" />
                                                         <TextBlock Text="{Binding Detail}" Classes="caption" />
@@ -969,7 +1017,7 @@
                     </Grid>
 
                     <Grid Grid.Row="2" ColumnDefinitions="*,Auto,Auto,Auto" Margin="0,12,0,0">
-                        <SelectableTextBlock Grid.Column="0" VerticalAlignment="Center" Foreground="{StaticResource TextSecondary}" Text="{Binding Status}" />
+                        <SelectableTextBlock Grid.Column="0" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondary}" Text="{Binding Status}" />
                         <Button Grid.Column="1" Classes="ghost" Content="Hoezen repareren" Command="{Binding RepairCoversCommand}"
                                 ToolTip.Tip="Haalt voor albums zonder hoes de albumhoes op (MusicBrainz/Cover Art Archive) en zet 'm in de bestanden + folder.jpg." />
                         <Button Grid.Column="2" Classes="ghost" Content="Stop" Width="80" Margin="8,0,0,0" Command="{Binding StopCommand}" HorizontalContentAlignment="Center" />
@@ -1000,19 +1048,19 @@
                                 <DataTemplate>
                                     <Border Classes="card" Margin="0,0,0,10">
                                         <StackPanel>
-                                            <TextBlock Text="{Binding Title}" Foreground="{StaticResource TextPrimary}" FontSize="14" FontWeight="SemiBold" Margin="0,0,0,8" />
+                                            <TextBlock Text="{Binding Title}" Foreground="{DynamicResource TextPrimary}" FontSize="14" FontWeight="SemiBold" Margin="0,0,0,8" />
                                             <ItemsControl ItemsSource="{Binding Files}">
                                                 <ItemsControl.ItemsPanel>
                                                     <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
                                                 </ItemsControl.ItemsPanel>
                                                 <ItemsControl.ItemTemplate>
                                                     <DataTemplate>
-                                                        <Border Width="240" Margin="0,0,8,8" Padding="10" CornerRadius="8" Background="#F3F3F5" BorderBrush="{StaticResource CardBorder}" BorderThickness="1">
+                                                        <Border Width="240" Margin="0,0,8,8" Padding="10" CornerRadius="8" Background="{DynamicResource Recess}" BorderBrush="{DynamicResource CardBorder}" BorderThickness="1">
                                                             <StackPanel Spacing="3">
-                                                                <TextBlock Text="{Binding Quality}" Foreground="{StaticResource HeaderBlue}" FontSize="13" FontWeight="Bold" />
-                                                                <TextBlock Text="{Binding Album}" Foreground="{StaticResource TextSecondary}" FontSize="12" TextTrimming="CharacterEllipsis" />
-                                                                <TextBlock Text="{Binding SizeText}" Foreground="{StaticResource TextMuted}" FontSize="11" />
-                                                                <TextBlock Text="{Binding FileName}" Foreground="{StaticResource TextMuted}" FontSize="10" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Path}" />
+                                                                <TextBlock Text="{Binding Quality}" Foreground="{DynamicResource HeaderBlue}" FontSize="13" FontWeight="Bold" />
+                                                                <TextBlock Text="{Binding Album}" Foreground="{DynamicResource TextSecondary}" FontSize="12" TextTrimming="CharacterEllipsis" />
+                                                                <TextBlock Text="{Binding SizeText}" Foreground="{DynamicResource TextMuted}" FontSize="11" />
+                                                                <TextBlock Text="{Binding FileName}" Foreground="{DynamicResource TextMuted}" FontSize="10" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Path}" />
                                                                 <SelectableTextBlock Text="{Binding KeepLabel}" Foreground="{Binding KeepBrush}" FontSize="11" FontWeight="SemiBold" Margin="0,4,0,0" />
                                                                 <Button Classes="ghost" Content="Behoud deze" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Command="{Binding KeepCommand}" />
                                                             </StackPanel>
@@ -1027,7 +1075,7 @@
                         </ItemsControl>
                     </ScrollViewer>
                     <Grid Grid.Row="4" ColumnDefinitions="*,Auto,Auto" Margin="0,12,0,0">
-                        <SelectableTextBlock Grid.Column="0" VerticalAlignment="Center" Foreground="{StaticResource TextSecondary}" Text="{Binding Status}" />
+                        <SelectableTextBlock Grid.Column="0" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondary}" Text="{Binding Status}" />
                         <Button Grid.Column="1" Classes="ghost" Content="Stop" Width="90" Command="{Binding StopCommand}" HorizontalContentAlignment="Center" />
                         <Button Grid.Column="2" Classes="primary" Content="Verwijder niet-gekozen" Margin="8,0,0,0" Command="{Binding RemoveCommand}" />
                     </Grid>
@@ -1039,14 +1087,14 @@
                 <Grid x:CompileBindings="False" DataContext="{Binding Sync}" RowDefinitions="Auto,Auto,Auto,*,Auto,Auto,Auto" Margin="0,12,0,0">
                     <Border Grid.Row="0" Classes="card" Padding="16,14">
                         <Grid ColumnDefinitions="Auto,*">
-                            <Border Grid.Column="0" Width="48" Height="48" CornerRadius="12" Background="{StaticResource SurfaceVariant}">
-                                <TextBlock Classes="icon" FontSize="26" Text="&#xE32C;" HorizontalAlignment="Center" Foreground="{StaticResource TextSecondary}" />
+                            <Border Grid.Column="0" Width="48" Height="48" CornerRadius="12" Background="{DynamicResource SurfaceVariant}">
+                                <TextBlock Classes="icon" FontSize="26" Text="&#xE32C;" HorizontalAlignment="Center" Foreground="{DynamicResource TextSecondary}" />
                             </Border>
                             <StackPanel Grid.Column="1" Margin="14,0,0,0" VerticalAlignment="Center">
                                 <TextBlock Text="{Binding DeviceText}" Classes="title" FontSize="15" />
                                 <Grid ColumnDefinitions="*,Auto" Margin="0,8,0,0" IsVisible="{Binding HasDevice}">
                                     <ProgressBar Grid.Column="0" Minimum="0" Maximum="100" Value="{Binding UsedPercent}" Height="8" CornerRadius="4"
-                                                 Background="{StaticResource SurfaceVariant}" Foreground="{StaticResource Accent}" VerticalAlignment="Center" />
+                                                 Background="{DynamicResource SurfaceVariant}" Foreground="{DynamicResource Accent}" VerticalAlignment="Center" />
                                     <TextBlock Grid.Column="1" Margin="10,0,0,0" Text="{Binding UsedPercent, StringFormat='{}{0}% vol'}" Classes="caption" VerticalAlignment="Center" />
                                 </Grid>
                             </StackPanel>
@@ -1071,16 +1119,16 @@
                                 <TreeDataTemplate DataType="vm:ArtistNodeViewModel" ItemsSource="{Binding Albums}">
                                     <StackPanel Orientation="Horizontal">
                                         <CheckBox IsThreeState="True" IsChecked="{Binding IsChecked, Mode=TwoWay}" VerticalAlignment="Center" />
-                                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="13" Foreground="{StaticResource TextPrimary}" VerticalAlignment="Center" Margin="2,0,0,0" />
-                                        <TextBlock Text="{Binding Summary}" FontSize="11" Foreground="{StaticResource TextMuted}" VerticalAlignment="Center" Margin="8,0,0,0" />
+                                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="13" Foreground="{DynamicResource TextPrimary}" VerticalAlignment="Center" Margin="2,0,0,0" />
+                                        <TextBlock Text="{Binding Summary}" FontSize="11" Foreground="{DynamicResource TextMuted}" VerticalAlignment="Center" Margin="8,0,0,0" />
                                     </StackPanel>
                                 </TreeDataTemplate>
                                 <DataTemplate DataType="vm:AlbumEntryViewModel">
                                     <Grid ColumnDefinitions="Auto,*,Auto" Margin="0,1,0,1">
                                         <CheckBox Grid.Column="0" VerticalAlignment="Center" IsChecked="{Binding Selected}" />
                                         <StackPanel Grid.Column="1" Margin="6,0,0,0">
-                                            <TextBlock Text="{Binding Album}" Foreground="{StaticResource TextPrimary}" FontSize="12" TextTrimming="CharacterEllipsis" />
-                                            <TextBlock Text="{Binding Sub}" Foreground="{StaticResource TextMuted}" FontSize="11" />
+                                            <TextBlock Text="{Binding Album}" Foreground="{DynamicResource TextPrimary}" FontSize="12" TextTrimming="CharacterEllipsis" />
+                                            <TextBlock Text="{Binding Sub}" Foreground="{DynamicResource TextMuted}" FontSize="11" />
                                         </StackPanel>
                                         <TextBlock Grid.Column="2" VerticalAlignment="Center" Margin="8,0,4,0" FontSize="11" FontWeight="SemiBold"
                                                    Text="{Binding IpodStatus}" Foreground="{Binding IpodBrush}" />
@@ -1097,7 +1145,7 @@
                     <StackPanel Grid.Row="5" Margin="0,12,0,0">
                     <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,8" IsVisible="{Binding IsTransferring}">
                         <ProgressBar Grid.Column="0" Minimum="0" Maximum="100" Value="{Binding TransferProgress}" Height="8" CornerRadius="4"
-                                     Background="{StaticResource SurfaceVariant}" Foreground="{StaticResource Accent}" VerticalAlignment="Center" />
+                                     Background="{DynamicResource SurfaceVariant}" Foreground="{DynamicResource Accent}" VerticalAlignment="Center" />
                         <TextBlock Grid.Column="1" Margin="10,0,0,0" VerticalAlignment="Center" Classes="caption" Text="{Binding TransferProgress, StringFormat='{}{0:0}%'}" />
                     </Grid>
                     <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto">
@@ -1105,16 +1153,16 @@
                             <CheckBox Content="Omzetten naar ALAC" IsChecked="{Binding ConvertToAlac}"
                                       ToolTip.Tip="Standaard uit = bestanden kopiëren zoals ze zijn (snelst; Rockbox speelt FLAC/MP3/AAC). Aan = alleen FLAC/WAV/AIFF worden omgezet naar ALAC 16-bit/44,1 kHz (bespaart accu op de iPod); MP3/AAC worden altijd gewoon gekopieerd." />
                             <TextBlock Text="✓ = op iPod · vink af om te verwijderen" Margin="16,0,0,0" VerticalAlignment="Center"
-                                       FontSize="11" Foreground="{StaticResource TextMuted}" />
+                                       FontSize="11" Foreground="{DynamicResource TextMuted}" />
                         </StackPanel>
-                        <SelectableTextBlock Grid.Column="1" VerticalAlignment="Center" Margin="12,0,0,0" Foreground="{StaticResource TextSecondary}" Text="{Binding Status}" />
+                        <SelectableTextBlock Grid.Column="1" VerticalAlignment="Center" Margin="12,0,0,0" Foreground="{DynamicResource TextSecondary}" Text="{Binding Status}" />
                         <Button Grid.Column="2" Classes="ghost" Content=".m3u-playlists" Command="{Binding MakePlaylistsCommand}"
                                 ToolTip.Tip="Maakt per albummap op de iPod een .m3u-playlist (gelezen door Rockbox)." />
                         <Button Grid.Column="3" Classes="ghost" Content="Stop" Width="90" Margin="8,0,0,0" Command="{Binding StopCommand}" HorizontalContentAlignment="Center" />
                         <Button Grid.Column="4" Classes="primary" Content="Overzetten" Margin="8,0,0,0" Command="{Binding TransferCommand}" />
                     </Grid>
                     </StackPanel>
-                    <Border Grid.Row="6" Margin="0,10,0,0" Padding="10" CornerRadius="8" Background="#FFDAD6" BorderBrush="#E0B4AE" BorderThickness="1"
+                    <Border Grid.Row="6" Margin="0,10,0,0" Padding="10" CornerRadius="8" Background="{DynamicResource ErrorBg}" BorderBrush="{DynamicResource ErrorBorder}" BorderThickness="1"
                             MaxHeight="150" IsVisible="{Binding HasFailures}">
                         <DockPanel>
                             <TextBlock DockPanel.Dock="Top" Text="Mislukt" Foreground="#BA1A1A" FontWeight="SemiBold" FontSize="12" Margin="0,0,0,6" />
@@ -1122,7 +1170,7 @@
                                 <ItemsControl ItemsSource="{Binding Failures}">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>
-                                            <SelectableTextBlock Text="{Binding Line}" ToolTip.Tip="{Binding Path}" Foreground="{StaticResource TextPrimary}" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,3" />
+                                            <SelectableTextBlock Text="{Binding Line}" ToolTip.Tip="{Binding Path}" Foreground="{DynamicResource TextPrimary}" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,3" />
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>
@@ -1182,7 +1230,7 @@
                                 <TextBlock Classes="label" Text="Sjabloon (Sorteren &amp; Organiseren)" />
                                 <TextBox Text="{Binding FilenameTemplate}" Watermark="{}{artist} - {album} - {track} {title}"
                                          ToolTip.Tip="Tokens: {artist} {album} {title} {track} {year}. Lege tokens vallen netjes weg. De mapstructuur blijft Artiest / Album (Jaar)." />
-                                <TextBlock Text="Tokens: {artist} {album} {title} {track} {year}" FontSize="11" Foreground="{StaticResource TextMuted}" />
+                                <TextBlock Text="Tokens: {artist} {album} {title} {track} {year}" FontSize="11" Foreground="{DynamicResource TextMuted}" />
                             </StackPanel>
                         </Border>
 
@@ -1198,7 +1246,7 @@
                             <TextBlock Classes="h2" Text="Nieuw — controleren &amp; goedkeuren" />
                             <TextBlock Classes="body" Margin="0,4,0,0" TextWrapping="Wrap"
                                        Text="Wat Nicotine+ binnenhaalde, per album met aandachtsvlaggen. Fix inline, vink aan en keur goed — met diff-preview netjes als Artiest/Album (Jaar) in de bieb geplaatst." />
-                            <TextBlock Classes="body" FontWeight="SemiBold" Foreground="{StaticResource Accent}" Margin="0,8,0,0"
+                            <TextBlock Classes="body" FontWeight="SemiBold" Foreground="{DynamicResource Accent}" Margin="0,8,0,0"
                                        Text="{Binding PipelineText}" IsVisible="{Binding PipelineText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
                         </StackPanel>
                         <Button Grid.Column="1" Classes="primary" VerticalAlignment="Top" Command="{Binding ScanCommand}">
@@ -1221,9 +1269,9 @@
                                     <Border Classes="card" Margin="0,0,0,8" Padding="12">
                                         <Grid ColumnDefinitions="Auto,Auto,*,Auto" VerticalAlignment="Center">
                                             <CheckBox Grid.Column="0" VerticalAlignment="Center" IsChecked="{Binding IsSelected}" />
-                                            <Border Grid.Column="1" Width="56" Height="56" CornerRadius="8" Margin="4,0,0,0" ClipToBounds="True" Background="{StaticResource SurfaceVariant}">
+                                            <Border Grid.Column="1" Width="56" Height="56" CornerRadius="8" Margin="4,0,0,0" ClipToBounds="True" Background="{DynamicResource SurfaceVariant}">
                                                 <Panel>
-                                                    <TextBlock Classes="icon" FontSize="24" Text="&#xE019;" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="{StaticResource TextMuted}"
+                                                    <TextBlock Classes="icon" FontSize="24" Text="&#xE019;" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="{DynamicResource TextMuted}"
                                                                IsVisible="{Binding Cover, Converter={x:Static ObjectConverters.IsNull}}" />
                                                     <Image Source="{Binding Cover}" Stretch="UniformToFill" />
                                                 </Panel>
@@ -1232,15 +1280,15 @@
                                                 <TextBlock Text="{Binding Title}" Classes="title" FontSize="14" TextTrimming="CharacterEllipsis" />
                                                 <TextBlock Text="{Binding Sub}" Classes="caption" />
                                                 <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
-                                                    <Border CornerRadius="9999" Padding="9,3" Background="#DCEBDF" IsVisible="{Binding IsClean}">
-                                                        <TextBlock Text="✓ schoon" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource Success}" />
+                                                    <Border CornerRadius="9999" Padding="9,3" Background="{DynamicResource SuccessBg}" IsVisible="{Binding IsClean}">
+                                                        <TextBlock Text="✓ schoon" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource Success}" />
                                                     </Border>
                                                     <ItemsControl ItemsSource="{Binding Flags}">
                                                         <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
                                                         <ItemsControl.ItemTemplate>
                                                             <DataTemplate>
-                                                                <Border CornerRadius="9999" Padding="9,3" Margin="0,0,6,0" Background="#FFE5CC">
-                                                                    <TextBlock Text="{Binding}" FontSize="11" FontWeight="SemiBold" Foreground="#A55600" />
+                                                                <Border CornerRadius="9999" Padding="9,3" Margin="0,0,6,0" Background="{DynamicResource WarnBg}">
+                                                                    <TextBlock Text="{Binding}" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource WarnFg}" />
                                                                 </Border>
                                                             </DataTemplate>
                                                         </ItemsControl.ItemTemplate>
@@ -1276,7 +1324,7 @@
                                         <ItemsControl ItemsSource="{Binding DetailDuplicates}" Margin="0,8,0,0">
                                             <ItemsControl.ItemTemplate>
                                                 <DataTemplate>
-                                                    <Border Padding="10,8" Margin="0,0,0,6" CornerRadius="8" Background="{StaticResource Recess}">
+                                                    <Border Padding="10,8" Margin="0,0,0,6" CornerRadius="8" Background="{DynamicResource Recess}">
                                                         <StackPanel>
                                                             <TextBlock Text="{Binding Title}" Classes="title" FontSize="13" />
                                                             <ItemsControl ItemsSource="{Binding Files}" Margin="0,4,0,0">
@@ -1284,12 +1332,12 @@
                                                                     <DataTemplate>
                                                                         <Grid ColumnDefinitions="*,Auto,Auto,Auto" Margin="0,2">
                                                                             <StackPanel Grid.Column="0" VerticalAlignment="Center">
-                                                                                <TextBlock Text="{Binding FileName}" FontSize="12" Foreground="{StaticResource TextPrimary}" TextTrimming="CharacterEllipsis" />
+                                                                                <TextBlock Text="{Binding FileName}" FontSize="12" Foreground="{DynamicResource TextPrimary}" TextTrimming="CharacterEllipsis" />
                                                                                 <TextBlock Text="{Binding Meta}" Classes="caption" FontSize="10" TextTrimming="CharacterEllipsis" />
                                                                             </StackPanel>
-                                                                            <Button Grid.Column="1" Classes="ghost" Padding="8,3" Margin="8,0,0,0" VerticalAlignment="Center" Command="{Binding PlayCommand}" ToolTip.Tip="10 sec. preview"><TextBlock Classes="icon" FontSize="15" Text="&#xE037;" Foreground="{StaticResource Accent}" /></Button>
+                                                                            <Button Grid.Column="1" Classes="ghost" Padding="8,3" Margin="8,0,0,0" VerticalAlignment="Center" Command="{Binding PlayCommand}" ToolTip.Tip="10 sec. preview"><TextBlock Classes="icon" FontSize="15" Text="&#xE037;" Foreground="{DynamicResource Accent}" /></Button>
                                                                             <Border Grid.Column="2" Classes="badge" Margin="8,0,8,0" VerticalAlignment="Center"><TextBlock Text="{Binding Format}" /></Border>
-                                                                            <Button Grid.Column="3" Classes="ghost" Padding="8,3" VerticalAlignment="Center" Command="{Binding DeleteCommand}" ToolTip.Tip="Verwijder dit bestand (naar _Verwijderd, omkeerbaar)."><TextBlock Classes="icon" FontSize="15" Text="&#xE872;" Foreground="{StaticResource ErrorBrush}" /></Button>
+                                                                            <Button Grid.Column="3" Classes="ghost" Padding="8,3" VerticalAlignment="Center" Command="{Binding DeleteCommand}" ToolTip.Tip="Verwijder dit bestand (naar _Verwijderd, omkeerbaar)."><TextBlock Classes="icon" FontSize="15" Text="&#xE872;" Foreground="{DynamicResource ErrorBrush}" /></Button>
                                                                         </Grid>
                                                                     </DataTemplate>
                                                                 </ItemsControl.ItemTemplate>
@@ -1307,7 +1355,7 @@
                                         <ItemsControl ItemsSource="{Binding DetailFiles}" Margin="0,8,0,0">
                                             <ItemsControl.ItemTemplate>
                                                 <DataTemplate>
-                                                    <Border Padding="10,8" Margin="0,0,0,6" CornerRadius="8" Background="{StaticResource Recess}">
+                                                    <Border Padding="10,8" Margin="0,0,0,6" CornerRadius="8" Background="{DynamicResource Recess}">
                                                         <Grid ColumnDefinitions="*,Auto,Auto,Auto" VerticalAlignment="Center">
                                                             <StackPanel Grid.Column="0" VerticalAlignment="Center">
                                                                 <TextBlock Text="{Binding FileName}" Classes="title" FontSize="13" TextTrimming="CharacterEllipsis" />
@@ -1316,14 +1364,14 @@
                                                                     <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
                                                                     <ItemsControl.ItemTemplate>
                                                                         <DataTemplate>
-                                                                            <Border CornerRadius="9999" Padding="8,2" Margin="0,0,6,0" Background="#FFE5CC"><TextBlock Text="{Binding}" FontSize="11" FontWeight="SemiBold" Foreground="#A55600" /></Border>
+                                                                            <Border CornerRadius="9999" Padding="8,2" Margin="0,0,6,0" Background="{DynamicResource WarnBg}"><TextBlock Text="{Binding}" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource WarnFg}" /></Border>
                                                                         </DataTemplate>
                                                                     </ItemsControl.ItemTemplate>
                                                                 </ItemsControl>
                                                             </StackPanel>
-                                                            <Button Grid.Column="1" Classes="ghost" Padding="8,4" Margin="8,0,0,0" VerticalAlignment="Center" Command="{Binding PlayCommand}" ToolTip.Tip="10 sec. preview"><TextBlock Classes="icon" FontSize="16" Text="&#xE037;" Foreground="{StaticResource Accent}" /></Button>
+                                                            <Button Grid.Column="1" Classes="ghost" Padding="8,4" Margin="8,0,0,0" VerticalAlignment="Center" Command="{Binding PlayCommand}" ToolTip.Tip="10 sec. preview"><TextBlock Classes="icon" FontSize="16" Text="&#xE037;" Foreground="{DynamicResource Accent}" /></Button>
                                                             <Border Grid.Column="2" Classes="badge" Margin="8,0,8,0" VerticalAlignment="Center"><TextBlock Text="{Binding Format}" /></Border>
-                                                            <Button Grid.Column="3" Classes="ghost" Padding="8,4" VerticalAlignment="Center" Command="{Binding DeleteCommand}" ToolTip.Tip="Verwijder dit bestand (naar _Verwijderd, omkeerbaar)."><TextBlock Classes="icon" FontSize="16" Text="&#xE872;" Foreground="{StaticResource ErrorBrush}" /></Button>
+                                                            <Button Grid.Column="3" Classes="ghost" Padding="8,4" VerticalAlignment="Center" Command="{Binding DeleteCommand}" ToolTip.Tip="Verwijder dit bestand (naar _Verwijderd, omkeerbaar)."><TextBlock Classes="icon" FontSize="16" Text="&#xE872;" Foreground="{DynamicResource ErrorBrush}" /></Button>
                                                         </Grid>
                                                     </Border>
                                                 </DataTemplate>
@@ -1338,7 +1386,7 @@
                                         <TextBlock Grid.Row="0" Classes="title" Text="Tags bewerken (tabel)" />
                                         <DataGrid Grid.Row="1" Margin="0,8,0,0" MaxHeight="320" ItemsSource="{Binding FixGrid.Rows}" AutoGenerateColumns="False"
                                                   CanUserResizeColumns="True" GridLinesVisibility="Horizontal" HeadersVisibility="Column"
-                                                  Background="{StaticResource Card}" BorderBrush="{StaticResource CardBorder}" BorderThickness="1" CornerRadius="8">
+                                                  Background="{DynamicResource Card}" BorderBrush="{DynamicResource CardBorder}" BorderThickness="1" CornerRadius="8">
                                             <DataGrid.Columns>
                                                 <DataGridTextColumn Header="" Binding="{Binding DirtyMark}" IsReadOnly="True" Width="24" />
                                                 <DataGridTextColumn Header="Titel" Binding="{Binding Title, Mode=TwoWay}" Width="*" />
@@ -1361,7 +1409,7 @@
                     </Grid>
 
                     <Grid Grid.Row="3" ColumnDefinitions="*,Auto" Margin="0,12,0,0" IsVisible="{Binding ShowAlbumList}">
-                        <SelectableTextBlock Grid.Column="0" VerticalAlignment="Center" Foreground="{StaticResource TextSecondary}" Text="{Binding Status}" />
+                        <SelectableTextBlock Grid.Column="0" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondary}" Text="{Binding Status}" />
                         <Button Grid.Column="1" Classes="primary" Command="{Binding ApproveCommand}"
                                 ToolTip.Tip="Verplaats de aangevinkte albums naar je muziekbieb en sorteer de hele collectie opnieuw.">
                             <StackPanel Orientation="Horizontal" Spacing="8"><TextBlock Classes="icon" FontSize="18" Text="&#xE161;" /><TextBlock Text="Goedkeuren → bieb" VerticalAlignment="Center" /></StackPanel>
@@ -1381,10 +1429,10 @@
                                     <ListBox.ItemTemplate>
                                         <DataTemplate>
                                             <StackPanel Margin="0,2">
-                                                <TextBlock Text="{Binding FromText}" FontSize="12" Foreground="{StaticResource TextMuted}" TextTrimming="CharacterEllipsis" />
+                                                <TextBlock Text="{Binding FromText}" FontSize="12" Foreground="{DynamicResource TextMuted}" TextTrimming="CharacterEllipsis" />
                                                 <StackPanel Orientation="Horizontal">
-                                                    <TextBlock Classes="icon" FontSize="14" Text="&#xE5C8;" Foreground="{StaticResource Accent}" VerticalAlignment="Center" />
-                                                    <TextBlock Text="{Binding ToText}" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource TextPrimary}" Margin="4,0,0,0" TextTrimming="CharacterEllipsis" />
+                                                    <TextBlock Classes="icon" FontSize="14" Text="&#xE5C8;" Foreground="{DynamicResource Accent}" VerticalAlignment="Center" />
+                                                    <TextBlock Text="{Binding ToText}" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" Margin="4,0,0,0" TextTrimming="CharacterEllipsis" />
                                                 </StackPanel>
                                             </StackPanel>
                                         </DataTemplate>
@@ -1432,10 +1480,10 @@
                             <ListBox.ItemTemplate>
                                 <DataTemplate>
                                     <StackPanel Width="150" Margin="2">
-                                        <Border Width="150" Height="150" CornerRadius="10" ClipToBounds="True" Background="{StaticResource SurfaceVariant}">
+                                        <Border Width="150" Height="150" CornerRadius="10" ClipToBounds="True" Background="{DynamicResource SurfaceVariant}">
                                             <Panel>
                                                 <TextBlock Classes="icon" FontSize="44" Text="&#xE019;" HorizontalAlignment="Center" VerticalAlignment="Center"
-                                                           Foreground="{StaticResource TextMuted}"
+                                                           Foreground="{DynamicResource TextMuted}"
                                                            IsVisible="{Binding Cover, Converter={x:Static ObjectConverters.IsNull}}" />
                                                 <Image Source="{Binding Cover}" Stretch="UniformToFill" />
                                             </Panel>
@@ -1443,8 +1491,8 @@
                                         <TextBlock Text="{Binding Title}" Classes="title" FontSize="13" Margin="2,8,2,0" TextTrimming="CharacterEllipsis" />
                                         <TextBlock Text="{Binding ArtistText}" Classes="caption" Margin="2,1,2,0" TextTrimming="CharacterEllipsis" />
                                         <StackPanel Orientation="Horizontal" Margin="2,4,2,0" IsVisible="{Binding HasIssues}">
-                                            <Ellipse Width="7" Height="7" Fill="#A55600" VerticalAlignment="Center" />
-                                            <TextBlock Text="{Binding FlagText}" FontSize="10" Foreground="#A55600" Margin="4,0,0,0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                            <Ellipse Width="7" Height="7" Fill="{DynamicResource WarnFg}" VerticalAlignment="Center" />
+                                            <TextBlock Text="{Binding FlagText}" FontSize="10" Foreground="{DynamicResource WarnFg}" Margin="4,0,0,0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
                                         </StackPanel>
                                     </StackPanel>
                                 </DataTemplate>
@@ -1457,10 +1505,10 @@
                             IsVisible="{Binding SelectedAlbum, Converter={x:Static ObjectConverters.IsNotNull}}">
                         <ScrollViewer VerticalScrollBarVisibility="Auto">
                             <StackPanel>
-                                <Border Width="260" Height="260" CornerRadius="12" ClipToBounds="True" Background="{StaticResource SurfaceVariant}">
+                                <Border Width="260" Height="260" CornerRadius="12" ClipToBounds="True" Background="{DynamicResource SurfaceVariant}">
                                     <Panel>
                                         <TextBlock Classes="icon" FontSize="64" Text="&#xE019;" HorizontalAlignment="Center" VerticalAlignment="Center"
-                                                   Foreground="{StaticResource TextMuted}"
+                                                   Foreground="{DynamicResource TextMuted}"
                                                    IsVisible="{Binding SelectedAlbum.Cover, Converter={x:Static ObjectConverters.IsNull}}" />
                                         <Image Source="{Binding SelectedAlbum.Cover}" Stretch="UniformToFill" />
                                     </Panel>
@@ -1468,7 +1516,7 @@
                                 <TextBlock Text="{Binding SelectedAlbum.Title}" Classes="title" FontSize="16" Margin="0,12,0,0" TextWrapping="Wrap" />
                                 <TextBlock Text="{Binding SelectedAlbum.ArtistText}" Classes="body" Margin="0,2,0,0" />
                                 <TextBlock Text="{Binding SelectedAlbum.Sub}" Classes="caption" Margin="0,4,0,0" />
-                                <TextBlock Text="{Binding SelectedAlbum.FlagText}" FontSize="11" Foreground="#A55600" Margin="0,4,0,0"
+                                <TextBlock Text="{Binding SelectedAlbum.FlagText}" FontSize="11" Foreground="{DynamicResource WarnFg}" Margin="0,4,0,0"
                                            IsVisible="{Binding SelectedAlbum.HasIssues}" />
 
                                 <TextBlock Classes="section" Text="ALBUM-VELDEN (HEEL ALBUM)" Margin="0,16,0,8" />
@@ -1487,8 +1535,8 @@
                                     <ListBox.ItemTemplate>
                                         <DataTemplate>
                                             <Grid ColumnDefinitions="*,Auto">
-                                                <TextBlock Grid.Column="0" Text="{Binding Display}" FontSize="12" Foreground="{StaticResource TextPrimary}" TextTrimming="CharacterEllipsis" />
-                                                <TextBlock Grid.Column="1" Text="{Binding Right}" FontSize="11" Foreground="{StaticResource TextMuted}" Margin="8,0,0,0" />
+                                                <TextBlock Grid.Column="0" Text="{Binding Display}" FontSize="12" Foreground="{DynamicResource TextPrimary}" TextTrimming="CharacterEllipsis" />
+                                                <TextBlock Grid.Column="1" Text="{Binding Right}" FontSize="11" Foreground="{DynamicResource TextMuted}" Margin="8,0,0,0" />
                                             </Grid>
                                         </DataTemplate>
                                     </ListBox.ItemTemplate>
@@ -1525,9 +1573,9 @@
                         </Button>
                     </Grid>
 
-                    <Border Grid.Row="1" Margin="0,10,0,0" CornerRadius="10" Padding="12,8" Background="#FFE5CC" IsVisible="{Binding WarningVisible}">
+                    <Border Grid.Row="1" Margin="0,10,0,0" CornerRadius="10" Padding="12,8" Background="{DynamicResource WarnBg}" IsVisible="{Binding WarningVisible}">
                         <Grid ColumnDefinitions="*,Auto">
-                            <TextBlock Grid.Column="0" TextWrapping="Wrap" FontSize="12" Foreground="#A55600" VerticalAlignment="Center" Text="{Binding WarningText}" />
+                            <TextBlock Grid.Column="0" TextWrapping="Wrap" FontSize="12" Foreground="{DynamicResource WarnFg}" VerticalAlignment="Center" Text="{Binding WarningText}" />
                             <Button Grid.Column="1" Classes="ghost" Margin="10,0,0,0" Content="Schakel naar album-niveau" Command="{Binding SwitchToAlbumsCommand}" />
                         </Grid>
                     </Border>
@@ -1538,13 +1586,13 @@
         </TabControl>
 
             <!-- Globale statusbalk (fase 0): indexvoortgang + laatste actie -->
-            <Border Grid.Row="2" Background="{StaticResource SidebarBg}" BorderBrush="{StaticResource CardBorder}"
+            <Border Grid.Row="2" Background="{DynamicResource SidebarBg}" BorderBrush="{DynamicResource CardBorder}"
                     BorderThickness="0,1,0,0" Padding="24,5">
                 <Grid ColumnDefinitions="*,Auto">
                     <TextBlock Grid.Column="0" Classes="caption" VerticalAlignment="Center" Text="{Binding GlobalStatus}" />
                     <ProgressBar Grid.Column="1" Width="160" Height="6" CornerRadius="3" Minimum="0" Maximum="100"
                                  Value="{Binding IndexPercent}" IsVisible="{Binding IndexBusy}"
-                                 Background="{StaticResource SurfaceVariant}" Foreground="{StaticResource Accent}"
+                                 Background="{DynamicResource SurfaceVariant}" Foreground="{DynamicResource Accent}"
                                  VerticalAlignment="Center" Margin="12,0,0,0" />
                 </Grid>
             </Border>
@@ -1554,16 +1602,16 @@
         <Grid Grid.Column="0" Grid.ColumnSpan="2" ZIndex="100" IsVisible="{Binding IsPaletteOpen}">
             <Border Background="#33000000" PointerPressed="OnPaletteBackdrop" />
             <Border VerticalAlignment="Top" HorizontalAlignment="Center" Width="560" Margin="0,90,0,0"
-                    Background="{StaticResource Card}" BorderBrush="{StaticResource CardBorder}" BorderThickness="1"
+                    Background="{DynamicResource Card}" BorderBrush="{DynamicResource CardBorder}" BorderThickness="1"
                     CornerRadius="14" Padding="8" BoxShadow="0 20 50 0 #44000000">
                 <StackPanel>
                     <Grid ColumnDefinitions="Auto,*" Margin="8,4">
-                        <TextBlock Classes="icon" FontSize="20" Text="&#xE8B6;" Foreground="{StaticResource TextMuted}" VerticalAlignment="Center" />
+                        <TextBlock Classes="icon" FontSize="20" Text="&#xE8B6;" Foreground="{DynamicResource TextMuted}" VerticalAlignment="Center" />
                         <TextBox x:Name="PaletteBox" Grid.Column="1" Margin="8,0,0,0" Text="{Binding PaletteQuery}"
                                  Background="Transparent" BorderThickness="0" FontSize="16"
                                  Watermark="Spring naar een scherm…" />
                     </Grid>
-                    <Border Height="1" Background="{StaticResource CardBorder}" Margin="0,6" />
+                    <Border Height="1" Background="{DynamicResource CardBorder}" Margin="0,6" />
                     <ListBox MaxHeight="360" ItemsSource="{Binding PaletteResults}" SelectedItem="{Binding SelectedPaletteItem}"
                              Background="Transparent" BorderThickness="0">
                         <ListBox.ItemTemplate>
@@ -1571,8 +1619,8 @@
                                 <Button Command="{Binding RunCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
                                         Background="Transparent" BorderThickness="0" Padding="8,6">
                                     <Grid ColumnDefinitions="Auto,*">
-                                        <Border Grid.Column="0" Width="34" Height="34" CornerRadius="8" Background="{StaticResource Recess}">
-                                            <TextBlock Classes="icon" FontSize="18" Text="{Binding Glyph}" HorizontalAlignment="Center" Foreground="{StaticResource TextSecondary}" />
+                                        <Border Grid.Column="0" Width="34" Height="34" CornerRadius="8" Background="{DynamicResource Recess}">
+                                            <TextBlock Classes="icon" FontSize="18" Text="{Binding Glyph}" HorizontalAlignment="Center" Foreground="{DynamicResource TextSecondary}" />
                                         </Border>
                                         <StackPanel Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center">
                                             <TextBlock Text="{Binding Title}" Classes="title" FontSize="14" />

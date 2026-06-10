@@ -2,6 +2,8 @@
 
 Status: vastgesteld 10 jun 2026 (Lucas + Fable 5). Dit document is leidend voor de herbouw.
 
+**Voortgang: fase 0 t/m 5 opgeleverd (10 jun 2026).** Open restpunten: galaxy v2 (audio-features), disk-thumbnails voor covers, motion/skeleton-states, acties-per-selectie, dubbele-merge-assistent.
+
 ## Visie
 
 Spindle wordt het thuis van de collectie, geen verzameling losse gereedschappen.

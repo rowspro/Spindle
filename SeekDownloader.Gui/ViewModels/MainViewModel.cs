@@ -360,6 +360,14 @@ public class MainViewModel : ViewModelBase
         set { if (SetField(ref _galaxyAlbumLevel, value)) Galaxy?.Refresh(); }
     }
 
+    private bool _darkMode;
+    public bool DarkMode
+    {
+        get => _darkMode;
+        set { if (SetField(ref _darkMode, value)) OnPropertyChanged(nameof(ThemeIcon)); }
+    }
+    public string ThemeIcon => DarkMode ? "\ue518" : "\ue51c";
+
     // ---- Mode (0 = automatisch, 1 = handmatig per bestand, 2 = artiest → kies albums) ----
     private int _mode;
     public int Mode
@@ -1082,6 +1090,7 @@ public class MainViewModel : ViewModelBase
             AppleLibrary = AppleMusic.LibraryFolder,
             AutoOrganize = AutoOrganize,
             GalaxyAlbumLevel = GalaxyAlbumLevel,
+            DarkMode = DarkMode,
             FilenameTemplate = string.IsNullOrWhiteSpace(FilenameTemplate) ? NameTemplate.Default : FilenameTemplate.Trim(),
         };
 
@@ -1134,6 +1143,7 @@ public class MainViewModel : ViewModelBase
         AppleMusic.LibraryFolder = c.AppleLibrary;
         AutoOrganize = c.AutoOrganize;
         GalaxyAlbumLevel = c.GalaxyAlbumLevel;
+        DarkMode = c.DarkMode;
         FilenameTemplate = string.IsNullOrWhiteSpace(c.FilenameTemplate) ? NameTemplate.Default : c.FilenameTemplate;
         DiscogsToken = c.DiscogsToken ?? string.Empty;
     }

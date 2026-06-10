@@ -59,6 +59,7 @@ public class SeekConfig
     // Run the Organiseren-pijplijn automatically on the download folder after an auto-download finishes.
     public bool AutoOrganize { get; set; }
     public bool GalaxyAlbumLevel { get; set; }
+    public bool DarkMode { get; set; }
 
     // Filename template for sort/organize (tokens: {artist} {album} {title} {track} {year}).
     public string FilenameTemplate { get; set; } = "{artist} - {album} - {track} {title}";
