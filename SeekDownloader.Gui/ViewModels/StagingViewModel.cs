@@ -1,8 +1,10 @@
 using System.Collections.Concurrent;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.IO;
 using System.Text.RegularExpressions;
 using System.Threading;
+using Avalonia.Media.Imaging;
 using Avalonia.Threading;
 using ATL;
 
@@ -19,10 +21,14 @@ public class StagingFileViewModel : ViewModelBase
     public bool HasIssues => Issues.Count > 0;
     public RelayCommand DeleteCommand { get; }
 
-    public StagingFileViewModel(string path, string fileName, string format, string meta, List<string> issues, Action<StagingFileViewModel> onDelete)
+    public RelayCommand PlayCommand { get; }
+
+    public StagingFileViewModel(string path, string fileName, string format, string meta, List<string> issues,
+        Action<StagingFileViewModel> onDelete, Action<StagingFileViewModel> onPlay)
     {
         Path = path; FileName = fileName; Format = format; Meta = meta; Issues = issues;
         DeleteCommand = new RelayCommand(() => onDelete(this));
+        PlayCommand = new RelayCommand(() => onPlay(this));
     }
 }
 
@@ -56,12 +62,18 @@ public class StagingAlbumViewModel : ViewModelBase
 
     public RelayCommand FixCommand { get; }
 
+    public string? CoverPath { get; }
+
+    private Bitmap? _cover;
+    public Bitmap? Cover { get => _cover; set => SetField(ref _cover, value); }
+
     public StagingAlbumViewModel(string artist, string album, string year, IReadOnlyList<string> files,
         List<string> sourceDirs, List<string> flags, bool isClean, bool alreadyInLibrary, string sub,
-        Action<StagingAlbumViewModel> onFix)
+        string? coverPath, Action<StagingAlbumViewModel> onFix)
     {
         Artist = artist; Album = album; Year = year; Files = files; SourceDirs = sourceDirs;
         Flags = flags; IsClean = isClean; AlreadyInLibrary = alreadyInLibrary; Sub = sub;
+        CoverPath = coverPath;
         _isSelected = isClean && !alreadyInLibrary;   // pre-select what's ready to import
         FixCommand = new RelayCommand(() => onFix(this));
     }
@@ -78,23 +90,27 @@ public class StagingViewModel : ViewModelBase
     private static readonly string[] Lossless = { ".flac", ".wav", ".aiff", ".aif" };
 
     private readonly Action<IReadOnlyList<string>, string> _onFix;
-    private readonly Action _onSortLibrary;
     private readonly LibraryService _lib;
     private readonly UndoJournal _undo;
+    private readonly Func<string> _template;
+    public TagGridViewModel FixGrid { get; }
     private readonly List<StagingAlbumViewModel> _all = new();
     private CancellationTokenSource? _cts;
 
-    public StagingViewModel(Action<IReadOnlyList<string>, string> onFix, Action onSortLibrary, LibraryService lib, UndoJournal undo)
+    public StagingViewModel(Action<IReadOnlyList<string>, string> onFix, LibraryService lib, UndoJournal undo, Func<string> template)
     {
         _onFix = onFix;
-        _onSortLibrary = onSortLibrary;
         _lib = lib;
         _undo = undo;
+        _template = template;
+        FixGrid = new TagGridViewModel(lib, undo);
         ScanCommand = new RelayCommand(Scan, () => !IsBusy && !string.IsNullOrWhiteSpace(NieuwFolder));
         ApproveCommand = new RelayCommand(Approve, () => !IsBusy && _all.Any(a => a.IsSelected));
         SelectAllCommand = new RelayCommand(() => SetSelection(_ => true));
         SelectNoneCommand = new RelayCommand(() => SetSelection(_ => false));
         SelectCleanCommand = new RelayCommand(() => SetSelection(a => a.IsClean && !a.AlreadyInLibrary));
+        ConfirmPlanCommand = new RelayCommand(ExecutePlan, () => PlanItems.Count > 0 && !IsBusy);
+        CancelPlanCommand = new RelayCommand(() => ShowPlan = false);
         BackCommand = new RelayCommand(() => ShowDetail = false);
         EditInMetadataCommand = new RelayCommand(
             () => { if (_detailAlbum != null) _onFix(_detailAlbum.Files, $"{_detailAlbum.Title} — tags/hoes bewerken."); },
@@ -130,33 +146,35 @@ public class StagingViewModel : ViewModelBase
         DetailTitle = album.Title;
         EditInMetadataCommand.RaiseCanExecuteChanged();
         var files = album.Files.ToList();
+        FixGrid.Load(files);
         Status = "Map inlezen…";
+        var nieuw = NieuwFolder;
         Task.Run(() =>
         {
+            var map = new Dictionary<string, IndexedTrack>(StringComparer.Ordinal);
+            try { foreach (var r in _lib.Index.AllTracks(nieuw)) map[r.Path] = r; } catch { }
             var rows = new List<StagingFileViewModel>();
             foreach (var f in files)
             {
-                string fmt, meta; var issues = new List<string>(); string title = "";
-                try
+                var fmt = Path.GetExtension(f).TrimStart('.').ToUpperInvariant();
+                string meta; var issues = new List<string>(); string title = "";
+                if (map.TryGetValue(f, out var r))
                 {
-                    var t = new Track(f);
-                    title = t.Title ?? "";
-                    var artist = !string.IsNullOrWhiteSpace(t.Artist) ? t.Artist : (t.AlbumArtist ?? "");
-                    fmt = Path.GetExtension(f).TrimStart('.').ToUpperInvariant();
-                    var parts = new List<string>();
-                    if (!string.IsNullOrWhiteSpace(title)) parts.Add(title); else parts.Add("(geen titel)");
+                    title = r.Title;
+                    var artist = !string.IsNullOrWhiteSpace(r.Artist) ? r.Artist : r.AlbumArtist;
+                    var parts = new List<string> { string.IsNullOrWhiteSpace(title) ? "(geen titel)" : title };
                     if (!string.IsNullOrWhiteSpace(artist)) parts.Add(artist);
-                    var tn = t.TrackNumber ?? 0; if (tn > 0) parts.Add($"#{tn}");
-                    if (t.Year > 0) parts.Add(t.Year.ToString());
-                    if (!string.IsNullOrWhiteSpace(t.Genre)) parts.Add(t.Genre);
+                    if (r.TrackNo > 0) parts.Add($"#{r.TrackNo}");
+                    if (r.Year > 0) parts.Add(r.Year.ToString());
+                    if (r.Bitrate > 0) parts.Add($"{r.Bitrate} kbps");
+                    if (r.Duration > 0) parts.Add($"{r.Duration / 60}:{r.Duration % 60:00}");
                     meta = string.Join("  ·  ", parts);
-                    if (!Lossless.Contains(Path.GetExtension(f).ToLowerInvariant())) issues.Add("lossy");
-                    if (string.IsNullOrWhiteSpace(title) || string.IsNullOrWhiteSpace(artist)) issues.Add("geen tags");
-                    if (t.EmbeddedPictures.Count == 0) issues.Add("geen hoes");
+                    if (!r.Lossless) issues.Add("lossy");
+                    if (r.MissingTags) issues.Add("geen tags");
+                    if (!r.HasCover) issues.Add("geen hoes");
                 }
-                catch { fmt = Path.GetExtension(f).TrimStart('.').ToUpperInvariant(); meta = "(kon niet lezen)"; }
-                rows.Add(new StagingFileViewModel(f, Path.GetFileName(f), fmt, meta, issues, DeleteDetailFile) { });
-                // keep title for dup grouping via a parallel map
+                else meta = "(nog niet geïndexeerd)";
+                rows.Add(new StagingFileViewModel(f, Path.GetFileName(f), fmt, meta, issues, DeleteDetailFile, PlayDetailFile));
                 _detailTitles[rows[^1]] = title;
             }
             Dispatcher.UIThread.Post(() =>
@@ -168,6 +186,23 @@ public class StagingViewModel : ViewModelBase
                 Status = $"{DetailFiles.Count} nummers in '{album.Title}'.";
             });
         });
+    }
+
+    private Process? _filePreview;
+
+    private void PlayDetailFile(StagingFileViewModel file)
+    {
+        try { if (_filePreview != null && !_filePreview.HasExited) { _filePreview.Kill(); _filePreview = null; Status = "Preview gestopt."; return; } } catch { }
+        try
+        {
+            var psi = new ProcessStartInfo("afplay") { UseShellExecute = false };
+            psi.ArgumentList.Add("-t");
+            psi.ArgumentList.Add("10");
+            psi.ArgumentList.Add(file.Path);
+            _filePreview = Process.Start(psi);
+            Status = $"▶ {file.FileName}  (nogmaals = stop)";
+        }
+        catch { Status = "Preview niet beschikbaar (afplay)."; }
     }
 
     private readonly Dictionary<StagingFileViewModel, string> _detailTitles = new();
@@ -209,7 +244,7 @@ public class StagingViewModel : ViewModelBase
     public bool IsBusy
     {
         get => _isBusy;
-        private set { if (SetField(ref _isBusy, value)) { ScanCommand.RaiseCanExecuteChanged(); ApproveCommand.RaiseCanExecuteChanged(); } }
+        private set { if (SetField(ref _isBusy, value)) { ScanCommand.RaiseCanExecuteChanged(); ApproveCommand.RaiseCanExecuteChanged(); ConfirmPlanCommand?.RaiseCanExecuteChanged(); } }
     }
 
     private bool _showOnlyIssues;
@@ -223,11 +258,16 @@ public class StagingViewModel : ViewModelBase
 
     public ObservableCollection<StagingAlbumViewModel> Albums { get; } = new();
 
+    private string _pipelineText = "";
+    public string PipelineText { get => _pipelineText; private set => SetField(ref _pipelineText, value); }
+
     public RelayCommand ScanCommand { get; }
     public RelayCommand ApproveCommand { get; }
     public RelayCommand SelectAllCommand { get; }
     public RelayCommand SelectNoneCommand { get; }
     public RelayCommand SelectCleanCommand { get; }
+    public RelayCommand ConfirmPlanCommand { get; }
+    public RelayCommand CancelPlanCommand { get; }
 
     private void SetSelection(Func<StagingAlbumViewModel, bool> pick)
     {
@@ -257,7 +297,7 @@ public class StagingViewModel : ViewModelBase
             var files = _lib.Index.AllTracks(nieuw);
 
             var groups = new Dictionary<string, (string Artist, string Album, string Year, List<string> Files,
-                int Lossy, int Untagged, int NoCover, int MissingYg, HashSet<string> Dirs, HashSet<int> Tracks, bool DupTrack)>();
+                int Lossy, int Untagged, int NoCover, int MissingYg, HashSet<string> Dirs, HashSet<int> Tracks, bool DupTrack, string Cover)>();
 
             foreach (var r in files)
             {
@@ -265,7 +305,7 @@ public class StagingViewModel : ViewModelBase
                 var artist = !string.IsNullOrWhiteSpace(r.AlbumArtist) ? r.AlbumArtist : r.Artist;
                 var key = Norm(artist) + "|" + Norm(r.Album);
                 if (!groups.TryGetValue(key, out var g))
-                    g = (artist, r.Album, r.Year > 0 ? r.Year.ToString() : "", new List<string>(), 0, 0, 0, 0, new HashSet<string>(), new HashSet<int>(), false);
+                    g = (artist, r.Album, r.Year > 0 ? r.Year.ToString() : "", new List<string>(), 0, 0, 0, 0, new HashSet<string>(), new HashSet<int>(), false, "");
 
                 g.Files.Add(r.Path);
                 var dir = Path.GetDirectoryName(r.Path);
@@ -273,6 +313,7 @@ public class StagingViewModel : ViewModelBase
                 if (!r.Lossless) g.Lossy++;
                 if (r.MissingTags) g.Untagged++;
                 if (!r.HasCover) g.NoCover++;
+                else if (g.Cover.Length == 0) g.Cover = r.Path;
                 if (r.Year <= 0 || string.IsNullOrWhiteSpace(r.Genre)) g.MissingYg++;
                 if (r.TrackNo > 0) { if (!g.Tracks.Add(r.TrackNo)) g.DupTrack = true; }
                 if (string.IsNullOrEmpty(g.Year) && r.Year > 0) g.Year = r.Year.ToString();
@@ -295,7 +336,7 @@ public class StagingViewModel : ViewModelBase
                 if (already) flags.Add("al in bieb");
                 var sub = $"{g.Files.Count} nummers" + (string.IsNullOrEmpty(g.Year) ? "" : $"  ·  {g.Year}");
                 albums.Add(new StagingAlbumViewModel(g.Artist, g.Album, g.Year, g.Files, g.Dirs.ToList(),
-                    flags, clean, already, sub, OpenDetail));
+                    flags, clean, already, sub, g.Cover.Length > 0 ? g.Cover : null, OpenDetail));
             }
 
             Dispatcher.UIThread.Post(() =>
@@ -310,6 +351,8 @@ public class StagingViewModel : ViewModelBase
                     : albums.Count == 0 ? "Niets in 'Nieuw'." : $"{ready} schoon en klaar om goed te keuren; {issues} hebben aandacht nodig.";
                 IsBusy = false;
                 ApproveCommand.RaiseCanExecuteChanged();
+                UpdatePipeline();
+                LoadCovers();
             });
         });
     }
@@ -322,6 +365,71 @@ public class StagingViewModel : ViewModelBase
                 Albums.Add(a);
     }
 
+    private void UpdatePipeline()
+    {
+        try
+        {
+            var lib = LibraryFolder;
+            if (string.IsNullOrWhiteSpace(lib) || !Directory.Exists(lib)) { PipelineText = ""; return; }
+            var h = _lib.Index.HealthCounts(lib);
+            int ready = _all.Count(a => a.IsSelected), att = _all.Count(a => !a.IsClean);
+            PipelineText = $"Nieuw {_all.Count} albums ({ready} schoon · {att} aandacht)    →    Bieb {h.Albums} albums · {h.Files:N0} nummers";
+        }
+        catch { PipelineText = ""; }
+    }
+
+    private readonly ConcurrentDictionary<string, Bitmap> _coverCache = new();
+    private CancellationTokenSource? _coverCts;
+
+    private void LoadCovers()
+    {
+        _coverCts?.Cancel();
+        var cts = _coverCts = new CancellationTokenSource();
+        var targets = _all.ToList();
+        Task.Run(() =>
+        {
+            foreach (var a in targets)
+            {
+                if (cts.IsCancellationRequested) return;
+                if (a.Cover != null || a.CoverPath == null) continue;
+                var key = Norm(a.Artist) + "|" + Norm(a.Album);
+                if (_coverCache.TryGetValue(key, out var hit)) { Dispatcher.UIThread.Post(() => a.Cover = hit); continue; }
+                try
+                {
+                    var t = new Track(a.CoverPath);
+                    var data = t.EmbeddedPictures.Count > 0 ? t.EmbeddedPictures[0].PictureData : null;
+                    if (data == null || data.Length == 0) continue;
+                    using var ms = new MemoryStream(data);
+                    var bmp = Bitmap.DecodeToWidth(ms, 160);
+                    _coverCache[key] = bmp;
+                    Dispatcher.UIThread.Post(() => a.Cover = bmp);
+                }
+                catch { }
+            }
+        });
+    }
+
+    // ---- Goedkeuren 2.0 (fase 3): diff-preview → albums landen direct volgens template in de bieb ----
+    public sealed class PlanItemViewModel
+    {
+        public string FromPath { get; }
+        public string ToPath { get; }
+        public string FromText { get; }
+        public string ToText { get; }
+        public PlanItemViewModel(string fromPath, string toPath, string fromText, string toText)
+        { FromPath = fromPath; ToPath = toPath; FromText = fromText; ToText = toText; }
+    }
+
+    public ObservableCollection<PlanItemViewModel> PlanItems { get; } = new();
+    private List<StagingAlbumViewModel> _planAlbums = new();
+
+    private bool _showPlan;
+    public bool ShowPlan { get => _showPlan; private set => SetField(ref _showPlan, value); }
+
+    private string _planSummary = "";
+    public string PlanSummary { get => _planSummary; private set => SetField(ref _planSummary, value); }
+
+    // ApproveCommand → bouwt het verplaatsplan en toont de diff-preview.
     private void Approve()
     {
         if (IsBusy) return;
@@ -330,35 +438,96 @@ public class StagingViewModel : ViewModelBase
         var selected = _all.Where(a => a.IsSelected).ToList();
         if (selected.Count == 0) { Status = "Niets geselecteerd."; return; }
 
+        var map = new Dictionary<string, IndexedTrack>(StringComparer.Ordinal);
+        try { foreach (var r in _lib.Index.AllTracks(NieuwFolder)) map[r.Path] = r; } catch { }
+        var template = _template();
+        var nieuwRoot = NieuwFolder;
+        var taken = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        PlanItems.Clear();
+        _planAlbums = selected;
+        foreach (var album in selected)
+        {
+            var artistDir = Clean(string.IsNullOrWhiteSpace(album.Artist) ? "Unknown Artist" : album.Artist);
+            int.TryParse(album.Year, out var yr);
+            var albumDir = string.IsNullOrWhiteSpace(album.Album) ? "Singles" : Clean(yr > 0 ? $"{album.Album} ({yr})" : album.Album);
+            foreach (var f in album.Files)
+            {
+                var ext = Path.GetExtension(f);
+                string name;
+                if (map.TryGetValue(f, out var r) && !string.IsNullOrWhiteSpace(r.Title))
+                    name = NameTemplate.Build(template, string.IsNullOrWhiteSpace(r.Artist) ? album.Artist : r.Artist,
+                        album.Album, r.Title, r.TrackNo, r.Year > 0 ? r.Year.ToString() : "", Clean) + ext;
+                else
+                    name = Path.GetFileName(f);
+                var dest = Path.Combine(lib, artistDir, albumDir, name);
+                int n2 = 2;
+                while (!taken.Add(dest) || File.Exists(dest))
+                    dest = Path.Combine(lib, artistDir, albumDir, Path.GetFileNameWithoutExtension(name) + $" ({n2++})" + ext);
+
+                string relFrom;
+                try { relFrom = Path.GetRelativePath(nieuwRoot, f); } catch { relFrom = Path.GetFileName(f); }
+                if (relFrom.StartsWith("..")) relFrom = Path.GetFileName(f);
+                var relTo = Path.Combine(artistDir, albumDir, Path.GetFileName(dest));
+                PlanItems.Add(new PlanItemViewModel(f, dest, relFrom, relTo));
+            }
+        }
+        PlanSummary = $"{selected.Count} album(s) · {PlanItems.Count} bestanden  →  {lib}";
+        ConfirmPlanCommand.RaiseCanExecuteChanged();
+        ShowPlan = true;
+    }
+
+    private void ExecutePlan()
+    {
+        if (IsBusy || PlanItems.Count == 0) return;
+        var plan = PlanItems.ToList();
+        var selected = _planAlbums;
         IsBusy = true;
-        Status = $"{selected.Count} albums naar de bibliotheek verplaatsen…";
+        ShowPlan = false;
+        Status = $"{plan.Count} bestanden verplaatsen…";
 
         Task.Run(() =>
         {
             int moved = 0;
-            var dirs = new HashSet<string>();
             var ops = new List<UndoJournal.MoveOp>();
-            foreach (var album in selected)
+            var dirs = new HashSet<string>();
+            foreach (var item in plan)
             {
-                foreach (var f in album.Files)
+                try
                 {
-                    try { var dest = MoveInto(f, lib); ops.Add(new UndoJournal.MoveOp(f, dest)); moved++; } catch { }
+                    Directory.CreateDirectory(Path.GetDirectoryName(item.ToPath)!);
+                    try { File.Move(item.FromPath, item.ToPath); }
+                    catch (IOException) { File.Copy(item.FromPath, item.ToPath, false); File.Delete(item.FromPath); }
+                    ops.Add(new UndoJournal.MoveOp(item.FromPath, item.ToPath));
+                    moved++;
                 }
-                foreach (var d in album.SourceDirs) dirs.Add(d);
+                catch { }
             }
+            foreach (var a in selected) foreach (var d in a.SourceDirs) dirs.Add(d);
             // opruimen: bronmappen die helemaal leeg zijn van audio → naar prullenbak (incl. hoezen/.nfo).
             foreach (var d in dirs) CleanConsumedSourceDir(d, ops);
             _undo.Record($"Goedkeuren: {selected.Count} album(s) naar bieb", ops);
             _lib.Refresh(NieuwFolder);
+            _lib.Refresh(LibraryFolder);
 
             Dispatcher.UIThread.Post(() =>
             {
                 foreach (var a in selected) { _all.Remove(a); Albums.Remove(a); }
+                PlanItems.Clear();
                 IsBusy = false;
-                Status = $"{moved} nummers verplaatst. Collectie wordt nu opnieuw gesorteerd…";
-                _onSortLibrary();
+                ApproveCommand.RaiseCanExecuteChanged();
+                UpdatePipeline();
+                Status = $"✓ {moved} nummers netjes in de bieb geplaatst (Cmd+Z = ongedaan maken).";
             });
         });
+    }
+
+    private static string Clean(string s)
+    {
+        s = (s ?? "").Trim().Replace('/', '-').Replace('\\', '-');
+        s = Regex.Replace(s, "[:*?\"<>|\\x00-\\x1f]", "");
+        s = Regex.Replace(s, "\\s+", " ").Trim().TrimEnd('.', ' ');
+        return s.Length > 0 ? s : "Unknown";
     }
 
     // Move a file into a folder, handling cross-volume moves and name clashes.

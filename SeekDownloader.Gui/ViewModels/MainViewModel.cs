@@ -63,15 +63,8 @@ public class MainViewModel : ViewModelBase
 
         Staging = new StagingViewModel(
             onFix: (files, status) => { Meta.LoadFiles(files, status); SelectedTabIndex = 3; }, // Metadata
-            onSortLibrary: () =>
-            {
-                Sort.SourceFolder = MusicLibrary;
-                Sort.DestFolder = string.Empty;     // in-place: sorteer de hele collectie
-                Sort.TestMode = false;
-                SelectedTabIndex = 1;               // Sorteren
-                if (Sort.SortCommand.CanExecute(null)) Sort.SortCommand.Execute(null);
-            },
-            lib: Lib, undo: Undo);
+            lib: Lib, undo: Undo,
+            template: () => FilenameTemplate);
 
         Browser = new BrowserViewModel(Lib, () => MusicLibrary,
             (files, status) => { Meta.LoadFiles(files, status); SelectedTabIndex = 3; });

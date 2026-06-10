@@ -1184,7 +1184,9 @@
                         <StackPanel Grid.Column="0">
                             <TextBlock Classes="h2" Text="Nieuw — controleren &amp; goedkeuren" />
                             <TextBlock Classes="body" Margin="0,4,0,0" TextWrapping="Wrap"
-                                       Text="Wat Nicotine+ in je 'Nieuwe muziek'-map zette, gegroepeerd per album met aandachtsvlaggen. Fix wat afwijkt, vink het goede aan en keur goed → naar de bieb + hele collectie opnieuw gesorteerd." />
+                                       Text="Wat Nicotine+ binnenhaalde, per album met aandachtsvlaggen. Fix inline, vink aan en keur goed — met diff-preview netjes als Artiest/Album (Jaar) in de bieb geplaatst." />
+                            <TextBlock Classes="body" FontWeight="SemiBold" Foreground="{StaticResource Accent}" Margin="0,8,0,0"
+                                       Text="{Binding PipelineText}" IsVisible="{Binding PipelineText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
                         </StackPanel>
                         <Button Grid.Column="1" Classes="primary" VerticalAlignment="Top" Command="{Binding ScanCommand}">
                             <StackPanel Orientation="Horizontal" Spacing="6"><TextBlock Classes="icon" FontSize="17" Text="&#xE8B6;" /><TextBlock Text="Scan Nieuw" VerticalAlignment="Center" /></StackPanel>
@@ -1206,8 +1208,12 @@
                                     <Border Classes="card" Margin="0,0,0,8" Padding="12">
                                         <Grid ColumnDefinitions="Auto,Auto,*,Auto" VerticalAlignment="Center">
                                             <CheckBox Grid.Column="0" VerticalAlignment="Center" IsChecked="{Binding IsSelected}" />
-                                            <Border Grid.Column="1" Width="44" Height="44" CornerRadius="8" Margin="4,0,0,0" Background="{StaticResource SurfaceVariant}">
-                                                <TextBlock Classes="icon" FontSize="22" Text="&#xE019;" HorizontalAlignment="Center" Foreground="{StaticResource TextMuted}" />
+                                            <Border Grid.Column="1" Width="56" Height="56" CornerRadius="8" Margin="4,0,0,0" ClipToBounds="True" Background="{StaticResource SurfaceVariant}">
+                                                <Panel>
+                                                    <TextBlock Classes="icon" FontSize="24" Text="&#xE019;" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="{StaticResource TextMuted}"
+                                                               IsVisible="{Binding Cover, Converter={x:Static ObjectConverters.IsNull}}" />
+                                                    <Image Source="{Binding Cover}" Stretch="UniformToFill" />
+                                                </Panel>
                                             </Border>
                                             <StackPanel Grid.Column="2" Margin="12,0,0,0" VerticalAlignment="Center">
                                                 <TextBlock Text="{Binding Title}" Classes="title" FontSize="14" TextTrimming="CharacterEllipsis" />
@@ -1263,10 +1269,14 @@
                                                             <ItemsControl ItemsSource="{Binding Files}" Margin="0,4,0,0">
                                                                 <ItemsControl.ItemTemplate>
                                                                     <DataTemplate>
-                                                                        <Grid ColumnDefinitions="*,Auto,Auto" Margin="0,2">
-                                                                            <TextBlock Grid.Column="0" Text="{Binding FileName}" FontSize="12" Foreground="{StaticResource TextPrimary}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
-                                                                            <Border Grid.Column="1" Classes="badge" Margin="8,0,8,0"><TextBlock Text="{Binding Format}" /></Border>
-                                                                            <Button Grid.Column="2" Classes="ghost" Padding="8,3" Command="{Binding DeleteCommand}" ToolTip.Tip="Verwijder dit bestand (naar _Verwijderd, omkeerbaar)."><TextBlock Classes="icon" FontSize="15" Text="&#xE872;" Foreground="{StaticResource ErrorBrush}" /></Button>
+                                                                        <Grid ColumnDefinitions="*,Auto,Auto,Auto" Margin="0,2">
+                                                                            <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                                                                <TextBlock Text="{Binding FileName}" FontSize="12" Foreground="{StaticResource TextPrimary}" TextTrimming="CharacterEllipsis" />
+                                                                                <TextBlock Text="{Binding Meta}" Classes="caption" FontSize="10" TextTrimming="CharacterEllipsis" />
+                                                                            </StackPanel>
+                                                                            <Button Grid.Column="1" Classes="ghost" Padding="8,3" Margin="8,0,0,0" VerticalAlignment="Center" Command="{Binding PlayCommand}" ToolTip.Tip="10 sec. preview"><TextBlock Classes="icon" FontSize="15" Text="&#xE037;" Foreground="{StaticResource Accent}" /></Button>
+                                                                            <Border Grid.Column="2" Classes="badge" Margin="8,0,8,0" VerticalAlignment="Center"><TextBlock Text="{Binding Format}" /></Border>
+                                                                            <Button Grid.Column="3" Classes="ghost" Padding="8,3" VerticalAlignment="Center" Command="{Binding DeleteCommand}" ToolTip.Tip="Verwijder dit bestand (naar _Verwijderd, omkeerbaar)."><TextBlock Classes="icon" FontSize="15" Text="&#xE872;" Foreground="{StaticResource ErrorBrush}" /></Button>
                                                                         </Grid>
                                                                     </DataTemplate>
                                                                 </ItemsControl.ItemTemplate>
@@ -1285,7 +1295,7 @@
                                             <ItemsControl.ItemTemplate>
                                                 <DataTemplate>
                                                     <Border Padding="10,8" Margin="0,0,0,6" CornerRadius="8" Background="{StaticResource Recess}">
-                                                        <Grid ColumnDefinitions="*,Auto,Auto" VerticalAlignment="Center">
+                                                        <Grid ColumnDefinitions="*,Auto,Auto,Auto" VerticalAlignment="Center">
                                                             <StackPanel Grid.Column="0" VerticalAlignment="Center">
                                                                 <TextBlock Text="{Binding FileName}" Classes="title" FontSize="13" TextTrimming="CharacterEllipsis" />
                                                                 <TextBlock Text="{Binding Meta}" Classes="caption" Margin="0,2,0,0" TextTrimming="CharacterEllipsis" />
@@ -1298,14 +1308,40 @@
                                                                     </ItemsControl.ItemTemplate>
                                                                 </ItemsControl>
                                                             </StackPanel>
-                                                            <Border Grid.Column="1" Classes="badge" Margin="8,0,8,0" VerticalAlignment="Center"><TextBlock Text="{Binding Format}" /></Border>
-                                                            <Button Grid.Column="2" Classes="ghost" Padding="8,4" VerticalAlignment="Center" Command="{Binding DeleteCommand}" ToolTip.Tip="Verwijder dit bestand (naar _Verwijderd, omkeerbaar)."><TextBlock Classes="icon" FontSize="16" Text="&#xE872;" Foreground="{StaticResource ErrorBrush}" /></Button>
+                                                            <Button Grid.Column="1" Classes="ghost" Padding="8,4" Margin="8,0,0,0" VerticalAlignment="Center" Command="{Binding PlayCommand}" ToolTip.Tip="10 sec. preview"><TextBlock Classes="icon" FontSize="16" Text="&#xE037;" Foreground="{StaticResource Accent}" /></Button>
+                                                            <Border Grid.Column="2" Classes="badge" Margin="8,0,8,0" VerticalAlignment="Center"><TextBlock Text="{Binding Format}" /></Border>
+                                                            <Button Grid.Column="3" Classes="ghost" Padding="8,4" VerticalAlignment="Center" Command="{Binding DeleteCommand}" ToolTip.Tip="Verwijder dit bestand (naar _Verwijderd, omkeerbaar)."><TextBlock Classes="icon" FontSize="16" Text="&#xE872;" Foreground="{StaticResource ErrorBrush}" /></Button>
                                                         </Grid>
                                                     </Border>
                                                 </DataTemplate>
                                             </ItemsControl.ItemTemplate>
                                         </ItemsControl>
                                     </StackPanel>
+                                </Border>
+
+                                <!-- Inline taggen (fase 3): tabel in de inspecteur zelf -->
+                                <Border Classes="card" Margin="0,12,0,0">
+                                    <Grid RowDefinitions="Auto,Auto,Auto">
+                                        <TextBlock Grid.Row="0" Classes="title" Text="Tags bewerken (tabel)" />
+                                        <DataGrid Grid.Row="1" Margin="0,8,0,0" MaxHeight="320" ItemsSource="{Binding FixGrid.Rows}" AutoGenerateColumns="False"
+                                                  CanUserResizeColumns="True" GridLinesVisibility="Horizontal" HeadersVisibility="Column"
+                                                  Background="{StaticResource Card}" BorderBrush="{StaticResource CardBorder}" BorderThickness="1" CornerRadius="8">
+                                            <DataGrid.Columns>
+                                                <DataGridTextColumn Header="" Binding="{Binding DirtyMark}" IsReadOnly="True" Width="24" />
+                                                <DataGridTextColumn Header="Titel" Binding="{Binding Title, Mode=TwoWay}" Width="*" />
+                                                <DataGridTextColumn Header="Artiest" Binding="{Binding Artist, Mode=TwoWay}" Width="140" />
+                                                <DataGridTextColumn Header="Album" Binding="{Binding Album, Mode=TwoWay}" Width="150" />
+                                                <DataGridTextColumn Header="Genre" Binding="{Binding Genre, Mode=TwoWay}" Width="100" />
+                                                <DataGridTextColumn Header="#" Binding="{Binding Track, Mode=TwoWay}" Width="42" />
+                                                <DataGridTextColumn Header="Jaar" Binding="{Binding Year, Mode=TwoWay}" Width="56" />
+                                            </DataGrid.Columns>
+                                        </DataGrid>
+                                        <Grid Grid.Row="2" ColumnDefinitions="*,Auto" Margin="0,8,0,0">
+                                            <TextBlock Grid.Column="0" Classes="caption" VerticalAlignment="Center" Text="{Binding FixGrid.DirtyText}" />
+                                            <Button Grid.Column="1" Classes="primary" Padding="14,6" Content="Bewaar" Command="{Binding FixGrid.SaveCommand}"
+                                                    ToolTip.Tip="Schrijft de gewijzigde rijen (Cmd+Z = ongedaan maken)." />
+                                        </Grid>
+                                    </Grid>
                                 </Border>
                             </StackPanel>
                         </ScrollViewer>
@@ -1317,6 +1353,38 @@
                                 ToolTip.Tip="Verplaats de aangevinkte albums naar je muziekbieb en sorteer de hele collectie opnieuw.">
                             <StackPanel Orientation="Horizontal" Spacing="8"><TextBlock Classes="icon" FontSize="18" Text="&#xE161;" /><TextBlock Text="Goedkeuren → bieb" VerticalAlignment="Center" /></StackPanel>
                         </Button>
+                    </Grid>
+
+                    <!-- Diff-preview van Goedkeuren (fase 3) -->
+                    <Grid Grid.Row="0" Grid.RowSpan="4" ZIndex="60" IsVisible="{Binding ShowPlan}">
+                        <Border Background="#33000000" />
+                        <Border MaxWidth="760" Margin="40,16" Classes="card" VerticalAlignment="Center">
+                            <Grid RowDefinitions="Auto,*,Auto" MaxHeight="560">
+                                <StackPanel Grid.Row="0" Margin="0,0,0,10">
+                                    <TextBlock Classes="h2" Text="Controleer de verplaatsing" />
+                                    <TextBlock Classes="caption" Margin="0,4,0,0" Text="{Binding PlanSummary}" />
+                                </StackPanel>
+                                <ListBox Grid.Row="1" ItemsSource="{Binding PlanItems}" Background="Transparent" BorderThickness="0">
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <StackPanel Margin="0,2">
+                                                <TextBlock Text="{Binding FromText}" FontSize="12" Foreground="{StaticResource TextMuted}" TextTrimming="CharacterEllipsis" />
+                                                <StackPanel Orientation="Horizontal">
+                                                    <TextBlock Classes="icon" FontSize="14" Text="&#xE5C8;" Foreground="{StaticResource Accent}" VerticalAlignment="Center" />
+                                                    <TextBlock Text="{Binding ToText}" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource TextPrimary}" Margin="4,0,0,0" TextTrimming="CharacterEllipsis" />
+                                                </StackPanel>
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+                                <Grid Grid.Row="2" ColumnDefinitions="*,Auto,Auto" Margin="0,12,0,0">
+                                    <Button Grid.Column="1" Classes="ghost" Content="Annuleren" Command="{Binding CancelPlanCommand}" />
+                                    <Button Grid.Column="2" Classes="primary" Margin="8,0,0,0" Command="{Binding ConfirmPlanCommand}">
+                                        <StackPanel Orientation="Horizontal" Spacing="8"><TextBlock Classes="icon" FontSize="18" Text="&#xE161;" /><TextBlock Text="Verplaats naar bieb" VerticalAlignment="Center" /></StackPanel>
+                                    </Button>
+                                </Grid>
+                            </Grid>
+                        </Border>
                     </Grid>
                 </Grid>
             </TabItem>
