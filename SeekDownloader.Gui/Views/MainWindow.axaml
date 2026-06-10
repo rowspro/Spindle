@@ -247,6 +247,28 @@
             <Setter Property="Margin" Value="12,14,0,4" />
         </Style>
 
+        <!-- Filter-chips (Bibliotheek-browser) -->
+        <Style Selector="Button.chipbtn">
+            <Setter Property="Background" Value="{StaticResource SurfaceContainer}" />
+            <Setter Property="BorderBrush" Value="{StaticResource CardBorder}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Foreground" Value="{StaticResource TextSecondary}" />
+            <Setter Property="CornerRadius" Value="9999" />
+            <Setter Property="Padding" Value="14,6" />
+            <Setter Property="FontSize" Value="12" />
+        </Style>
+        <Style Selector="Button.chipbtn:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="{StaticResource SurfaceVariant}" />
+        </Style>
+        <Style Selector="Button.chipbtn.active /template/ ContentPresenter">
+            <Setter Property="Background" Value="{StaticResource PrimaryFixed}" />
+            <Setter Property="BorderBrush" Value="{StaticResource PrimaryContainer}" />
+        </Style>
+        <Style Selector="Button.chipbtn.active">
+            <Setter Property="Foreground" Value="{StaticResource Accent}" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+
         <!-- Format badge on search results: lossless = primary tint, lossy = neutral. -->
         <Style Selector="Border.badge">
             <Setter Property="CornerRadius" Value="4" />
@@ -335,6 +357,12 @@
                         <Button Classes="nav" Tag="8" Click="OnNav"
                                 Classes.active="{Binding SelectedTabIndex, Converter={x:Static vm:IntEquals.Instance}, ConverterParameter=8}">
                             <StackPanel Orientation="Horizontal"><TextBlock Classes="icon" FontSize="19" Width="28" Text="&#xE168;" /><TextBlock Text="Nieuw" VerticalAlignment="Center" /></StackPanel>
+                        </Button>
+
+                        <TextBlock Classes="navGroup" Text="BIBLIOTHEEK" />
+                        <Button Classes="nav" Tag="9" Click="OnNav"
+                                Classes.active="{Binding SelectedTabIndex, Converter={x:Static vm:IntEquals.Instance}, ConverterParameter=9}">
+                            <StackPanel Orientation="Horizontal"><TextBlock Classes="icon" FontSize="19" Width="28" Text="&#xE030;" /><TextBlock Text="Bibliotheek" VerticalAlignment="Center" /></StackPanel>
                         </Button>
                         <Button Classes="nav" Tag="4" Click="OnNav"
                                 Classes.active="{Binding SelectedTabIndex, Converter={x:Static vm:IntEquals.Instance}, ConverterParameter=4}">
@@ -1221,6 +1249,113 @@
                             <StackPanel Orientation="Horizontal" Spacing="8"><TextBlock Classes="icon" FontSize="18" Text="&#xE161;" /><TextBlock Text="Goedkeuren → bieb" VerticalAlignment="Center" /></StackPanel>
                         </Button>
                     </Grid>
+                </Grid>
+            </TabItem>
+
+            <!-- ============ TAB: BIBLIOTHEEK-BROWSER (fase 1) ============ -->
+            <TabItem Header="Bibliotheek">
+                <Grid x:CompileBindings="False" DataContext="{Binding Browser}" ColumnDefinitions="*,Auto" Margin="0,12,0,0">
+                    <Grid Grid.Column="0" RowDefinitions="Auto,Auto,*">
+                        <Grid Grid.Row="0" ColumnDefinitions="*,Auto">
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Classes="h2" Text="Bibliotheek" />
+                                <TextBlock Classes="caption" Margin="0,2,0,0" Text="{Binding Status}" />
+                            </StackPanel>
+                            <Button Grid.Column="1" Classes="ghost" VerticalAlignment="Top" Command="{Binding RefreshCommand}" ToolTip.Tip="Opnieuw uit de index lezen.">
+                                <TextBlock Classes="icon" FontSize="17" Text="&#xE5D5;" />
+                            </Button>
+                        </Grid>
+
+                        <Grid Grid.Row="1" ColumnDefinitions="*,Auto,Auto,Auto,Auto" Margin="0,12,0,0">
+                            <TextBox Grid.Column="0" Text="{Binding SearchText}" Watermark="Zoek artiest of album…" Margin="0,0,10,0" />
+                            <Button Grid.Column="1" Classes="chipbtn" Content="Alles" Command="{Binding FilterAllCommand}" Classes.active="{Binding IsFilterAll}" />
+                            <Button Grid.Column="2" Classes="chipbtn" Content="Lossy" Margin="6,0,0,0" Command="{Binding FilterLossyCommand}" Classes.active="{Binding IsFilterLossy}" />
+                            <Button Grid.Column="3" Classes="chipbtn" Content="Zonder hoes" Margin="6,0,0,0" Command="{Binding FilterNoCoverCommand}" Classes.active="{Binding IsFilterNoCover}" />
+                            <Button Grid.Column="4" Classes="chipbtn" Content="Zonder tags" Margin="6,0,0,0" Command="{Binding FilterNoTagsCommand}" Classes.active="{Binding IsFilterNoTags}" />
+                        </Grid>
+
+                        <ListBox Grid.Row="2" Margin="0,12,0,0" ItemsSource="{Binding Albums}" SelectedItem="{Binding SelectedAlbum}"
+                                 Background="Transparent" BorderThickness="0">
+                            <ListBox.ItemsPanel>
+                                <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+                            </ListBox.ItemsPanel>
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel Width="150" Margin="2">
+                                        <Border Width="150" Height="150" CornerRadius="10" ClipToBounds="True" Background="{StaticResource SurfaceVariant}">
+                                            <Panel>
+                                                <TextBlock Classes="icon" FontSize="44" Text="&#xE019;" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                           Foreground="{StaticResource TextMuted}"
+                                                           IsVisible="{Binding Cover, Converter={x:Static ObjectConverters.IsNull}}" />
+                                                <Image Source="{Binding Cover}" Stretch="UniformToFill" />
+                                            </Panel>
+                                        </Border>
+                                        <TextBlock Text="{Binding Title}" Classes="title" FontSize="13" Margin="2,8,2,0" TextTrimming="CharacterEllipsis" />
+                                        <TextBlock Text="{Binding ArtistText}" Classes="caption" Margin="2,1,2,0" TextTrimming="CharacterEllipsis" />
+                                        <StackPanel Orientation="Horizontal" Margin="2,4,2,0" IsVisible="{Binding HasIssues}">
+                                            <Ellipse Width="7" Height="7" Fill="#A55600" VerticalAlignment="Center" />
+                                            <TextBlock Text="{Binding FlagText}" FontSize="10" Foreground="#A55600" Margin="4,0,0,0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                        </StackPanel>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </Grid>
+
+                    <!-- Inspector -->
+                    <Border Grid.Column="1" Width="300" Margin="16,0,0,0" Classes="card" Padding="16"
+                            IsVisible="{Binding SelectedAlbum, Converter={x:Static ObjectConverters.IsNotNull}}">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto">
+                            <StackPanel>
+                                <Border Width="260" Height="260" CornerRadius="12" ClipToBounds="True" Background="{StaticResource SurfaceVariant}">
+                                    <Panel>
+                                        <TextBlock Classes="icon" FontSize="64" Text="&#xE019;" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                   Foreground="{StaticResource TextMuted}"
+                                                   IsVisible="{Binding SelectedAlbum.Cover, Converter={x:Static ObjectConverters.IsNull}}" />
+                                        <Image Source="{Binding SelectedAlbum.Cover}" Stretch="UniformToFill" />
+                                    </Panel>
+                                </Border>
+                                <TextBlock Text="{Binding SelectedAlbum.Title}" Classes="title" FontSize="16" Margin="0,12,0,0" TextWrapping="Wrap" />
+                                <TextBlock Text="{Binding SelectedAlbum.ArtistText}" Classes="body" Margin="0,2,0,0" />
+                                <TextBlock Text="{Binding SelectedAlbum.Sub}" Classes="caption" Margin="0,4,0,0" />
+                                <TextBlock Text="{Binding SelectedAlbum.FlagText}" FontSize="11" Foreground="#A55600" Margin="0,4,0,0"
+                                           IsVisible="{Binding SelectedAlbum.HasIssues}" />
+
+                                <TextBlock Classes="section" Text="ALBUM-VELDEN (HEEL ALBUM)" Margin="0,16,0,8" />
+                                <TextBox Text="{Binding EditArtist}" Watermark="Album-artiest" />
+                                <TextBox Text="{Binding EditAlbum}" Watermark="Album" Margin="0,6,0,0" />
+                                <Grid ColumnDefinitions="*,90" Margin="0,6,0,0">
+                                    <TextBox Grid.Column="0" Text="{Binding EditGenre}" Watermark="Genre" />
+                                    <TextBox Grid.Column="1" Text="{Binding EditYear}" Watermark="Jaar" Margin="6,0,0,0" />
+                                </Grid>
+                                <Button Classes="primary" Content="Bewaar voor heel album" Margin="0,8,0,0" HorizontalAlignment="Stretch"
+                                        Command="{Binding SaveAlbumEditCommand}" />
+
+                                <TextBlock Classes="section" Text="NUMMERS" Margin="0,16,0,8" />
+                                <ListBox MaxHeight="240" ItemsSource="{Binding SelectedTracks}" SelectedItem="{Binding SelectedTrack}"
+                                         Background="Transparent" BorderThickness="0">
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <Grid ColumnDefinitions="*,Auto">
+                                                <TextBlock Grid.Column="0" Text="{Binding Display}" FontSize="12" Foreground="{StaticResource TextPrimary}" TextTrimming="CharacterEllipsis" />
+                                                <TextBlock Grid.Column="1" Text="{Binding Right}" FontSize="11" Foreground="{StaticResource TextMuted}" Margin="8,0,0,0" />
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+                                <TextBlock Classes="caption" Margin="0,4,0,0" Text="Spatie = 10 sec. preview" />
+
+                                <Button Classes="ghost" Margin="0,14,0,0" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                                        Command="{Binding EditInMetadataCommand}">
+                                    <StackPanel Orientation="Horizontal" Spacing="6"><TextBlock Classes="icon" FontSize="16" Text="&#xE892;" /><TextBlock Text="Bewerk in Metadata" VerticalAlignment="Center" /></StackPanel>
+                                </Button>
+                                <Button Classes="ghost" Margin="0,6,0,0" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                                        Command="{Binding ShowInFinderCommand}">
+                                    <StackPanel Orientation="Horizontal" Spacing="6"><TextBlock Classes="icon" FontSize="16" Text="&#xE2C8;" /><TextBlock Text="Toon in Finder" VerticalAlignment="Center" /></StackPanel>
+                                </Button>
+                            </StackPanel>
+                        </ScrollViewer>
+                    </Border>
                 </Grid>
             </TabItem>
         </TabControl>

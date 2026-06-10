@@ -72,6 +72,9 @@ public class MainViewModel : ViewModelBase
             },
             lib: Lib, undo: Undo);
 
+        Browser = new BrowserViewModel(Lib, () => MusicLibrary,
+            (files, status) => { Meta.LoadFiles(files, status); SelectedTabIndex = 3; });
+
         LoadFromConfig(Settings.Load());
 
         // Pre-fill comparison/library folders with your library/download path, but only when the
@@ -192,7 +195,7 @@ public class MainViewModel : ViewModelBase
     public string CurrentSection => SelectedTabIndex switch
     {
         0 => "Sorteren", 1 => "Organiseren", 2 => "ALAC-converter", 3 => "Metadata",
-        4 => "Gezondheid", 5 => "Dubbele", 6 => "Overzetten", 7 => "Instellingen", 8 => "Nieuw", _ => "Spindle"
+        4 => "Gezondheid", 5 => "Dubbele", 6 => "Overzetten", 7 => "Instellingen", 8 => "Nieuw", 9 => "Bibliotheek", _ => "Spindle"
     };
 
     public string UserInitial => "S";
@@ -200,6 +203,7 @@ public class MainViewModel : ViewModelBase
     // ---- Cmd+F command palette ----
     private static readonly (string Name, int Idx, string Glyph)[] PaletteSections =
     {
+        ("Bibliotheek", 9, ""),
         ("Nieuw", 8, ""),
         ("Organiseren", 1, ""), ("Sorteren", 0, ""), ("Metadata", 3, ""),
         ("Dubbele", 5, ""), ("Gezondheid", 4, ""), ("ALAC-converter", 2, ""),
@@ -228,6 +232,18 @@ public class MainViewModel : ViewModelBase
             if (q.Length == 0 || s.Name.Contains(q, StringComparison.OrdinalIgnoreCase))
                 PaletteResults.Add(new PaletteItem(s.Name, "Ga naar " + s.Name, s.Glyph,
                     () => { SelectedTabIndex = s.Idx; ClosePalette(); }));
+        if (q.Length >= 2 && !string.IsNullOrWhiteSpace(MusicLibrary))
+        {
+            foreach (var a in Lib.Index.Albums(MusicLibrary).Where(x =>
+                         x.Album.Contains(q, StringComparison.OrdinalIgnoreCase) ||
+                         x.AlbumArtist.Contains(q, StringComparison.OrdinalIgnoreCase)).Take(6))
+            {
+                var aa = a.AlbumArtist; var al = a.Album;
+                PaletteResults.Add(new PaletteItem(
+                    (aa.Length > 0 ? aa + " — " : "") + al, "Open in Bibliotheek", "",
+                    () => { SelectedTabIndex = 9; Browser.FocusAlbum(aa, al); ClosePalette(); }));
+            }
+        }
         SelectedPaletteItem = PaletteResults.Count > 0 ? PaletteResults[0] : null;
     }
 
@@ -380,6 +396,7 @@ public class MainViewModel : ViewModelBase
             case 4: if (Library.ScanCommand.CanExecute(null)) { Library.ScanCommand.Execute(null); ran = true; } break; // Gezondheid
             case 6: if (Sync.ScanCommand.CanExecute(null))    { Sync.ScanCommand.Execute(null); ran = true; } break;    // Overzetten
             case 8: if (Staging.ScanCommand.CanExecute(null)) { Staging.ScanCommand.Execute(null); ran = true; } break; // Nieuw
+            case 9: Browser.Refresh(); ran = true; break; // Bibliotheek (leest direct uit de index)
         }
         if (ran) _autoScanned.Add(tab);
     }
@@ -416,6 +433,7 @@ public class MainViewModel : ViewModelBase
     public ArtistsViewModel Artists { get; }
     public LibraryViewModel Library { get; }
     public StagingViewModel Staging { get; }
+    public BrowserViewModel Browser { get; }
 
     // ---- Runtime state ----
     private bool _isRunning;

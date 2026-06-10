@@ -36,6 +36,14 @@ public partial class MainWindow : Window
             e.Handled = true;
             return;
         }
+        // Spatie: 10s audio-preview in de Bibliotheek-browser.
+        if (e.Key == Key.Space && Vm.SelectedTabIndex == 9 && e.Source is not TextBox && !Vm.IsPaletteOpen)
+        {
+            Vm.Browser.TogglePreview();
+            e.Handled = true;
+            return;
+        }
+
         // Cmd+Z: globale undo van bestandsoperaties (niet in tekstvelden).
         if (e.Key == Key.Z && e.KeyModifiers.HasFlag(KeyModifiers.Meta) && e.Source is not TextBox)
         {
