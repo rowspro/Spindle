@@ -208,6 +208,17 @@ public sealed class TagGridViewModel : ViewModelBase
 
     public void Reload() { if (_lastFiles.Count > 0) Load(_lastFiles); }
 
+    /// <summary>Remove the row for a deleted file so the table stays in sync with the file list.</summary>
+    public void RemoveByPath(string path)
+    {
+        var row = Rows.FirstOrDefault(r => r.Path == path);
+        if (row == null) return;
+        Rows.Remove(row);
+        _lastFiles.Remove(path);
+        OnPropertyChanged(nameof(DirtyText));
+        SaveCommand.RaiseCanExecuteChanged();
+    }
+
     private void Mutate(Action<TagRowViewModel> fn)
     {
         foreach (var r in Rows) fn(r);

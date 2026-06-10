@@ -230,6 +230,8 @@ public class StagingViewModel : ViewModelBase
         catch { try { File.Delete(file.Path); } catch { } }
         DetailFiles.Remove(file);
         _detailTitles.Remove(file);
+        FixGrid.RemoveByPath(file.Path);
+        if (_detailAlbum?.Files is List<string> albumFiles) albumFiles.Remove(file.Path);
         RebuildDuplicates();
         Status = $"'{file.FileName}' verwijderd (naar _Verwijderd, omkeerbaar).";
     }
