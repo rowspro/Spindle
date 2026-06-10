@@ -21,6 +21,8 @@ public class GalaxyControl : Control
     private Point _lastPos, _pressPos, _pointer;
     private bool _hasPointer;
     private readonly DispatcherTimer _timer;
+    private readonly System.Diagnostics.Stopwatch _intro = System.Diagnostics.Stopwatch.StartNew();
+    private GalaxyPoint[]? _introPts;
 
     public GalaxyControl()
     {
@@ -36,6 +38,12 @@ public class GalaxyControl : Control
     }
 
     private GalaxyViewModel? Vm => DataContext as GalaxyViewModel;
+
+    protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        base.OnAttachedToVisualTree(e);
+        _intro.Restart();   // big bang elke keer dat de Galaxy wordt geopend
+    }
 
     protected override void OnPointerPressed(PointerPressedEventArgs e)
     {
@@ -94,12 +102,15 @@ public class GalaxyControl : Control
     public override void Render(DrawingContext context)
     {
         var vm = Vm;
+        var pts = vm?.Points ?? Array.Empty<GalaxyPoint>();
+        if (!ReferenceEquals(pts, _introPts)) { _introPts = pts; if (pts.Length > 0) _intro.Restart(); }
         context.Custom(new GalaxyDrawOp(
             new Rect(0, 0, Bounds.Width, Bounds.Height),
-            vm?.Points ?? Array.Empty<GalaxyPoint>(),
+            pts,
             vm?.ClusterLabels ?? Array.Empty<GalaxyLabel>(),
             _yaw, _pitch, _zoom,
-            _hasPointer && !_drag ? _pointer : null));
+            _hasPointer && !_drag ? _pointer : null,
+            (float)_intro.Elapsed.TotalSeconds));
     }
 }
 
@@ -107,13 +118,17 @@ internal static class GalaxyMath
 {
     public static void Project(GalaxyPoint p, double yaw, double pitch, double zoom,
         double w, double h, out float sx, out float sy, out float depth, out float persp)
+        => Project(p.X, p.Y, p.Z, yaw, pitch, zoom, w, h, out sx, out sy, out depth, out persp);
+
+    public static void Project(double px, double py, double pz, double yaw, double pitch, double zoom,
+        double w, double h, out float sx, out float sy, out float depth, out float persp)
     {
         double cy = Math.Cos(yaw), sy0 = Math.Sin(yaw);
         double cp = Math.Cos(pitch), sp = Math.Sin(pitch);
-        double xr = p.X * cy - p.Z * sy0;
-        double zr = p.X * sy0 + p.Z * cy;
-        double yr = p.Y * cp - zr * sp;
-        double zr2 = p.Y * sp + zr * cp;
+        double xr = px * cy - pz * sy0;
+        double zr = px * sy0 + pz * cy;
+        double yr = py * cp - zr * sp;
+        double zr2 = py * sp + zr * cp;
         double pf = 2.2 / (2.2 + zr2);
         double scale = Math.Min(w, h) * 0.42 * zoom;
         sx = (float)(w / 2 + xr * pf * scale);
@@ -149,14 +164,27 @@ internal sealed class GalaxyDrawOp : ICustomDrawOperation
     private readonly GalaxyLabel[] _labels;
     private readonly double _yaw, _pitch, _zoom;
     private readonly Point? _pointer;
+    private readonly float _introSec;
+    private const float IntroStagger = 0.5f;   // max extra vertraging per punt
+    private const float IntroDur = 1.0f;       // vluchtduur per punt
+    private const float IntroTotal = IntroStagger + IntroDur;
 
     public GalaxyDrawOp(Rect bounds, GalaxyPoint[] pts, GalaxyLabel[] labels,
-        double yaw, double pitch, double zoom, Point? pointer)
+        double yaw, double pitch, double zoom, Point? pointer, float introSec)
     {
         Bounds = bounds;
         _pts = pts; _labels = labels;
         _yaw = yaw; _pitch = pitch; _zoom = zoom;
         _pointer = pointer;
+        _introSec = introSec;
+    }
+
+    /// <summary>Ease-out met lichte overshoot — punten schieten net voorbij hun plek en veren terug.</summary>
+    private static float EaseOutBack(float t)
+    {
+        const float c1 = 1.70158f, c3 = c1 + 1f;
+        float u = t - 1f;
+        return 1f + c3 * u * u * u + c1 * u * u;
     }
 
     public Rect Bounds { get; }
@@ -193,9 +221,20 @@ internal sealed class GalaxyDrawOp : ICustomDrawOperation
         var depth = new float[n];
         var persp = new float[n];
         var order = new int[n];
+        bool intro = _introSec < IntroTotal;
         for (int i = 0; i < n; i++)
         {
-            GalaxyMath.Project(_pts[i], _yaw, _pitch, _zoom, w, h, out sx[i], out sy[i], out depth[i], out persp[i]);
+            var p = _pts[i];
+            if (intro)
+            {
+                // explosie: elk punt vliegt met eigen vertraging vanuit de kern naar zijn plek
+                float fr = (((uint)i * 2654435761u) & 1023u) / 1023f;
+                float tt = Math.Clamp((_introSec - fr * IntroStagger) / IntroDur, 0f, 1f);
+                float sc = EaseOutBack(tt);
+                GalaxyMath.Project(p.X * sc, p.Y * sc, p.Z * sc, _yaw, _pitch, _zoom, w, h, out sx[i], out sy[i], out depth[i], out persp[i]);
+            }
+            else
+                GalaxyMath.Project(p, _yaw, _pitch, _zoom, w, h, out sx[i], out sy[i], out depth[i], out persp[i]);
             order[i] = i;
         }
         var keys = (float[])depth.Clone();
@@ -221,17 +260,20 @@ internal sealed class GalaxyDrawOp : ICustomDrawOperation
             c.DrawCircle(sx[i], sy[i], r, paint);
         }
 
-        // genre-labels
-        paint.TextSize = 12.5f;
-        foreach (var l in _labels)
+        // genre-labels — faden pas in als de explosie is uitgeraasd
+        float lf = Math.Clamp((_introSec - 1.1f) / 0.5f, 0f, 1f);
+        if (lf > 0f)
         {
-            var lp = new GalaxyPoint { X = l.X, Y = l.Y, Z = l.Z };
-            GalaxyMath.Project(lp, _yaw, _pitch, _zoom, w, h, out var lx, out var ly, out var ld, out _);
-            if (ld > 1.0f) continue;   // labels aan de achterkant verbergen
-            paint.Color = new SKColor(0, 0, 0, 140);
-            c.DrawText(l.Text, lx + 1, ly + 1, paint);
-            paint.Color = new SKColor((byte)(l.Color >> 16), (byte)(l.Color >> 8), (byte)l.Color, 220);
-            c.DrawText(l.Text, lx, ly, paint);
+            paint.TextSize = 12.5f;
+            foreach (var l in _labels)
+            {
+                GalaxyMath.Project(l.X, l.Y, l.Z, _yaw, _pitch, _zoom, w, h, out var lx, out var ly, out var ld, out _);
+                if (ld > 1.0f) continue;   // labels aan de achterkant verbergen
+                paint.Color = new SKColor(0, 0, 0, (byte)(140 * lf));
+                c.DrawText(l.Text, lx + 1, ly + 1, paint);
+                paint.Color = new SKColor((byte)(l.Color >> 16), (byte)(l.Color >> 8), (byte)l.Color, (byte)(220 * lf));
+                c.DrawText(l.Text, lx, ly, paint);
+            }
         }
 
         // hover-tooltip

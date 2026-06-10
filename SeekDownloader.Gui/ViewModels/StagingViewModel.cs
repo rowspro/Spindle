@@ -209,21 +209,20 @@ public class StagingViewModel : ViewModelBase
         });
     }
 
-    private Process? _filePreview;
-
     private void PlayDetailFile(StagingFileViewModel file)
     {
-        try { if (_filePreview != null && !_filePreview.HasExited) { _filePreview.Kill(); _filePreview = null; Status = "Preview stopped."; return; } } catch { }
-        try
+        var player = PlayerViewModel.Current;
+        if (player == null) return;
+        var items = DetailFiles.Select(f => new PlayerItem
         {
-            var psi = new ProcessStartInfo("afplay") { UseShellExecute = false };
-            psi.ArgumentList.Add("-t");
-            psi.ArgumentList.Add("10");
-            psi.ArgumentList.Add(file.Path);
-            _filePreview = Process.Start(psi);
-            Status = $"▶ {file.FileName}  (again = stop)";
-        }
-        catch { Status = "Preview unavailable (afplay)."; }
+            Path = f.Path,
+            Title = f.FileName,
+            Sub = _detailAlbum?.Title ?? "Inbox",
+        }).ToList();
+        var idx = Math.Max(0, items.FindIndex(i => i.Path == file.Path));
+        if (player.HasTrack && player.CurrentPath == file.Path) { player.PlayPause(); return; }
+        player.PlayQueue(items, idx);
+        Status = $"▶ {file.FileName}";
     }
 
     /// <summary>Status helper for code-behind (clipboard feedback).</summary>

@@ -24,6 +24,7 @@ public class MainViewModel : ViewModelBase
 
     public MainViewModel()
     {
+        PlayerViewModel.Current = Player;
         Meta = new MetadataEditorViewModel(Lib, Undo);
         StartCommand = new RelayCommand(StartAuto, () => !IsRunning && IsAutoMode);
         StopCommand = new RelayCommand(StopAll);
@@ -100,6 +101,7 @@ public class MainViewModel : ViewModelBase
         {
             IndexBusy = false;
             GlobalStatus = $"{Lib.Index.TrackCount():N0} tracks indexed";
+            RefreshArtistSuggestions();
         };
         Lib.Configure(MusicLibrary, DownloadFilePath);
 
@@ -116,6 +118,21 @@ public class MainViewModel : ViewModelBase
     // ---- Fase 0: index-service, globale statusbalk en undo-journal ----
     public LibraryService Lib { get; } = new();
     public UndoJournal Undo { get; } = new();
+    public PlayerViewModel Player { get; } = new();
+
+    /// <summary>Known album artists from the library — feeds the autocomplete boxes.</summary>
+    public System.Collections.ObjectModel.ObservableCollection<string> ArtistSuggestions { get; } = new();
+
+    private void RefreshArtistSuggestions()
+    {
+        try
+        {
+            var arts = Lib.Index.AllArtists(MusicLibrary);
+            ArtistSuggestions.Clear();
+            foreach (var a in arts) ArtistSuggestions.Add(a);
+        }
+        catch { }
+    }
 
     private string _globalStatus = "Ready.";
     public string GlobalStatus { get => _globalStatus; private set => SetField(ref _globalStatus, value); }
@@ -125,6 +142,29 @@ public class MainViewModel : ViewModelBase
 
     private double _indexPercent;
     public double IndexPercent { get => _indexPercent; private set => SetField(ref _indexPercent, value); }
+
+    /// <summary>Space in the browser: play the selected track's album (or toggle pause on the same track).</summary>
+    public void PlayBrowserSelection()
+    {
+        var a = Browser.SelectedAlbum;
+        if (a == null) { Player.PlayPause(); return; }
+        var items = a.Tracks.Select(t => new PlayerItem
+        {
+            Path = t.Path,
+            Title = string.IsNullOrWhiteSpace(t.Title) ? System.IO.Path.GetFileName(t.Path) : t.Title,
+            Sub = a.ArtistText + " — " + a.Title,
+            Duration = t.Duration,
+        }).ToList();
+        int start = 0;
+        var selPath = Browser.SelectedTrack?.Path;
+        if (selPath != null)
+        {
+            var i = items.FindIndex(x => x.Path == selPath);
+            if (i >= 0) start = i;
+        }
+        if (Player.HasTrack && Player.CurrentPath == items[start].Path) { Player.PlayPause(); return; }
+        Player.PlayQueue(items, start);
+    }
 
     public void UndoLast()
     {

@@ -6,6 +6,8 @@ using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using Avalonia.Platform.Storage;
 using Avalonia.Styling;
+using Avalonia.Threading;
+using Avalonia.VisualTree;
 using SeekDownloader.Gui.ViewModels;
 
 namespace SeekDownloader.Gui.Views;
@@ -20,7 +22,7 @@ public partial class MainWindow : Window
         // Remember tool folders (and other settings) across launches.
         Closing += (_, _) => Vm?.SaveSettings();
         // Fase 5: pas het opgeslagen thema toe en volg de toggle.
-        DataContextChanged += (_, _) => HookTheme();
+        DataContextChanged += (_, _) => { HookTheme(); WireArtistBoxes(); };
         HookTheme();
     }
 
@@ -41,9 +43,11 @@ public partial class MainWindow : Window
             return;
         }
         // Spatie: 10s audio-preview in de Bibliotheek-browser.
-        if (e.Key == Key.Space && Vm.SelectedTabIndex == 9 && e.Source is not TextBox && !Vm.IsPaletteOpen)
+        if (e.Key == Key.Space && e.Source is not TextBox && !Vm.IsPaletteOpen
+            && (Vm.SelectedTabIndex == 9 || Vm.Player.HasTrack))
         {
-            Vm.Browser.TogglePreview();
+            if (Vm.SelectedTabIndex == 9) Vm.PlayBrowserSelection();
+            else Vm.Player.PlayPause();
             e.Handled = true;
             return;
         }
@@ -241,6 +245,39 @@ public partial class MainWindow : Window
     {
         var path = await PickFolderAsync("Kies de iPod-map");
         if (path != null && Vm != null) Vm.Sync.IpodFolder = path;
+    }
+
+    // ---- Album-artist autocomplete (consistent capitalization) ----
+    private void WireArtistBoxes()
+    {
+        if (Vm == null) return;
+        foreach (var name in new[] { "MetaAlbumArtistBox", "LibArtistBox" })
+            if (this.FindControl<AutoCompleteBox>(name) is { } box)
+                box.ItemsSource = Vm.ArtistSuggestions;
+    }
+
+    /// <summary>Enter = accept the first suggestion; Space = accept only when the match is unique
+    /// (so typing a brand-new multi-word artist still works).</summary>
+    private void OnArtistKeyDown(object? sender, KeyEventArgs e)
+    {
+        if (sender is not AutoCompleteBox box || Vm == null) return;
+        if (e.Key != Key.Enter && e.Key != Key.Space) return;
+        var typed = (box.SearchText ?? box.Text ?? "").TrimEnd();
+        if (typed.Length < 2) return;
+        var matches = Vm.ArtistSuggestions
+            .Where(a => a.StartsWith(typed, StringComparison.OrdinalIgnoreCase))
+            .Take(2).ToList();
+        if (matches.Count == 0 || (e.Key == Key.Space && matches.Count > 1)) return;
+        var m = matches[0];
+        if (string.Equals(m, box.Text, StringComparison.Ordinal)) return;
+        if (e.Key == Key.Enter) e.Handled = true;
+        // Na de input-pipeline zetten, zodat een eventueel ingevoegde spatie wordt overschreven.
+        Dispatcher.UIThread.Post(() =>
+        {
+            box.Text = m;
+            box.IsDropDownOpen = false;
+            if (box.FindDescendantOfType<TextBox>() is { } tb) tb.CaretIndex = m.Length;
+        }, DispatcherPriority.Input);
     }
 
     // ---- Artwork: klembord (Mp3tag-stijl) ----

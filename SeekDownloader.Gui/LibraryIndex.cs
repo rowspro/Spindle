@@ -243,6 +243,27 @@ public sealed class LibraryIndex : IDisposable
         }
     }
 
+    /// <summary>Distinct effective album artists (for autocomplete suggestions).</summary>
+    public List<string> AllArtists(string? root = null)
+    {
+        lock (_dbLock)
+        {
+            var where = root == null ? "" : " WHERE root=$r";
+            var list = new List<string>();
+            using var cmd = _db.CreateCommand();
+            cmd.CommandText = $"SELECT DISTINCT {EffArtist} AS aa FROM tracks{where}";
+            if (root != null) cmd.Parameters.AddWithValue("$r", System.IO.Path.GetFullPath(root));
+            using var rd = cmd.ExecuteReader();
+            while (rd.Read())
+            {
+                var a = rd.GetString(0);
+                if (a.Length > 0) list.Add(a);
+            }
+            list.Sort(StringComparer.OrdinalIgnoreCase);
+            return list;
+        }
+    }
+
     public (int Files, int Albums, int Lossy, int MissingTags, int AlbumsNoCover, int AllLossyAlbums) HealthCounts(string? root = null)
     {
         lock (_dbLock)

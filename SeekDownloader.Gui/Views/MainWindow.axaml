@@ -458,7 +458,7 @@
         </Border>
 
         <!-- ===== Content ===== -->
-        <Grid Grid.Column="1" RowDefinitions="Auto,*,Auto">
+        <Grid Grid.Column="1" RowDefinitions="Auto,*,Auto,Auto">
 
             <!-- Sticky top bar -->
             <Border Grid.Row="0" Height="52" Background="{DynamicResource Surface}"
@@ -686,7 +686,7 @@
                         <StackPanel Grid.Column="0" Spacing="8">
                             <Grid ColumnDefinitions="110,*"><TextBlock Classes="label" Text="Title" /><TextBox Grid.Column="1" Text="{Binding Title}" /></Grid>
                             <Grid ColumnDefinitions="110,*"><TextBlock Classes="label" Text="Artist" /><TextBox Grid.Column="1" Text="{Binding Artist}" /></Grid>
-                            <Grid ColumnDefinitions="110,*"><TextBlock Classes="label" Text="Album artist" /><TextBox Grid.Column="1" Text="{Binding AlbumArtist}" /></Grid>
+                            <Grid ColumnDefinitions="110,*"><TextBlock Classes="label" Text="Album artist" /><AutoCompleteBox Name="MetaAlbumArtistBox" Grid.Column="1" Text="{Binding AlbumArtist, Mode=TwoWay}" FilterMode="StartsWith" IsTextCompletionEnabled="True" MinimumPrefixLength="1" KeyDown="OnArtistKeyDown" /></Grid>
                             <Grid ColumnDefinitions="110,*"><TextBlock Classes="label" Text="Album" /><TextBox Grid.Column="1" Text="{Binding Album}" /></Grid>
                             <Grid ColumnDefinitions="110,*"><TextBlock Classes="label" Text="Genre" /><TextBox Grid.Column="1" Text="{Binding Genre}" /></Grid>
                             <Grid ColumnDefinitions="110,*,90,*">
@@ -1357,7 +1357,7 @@
                                                                                 <TextBlock Text="{Binding FileName}" FontSize="12" Foreground="{DynamicResource TextPrimary}" TextTrimming="CharacterEllipsis" />
                                                                                 <TextBlock Text="{Binding Meta}" Classes="caption" FontSize="10" TextTrimming="CharacterEllipsis" />
                                                                             </StackPanel>
-                                                                            <Button Grid.Column="1" Classes="ghost" Padding="8,3" Margin="8,0,0,0" VerticalAlignment="Center" Command="{Binding PlayCommand}" ToolTip.Tip="10 sec preview"><TextBlock Classes="icon" FontSize="15" Text="&#xE037;" Foreground="{DynamicResource Accent}" /></Button>
+                                                                            <Button Grid.Column="1" Classes="ghost" Padding="8,3" Margin="8,0,0,0" VerticalAlignment="Center" Command="{Binding PlayCommand}" ToolTip.Tip="Play"><TextBlock Classes="icon" FontSize="15" Text="&#xE037;" Foreground="{DynamicResource Accent}" /></Button>
                                                                             <Border Grid.Column="2" Classes="badge" Margin="8,0,8,0" VerticalAlignment="Center"><TextBlock Text="{Binding Format}" /></Border>
                                                                             <Button Grid.Column="3" Classes="ghost" Padding="8,3" VerticalAlignment="Center" Command="{Binding DeleteCommand}" ToolTip.Tip="Delete this file (to _Verwijderd, reversible)."><TextBlock Classes="icon" FontSize="15" Text="&#xE872;" Foreground="{DynamicResource ErrorBrush}" /></Button>
                                                                         </Grid>
@@ -1391,7 +1391,7 @@
                                                                     </ItemsControl.ItemTemplate>
                                                                 </ItemsControl>
                                                             </StackPanel>
-                                                            <Button Grid.Column="1" Classes="ghost" Padding="8,4" Margin="8,0,0,0" VerticalAlignment="Center" Command="{Binding PlayCommand}" ToolTip.Tip="10 sec preview"><TextBlock Classes="icon" FontSize="16" Text="&#xE037;" Foreground="{DynamicResource Accent}" /></Button>
+                                                            <Button Grid.Column="1" Classes="ghost" Padding="8,4" Margin="8,0,0,0" VerticalAlignment="Center" Command="{Binding PlayCommand}" ToolTip.Tip="Play"><TextBlock Classes="icon" FontSize="16" Text="&#xE037;" Foreground="{DynamicResource Accent}" /></Button>
                                                             <Border Grid.Column="2" Classes="badge" Margin="8,0,8,0" VerticalAlignment="Center"><TextBlock Text="{Binding Format}" /></Border>
                                                             <Button Grid.Column="3" Classes="ghost" Padding="8,4" VerticalAlignment="Center" Command="{Binding DeleteCommand}" ToolTip.Tip="Delete this file (to _Verwijderd, reversible)."><TextBlock Classes="icon" FontSize="16" Text="&#xE872;" Foreground="{DynamicResource ErrorBrush}" /></Button>
                                                         </Grid>
@@ -1543,7 +1543,7 @@
                                            IsVisible="{Binding SelectedAlbum.HasIssues}" />
 
                                 <TextBlock Classes="section" Text="ALBUM FIELDS (WHOLE ALBUM)" Margin="0,16,0,8" />
-                                <TextBox Text="{Binding EditArtist}" Watermark="Album artist" />
+                                <AutoCompleteBox Name="LibArtistBox" Text="{Binding EditArtist, Mode=TwoWay}" Watermark="Album artist" FilterMode="StartsWith" IsTextCompletionEnabled="True" MinimumPrefixLength="1" KeyDown="OnArtistKeyDown" />
                                 <TextBox Text="{Binding EditAlbum}" Watermark="Album" Margin="0,6,0,0" />
                                 <Grid ColumnDefinitions="*,90" Margin="0,6,0,0">
                                     <TextBox Grid.Column="0" Text="{Binding EditGenre}" Watermark="Genre" />
@@ -1564,7 +1564,7 @@
                                         </DataTemplate>
                                     </ListBox.ItemTemplate>
                                 </ListBox>
-                                <TextBlock Classes="caption" Margin="0,4,0,0" Text="Space = 10 sec preview" />
+                                <TextBlock Classes="caption" Margin="0,4,0,0" Text="Space = play / pause (plays the album)" />
 
                                 <Button Classes="ghost" Margin="0,14,0,0" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
                                         Command="{Binding EditInMetadataCommand}">
@@ -1608,8 +1608,36 @@
             </TabItem>
         </TabControl>
 
-            <!-- Globale statusbalk (fase 0): indexvoortgang + laatste actie -->
+            <!-- Mini-speler (ingebouwde music player) -->
             <Border Grid.Row="2" Background="{DynamicResource SidebarBg}" BorderBrush="{DynamicResource CardBorder}"
+                    BorderThickness="0,1,0,0" Padding="24,7" IsVisible="{Binding Player.HasTrack}">
+                <Grid ColumnDefinitions="Auto,Auto,Auto,Auto,*,Auto">
+                    <Button Grid.Column="0" Classes="ghost" Padding="8,4" Command="{Binding Player.PrevCommand}" ToolTip.Tip="Previous">
+                        <TextBlock Classes="icon" FontSize="18" Text="&#xE045;" />
+                    </Button>
+                    <Button Grid.Column="1" Classes="primary" Padding="10,4" Margin="6,0,0,0" Command="{Binding Player.PlayPauseCommand}" ToolTip.Tip="Play/pause (space)">
+                        <TextBlock Classes="icon" FontSize="18" Text="{Binding Player.PlayPauseIcon}" Foreground="White" />
+                    </Button>
+                    <Button Grid.Column="2" Classes="ghost" Padding="8,4" Margin="6,0,0,0" Command="{Binding Player.NextCommand}" ToolTip.Tip="Next">
+                        <TextBlock Classes="icon" FontSize="18" Text="&#xE044;" />
+                    </Button>
+                    <Button Grid.Column="3" Classes="ghost" Padding="8,4" Margin="6,0,0,0" Command="{Binding Player.StopCommand}" ToolTip.Tip="Stop">
+                        <TextBlock Classes="icon" FontSize="18" Text="&#xE047;" />
+                    </Button>
+                    <StackPanel Grid.Column="4" Margin="14,0,0,0" VerticalAlignment="Center">
+                        <TextBlock Text="{Binding Player.NowTitle}" Classes="title" FontSize="13" TextTrimming="CharacterEllipsis" />
+                        <Grid ColumnDefinitions="*,Auto" Margin="0,3,0,0">
+                            <ProgressBar Grid.Column="0" Minimum="0" Maximum="100" Value="{Binding Player.Progress}" Height="4" CornerRadius="2"
+                                         Background="{DynamicResource SurfaceVariant}" Foreground="{DynamicResource Accent}" VerticalAlignment="Center" />
+                            <TextBlock Grid.Column="1" Margin="10,0,0,0" Classes="caption" Text="{Binding Player.TimeText}" VerticalAlignment="Center" />
+                        </Grid>
+                    </StackPanel>
+                    <TextBlock Grid.Column="5" Margin="14,0,0,0" Classes="caption" Text="{Binding Player.NowSub}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" MaxWidth="280" />
+                </Grid>
+            </Border>
+
+            <!-- Globale statusbalk (fase 0): indexvoortgang + laatste actie -->
+            <Border Grid.Row="3" Background="{DynamicResource SidebarBg}" BorderBrush="{DynamicResource CardBorder}"
                     BorderThickness="0,1,0,0" Padding="24,5">
                 <Grid ColumnDefinitions="*,Auto">
                     <TextBlock Grid.Column="0" Classes="caption" VerticalAlignment="Center" Text="{Binding GlobalStatus}" />

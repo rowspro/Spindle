@@ -80,7 +80,14 @@ public class BrowserViewModel : ViewModelBase
         ShowInFinderCommand = new RelayCommand(() =>
         {
             var p = SelectedAlbum?.Tracks.FirstOrDefault()?.Path;
-            if (p != null) try { Process.Start("open", new[] { "-R", p }); } catch { }
+            if (p == null) return;
+            try
+            {
+                if (OperatingSystem.IsWindows()) Process.Start("explorer.exe", $"/select,\"{p}\"");
+                else if (OperatingSystem.IsMacOS()) Process.Start("open", new[] { "-R", p });
+                else Process.Start("xdg-open", System.IO.Path.GetDirectoryName(p) ?? p);
+            }
+            catch { }
         }, () => SelectedAlbum != null);
         SaveAlbumEditCommand = new RelayCommand(SaveAlbumEdit, () => SelectedAlbum != null && !_busyEdit);
         FilterAllCommand = new RelayCommand(() => SetFilter("alles"));
