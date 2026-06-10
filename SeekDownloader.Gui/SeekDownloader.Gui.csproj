@@ -24,6 +24,7 @@
         <PackageReference Include="Avalonia.Themes.Fluent" Version="11.2.3" />
         <PackageReference Include="Avalonia.Fonts.Inter" Version="11.2.3" />
         <PackageReference Include="Avalonia.Diagnostics" Version="11.2.3" Condition="'$(Configuration)' == 'Debug'" />
+        <PackageReference Include="Microsoft.Data.Sqlite" Version="8.0.10" />
     </ItemGroup>
 
     <!-- Same packages the reused core depends on (see ..\SeekDownloader\SeekDownloader.csproj). -->
