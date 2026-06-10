@@ -48,12 +48,19 @@ public class StagingAlbumViewModel : ViewModelBase
     public string Year { get; }
     public IReadOnlyList<string> Files { get; }
     public List<string> SourceDirs { get; }
-    public List<string> Flags { get; }
-    public bool IsClean { get; }
+    private List<string> _flags = new();
+    public List<string> Flags { get => _flags; private set => SetField(ref _flags, value); }
+
+    private bool _isCleanFlag;
+    public bool IsClean { get => _isCleanFlag; private set => SetField(ref _isCleanFlag, value); }
+
     public bool AlreadyInLibrary { get; }
+    public bool CanReplace { get; }
 
     public string Title => string.IsNullOrEmpty(Artist) ? Album : $"{Artist} — {Album}";
-    public string Sub { get; }
+
+    private string _sub = "";
+    public string Sub { get => _sub; private set => SetField(ref _sub, value); }
     public bool HasFlags => Flags.Count > 0;
 
     private bool _isSelected;
@@ -61,6 +68,8 @@ public class StagingAlbumViewModel : ViewModelBase
     public Action? OnSelectedChanged;
 
     public RelayCommand FixCommand { get; }
+    public RelayCommand DeleteCommand { get; }
+    public RelayCommand ReplaceCommand { get; }
 
     public string? CoverPath { get; }
 
@@ -68,14 +77,26 @@ public class StagingAlbumViewModel : ViewModelBase
     public Bitmap? Cover { get => _cover; set => SetField(ref _cover, value); }
 
     public StagingAlbumViewModel(string artist, string album, string year, IReadOnlyList<string> files,
-        List<string> sourceDirs, List<string> flags, bool isClean, bool alreadyInLibrary, string sub,
-        string? coverPath, Action<StagingAlbumViewModel> onFix)
+        List<string> sourceDirs, List<string> flags, bool isClean, bool alreadyInLibrary, bool canReplace, string sub,
+        string? coverPath, Action<StagingAlbumViewModel> onFix, Action<StagingAlbumViewModel> onDelete,
+        Action<StagingAlbumViewModel> onReplace)
     {
         Artist = artist; Album = album; Year = year; Files = files; SourceDirs = sourceDirs;
-        Flags = flags; IsClean = isClean; AlreadyInLibrary = alreadyInLibrary; Sub = sub;
+        _flags = flags; _isCleanFlag = isClean; AlreadyInLibrary = alreadyInLibrary; CanReplace = canReplace; _sub = sub;
         CoverPath = coverPath;
         _isSelected = isClean && !alreadyInLibrary;   // pre-select what's ready to import
         FixCommand = new RelayCommand(() => onFix(this));
+        DeleteCommand = new RelayCommand(() => onDelete(this));
+        ReplaceCommand = new RelayCommand(() => onReplace(this));
+    }
+
+    /// <summary>Recompute the card stats after files were deleted in the inspector.</summary>
+    public void UpdateStats(List<string> flags, bool isClean, string sub)
+    {
+        Flags = flags;
+        IsClean = isClean;
+        Sub = sub;
+        OnPropertyChanged(nameof(HasFlags));
     }
 }
 
@@ -205,6 +226,209 @@ public class StagingViewModel : ViewModelBase
         catch { Status = "Preview unavailable (afplay)."; }
     }
 
+    /// <summary>Status helper for code-behind (clipboard feedback).</summary>
+    public void Notify(string msg) => Status = msg;
+
+    /// <summary>Apply cover art to every file of the album that is open in the inspector (Mp3tag-style).</summary>
+    public void ApplyCoverToDetailAlbum(byte[] data)
+    {
+        var album = _detailAlbum;
+        if (album == null) return;
+        var files = album.Files.ToList();
+        Status = "Applying cover to the whole album…";
+        Task.Run(() =>
+        {
+            int n = 0;
+            foreach (var f in files)
+            {
+                try
+                {
+                    var t = new Track(f);
+                    t.EmbeddedPictures.Clear();
+                    t.EmbeddedPictures.Add(PictureInfo.fromBinaryData(data));
+                    t.Save();
+                    n++;
+                }
+                catch { }
+            }
+            _lib.Refresh(NieuwFolder);
+            Dispatcher.UIThread.Post(() =>
+            {
+                Status = $"Cover applied to {n} files.";
+                RefreshAlbumStats(album);
+            });
+        });
+    }
+
+    /// <summary>Recompute one album card's flags/counters from the index (after deletes in the inspector).</summary>
+    private void RefreshAlbumStats(StagingAlbumViewModel album)
+    {
+        var nieuw = NieuwFolder;
+        Task.Run(() =>
+        {
+            _lib.Refresh(nieuw);
+            var map = new Dictionary<string, IndexedTrack>(StringComparer.Ordinal);
+            try { foreach (var r in _lib.Index.AllTracks(nieuw)) map[r.Path] = r; } catch { }
+            var rows = album.Files.Where(map.ContainsKey).Select(f => map[f]).ToList();
+            int lossy = rows.Count(r => !r.Lossless);
+            int unt = rows.Count(r => r.MissingTags);
+            int noCover = rows.Count(r => !r.HasCover);
+            int missingYg = rows.Count(r => r.Year <= 0 || string.IsNullOrWhiteSpace(r.Genre));
+            var trackNos = new HashSet<int>();
+            var dirSet = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            bool dup = false;
+            foreach (var r in rows)
+            {
+                if (r.TrackNo > 0 && !trackNos.Add(r.TrackNo)) dup = true;
+                var d0 = Path.GetDirectoryName(r.Path);
+                if (d0 != null) dirSet.Add(d0);
+            }
+            dup = dup || dirSet.Count > 1;
+            var flags = new List<string>();
+            if (lossy > 0) flags.Add($"{lossy} lossy");
+            if (unt > 0) flags.Add($"{unt} without tags");
+            if (noCover > 0) flags.Add("no cover");
+            if (missingYg > 0) flags.Add("missing year/genre");
+            if (dup) flags.Add("duplicate versions");
+            bool clean = flags.Count == 0;
+            if (album.AlreadyInLibrary) flags.Add("already in library");
+            int yr = rows.Count > 0 ? rows.Max(r => r.Year) : 0;
+            var sub = $"{rows.Count} tracks" + (yr > 0 ? $"  ·  {yr}" : "");
+            Dispatcher.UIThread.Post(() =>
+            {
+                album.UpdateStats(flags, clean, sub);
+                Summary = $"{_all.Count} albums · {_all.Sum(a => a.Files.Count)} tracks · {_all.Count(a => !a.IsClean)} need attention";
+                UpdatePipeline();
+            });
+        });
+    }
+
+    /// <summary>Remove a whole album from the inbox (e.g. it's already in the library): to the trash, reversible.</summary>
+    private void DeleteInboxAlbum(StagingAlbumViewModel album)
+    {
+        if (IsBusy) return;
+        var nieuw = NieuwFolder;
+        IsBusy = true;
+        Status = $"Removing '{album.Title}' from inbox…";
+        Task.Run(() =>
+        {
+            string trash;
+            try
+            {
+                var parent = Path.GetDirectoryName(Path.GetFullPath(nieuw).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
+                trash = parent != null ? Path.Combine(parent, "_Verwijderd (Spindle)") : Path.Combine(nieuw, "_Verwijderd");
+            }
+            catch { trash = Path.Combine(nieuw, "_Verwijderd"); }
+            var ops = new List<UndoJournal.MoveOp>();
+            int moved = 0;
+            foreach (var f in album.Files.ToList())
+            {
+                try { var dest = MoveInto(f, trash); ops.Add(new UndoJournal.MoveOp(f, dest)); moved++; } catch { }
+            }
+            foreach (var d in album.SourceDirs) CleanConsumedSourceDir(d, ops);
+            _undo.Record($"Inbox album removed: {album.Title}", ops);
+            _lib.Refresh(nieuw);
+            Dispatcher.UIThread.Post(() =>
+            {
+                _all.Remove(album);
+                Albums.Remove(album);
+                IsBusy = false;
+                ApproveCommand.RaiseCanExecuteChanged();
+                Summary = $"{_all.Count} albums · {_all.Sum(a => a.Files.Count)} tracks · {_all.Count(a => !a.IsClean)} need attention";
+                UpdatePipeline();
+                Status = $"'{album.Title}' removed from inbox ({moved} files, Cmd+Z = undo).";
+            });
+        });
+    }
+
+    /// <summary>Replace the (lower-quality) library version of this album with the inbox version, in one undoable batch.</summary>
+    private void ReplaceInLibrary(StagingAlbumViewModel album)
+    {
+        if (IsBusy) return;
+        var lib = LibraryFolder;
+        if (string.IsNullOrWhiteSpace(lib) || !Directory.Exists(lib)) { Status = "Set your music library first (Settings)."; return; }
+        var nieuw = NieuwFolder;
+        var template = _template();
+        IsBusy = true;
+        Status = $"Replacing '{album.Title}' in the library…";
+        Task.Run(() =>
+        {
+            var ops = new List<UndoJournal.MoveOp>();
+            // 1) oude bieb-versie naar de prullenbak naast de bieb
+            var key = Norm(album.Artist) + "|" + Norm(album.Album);
+            var oldRows = _lib.Index.AllTracks(lib).Where(r =>
+                Norm(!string.IsNullOrWhiteSpace(r.AlbumArtist) ? r.AlbumArtist : r.Artist) + "|" + Norm(r.Album) == key).ToList();
+            string trash;
+            try
+            {
+                var parent = Path.GetDirectoryName(Path.GetFullPath(lib).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
+                trash = parent != null ? Path.Combine(parent, "_Verwijderd (Spindle)") : Path.Combine(lib, "_Verwijderd");
+            }
+            catch { trash = Path.Combine(lib, "_Verwijderd"); }
+            int removedOld = 0;
+            var oldDirs = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var r in oldRows)
+            {
+                try
+                {
+                    var dest = MoveInto(r.Path, trash);
+                    ops.Add(new UndoJournal.MoveOp(r.Path, dest));
+                    removedOld++;
+                    var d0 = Path.GetDirectoryName(r.Path);
+                    if (d0 != null) oldDirs.Add(d0);
+                }
+                catch { }
+            }
+            foreach (var d in oldDirs)
+            {
+                try { if (Directory.Exists(d) && !Directory.EnumerateFileSystemEntries(d).Any()) Directory.Delete(d); } catch { }
+            }
+            // 2) inbox-versie volgens template op de juiste plek zetten (zelfde logica als goedkeuren)
+            var map = new Dictionary<string, IndexedTrack>(StringComparer.Ordinal);
+            try { foreach (var r in _lib.Index.AllTracks(nieuw)) map[r.Path] = r; } catch { }
+            var artistDir = Clean(string.IsNullOrWhiteSpace(album.Artist) ? "Unknown Artist" : album.Artist);
+            int.TryParse(album.Year, out var yr);
+            var albumDir = string.IsNullOrWhiteSpace(album.Album) ? "Singles" : Clean(yr > 0 ? $"{album.Album} ({yr})" : album.Album);
+            var taken = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            int moved = 0;
+            foreach (var f in album.Files.ToList())
+            {
+                try
+                {
+                    var ext = Path.GetExtension(f);
+                    string name = map.TryGetValue(f, out var r) && !string.IsNullOrWhiteSpace(r.Title)
+                        ? NameTemplate.Build(template, string.IsNullOrWhiteSpace(r.Artist) ? album.Artist : r.Artist,
+                            album.Album, r.TrackNo > 0 ? r.Title : r.Title, r.TrackNo, r.Year > 0 ? r.Year.ToString() : "", Clean) + ext
+                        : Path.GetFileName(f);
+                    var dest = Path.Combine(lib, artistDir, albumDir, name);
+                    int n2 = 2;
+                    while (!taken.Add(dest) || File.Exists(dest))
+                        dest = Path.Combine(lib, artistDir, albumDir, Path.GetFileNameWithoutExtension(name) + $" ({n2++})" + ext);
+                    Directory.CreateDirectory(Path.GetDirectoryName(dest)!);
+                    try { File.Move(f, dest); }
+                    catch (IOException) { File.Copy(f, dest, false); File.Delete(f); }
+                    ops.Add(new UndoJournal.MoveOp(f, dest));
+                    moved++;
+                }
+                catch { }
+            }
+            foreach (var d in album.SourceDirs) CleanConsumedSourceDir(d, ops);
+            _undo.Record($"Replaced in library: {album.Title}", ops);
+            _lib.Refresh(nieuw);
+            _lib.Refresh(lib);
+            Dispatcher.UIThread.Post(() =>
+            {
+                _all.Remove(album);
+                Albums.Remove(album);
+                IsBusy = false;
+                ApproveCommand.RaiseCanExecuteChanged();
+                Summary = $"{_all.Count} albums · {_all.Sum(a => a.Files.Count)} tracks · {_all.Count(a => !a.IsClean)} need attention";
+                UpdatePipeline();
+                Status = $"✓ '{album.Title}' replaced: {removedOld} old files → trash, {moved} new files placed (Cmd+Z = undo).";
+            });
+        });
+    }
+
     private readonly Dictionary<StagingFileViewModel, string> _detailTitles = new();
 
     private void RebuildDuplicates()
@@ -228,12 +452,14 @@ public class StagingViewModel : ViewModelBase
             _undo.Record($"File deleted: {file.FileName}", new List<UndoJournal.MoveOp> { new(file.Path, dest) });
         }
         catch { try { File.Delete(file.Path); } catch { } }
+        if (File.Exists(file.Path)) { Status = $"Couldn't delete '{file.FileName}'."; return; }
         DetailFiles.Remove(file);
         _detailTitles.Remove(file);
         FixGrid.RemoveByPath(file.Path);
         if (_detailAlbum?.Files is List<string> albumFiles) albumFiles.Remove(file.Path);
         RebuildDuplicates();
         Status = $"'{file.FileName}' deleted (to _Verwijderd, reversible).";
+        if (_detailAlbum != null) RefreshAlbumStats(_detailAlbum);
     }
 
     private string _nieuwFolder = string.Empty;
@@ -294,12 +520,16 @@ public class StagingViewModel : ViewModelBase
             // Fase 0: beide roots incrementeel verversen en uit de index lezen.
             _lib.Refresh(lib, token);
             _lib.Refresh(nieuw, token);
-            var have = new HashSet<string>(_lib.Index.AllTracks(lib)
+            var libRows = _lib.Index.AllTracks(lib);
+            var have = new HashSet<string>(libRows
                 .Select(r => Norm(!string.IsNullOrWhiteSpace(r.AlbumArtist) ? r.AlbumArtist : r.Artist) + "|" + Norm(r.Album)));
+            var libQ = new Dictionary<string, (double LosslessFrac, double AvgBitrate)>();
+            foreach (var grp in libRows.GroupBy(r => Norm(!string.IsNullOrWhiteSpace(r.AlbumArtist) ? r.AlbumArtist : r.Artist) + "|" + Norm(r.Album)))
+                libQ[grp.Key] = (grp.Count(t => t.Lossless) / (double)grp.Count(), grp.Average(t => (double)t.Bitrate));
             var files = _lib.Index.AllTracks(nieuw);
 
             var groups = new Dictionary<string, (string Artist, string Album, string Year, List<string> Files,
-                int Lossy, int Untagged, int NoCover, int MissingYg, HashSet<string> Dirs, HashSet<int> Tracks, bool DupTrack, string Cover)>();
+                int Lossy, int Untagged, int NoCover, int MissingYg, HashSet<string> Dirs, HashSet<int> Tracks, bool DupTrack, string Cover, long BrSum)>();
 
             foreach (var r in files)
             {
@@ -307,7 +537,7 @@ public class StagingViewModel : ViewModelBase
                 var artist = !string.IsNullOrWhiteSpace(r.AlbumArtist) ? r.AlbumArtist : r.Artist;
                 var key = Norm(artist) + "|" + Norm(r.Album);
                 if (!groups.TryGetValue(key, out var g))
-                    g = (artist, r.Album, r.Year > 0 ? r.Year.ToString() : "", new List<string>(), 0, 0, 0, 0, new HashSet<string>(), new HashSet<int>(), false, "");
+                    g = (artist, r.Album, r.Year > 0 ? r.Year.ToString() : "", new List<string>(), 0, 0, 0, 0, new HashSet<string>(), new HashSet<int>(), false, "", 0L);
 
                 g.Files.Add(r.Path);
                 var dir = Path.GetDirectoryName(r.Path);
@@ -319,6 +549,7 @@ public class StagingViewModel : ViewModelBase
                 if (r.Year <= 0 || string.IsNullOrWhiteSpace(r.Genre)) g.MissingYg++;
                 if (r.TrackNo > 0) { if (!g.Tracks.Add(r.TrackNo)) g.DupTrack = true; }
                 if (string.IsNullOrEmpty(g.Year) && r.Year > 0) g.Year = r.Year.ToString();
+                g.BrSum += r.Bitrate;
 
                 groups[key] = g;
             }
@@ -327,7 +558,16 @@ public class StagingViewModel : ViewModelBase
             foreach (var g in groups.Values.OrderBy(g => g.Artist).ThenBy(g => g.Album))
             {
                 bool dup = g.DupTrack || g.Dirs.Count > 1;
-                bool already = have.Contains(Norm(g.Artist) + "|" + Norm(g.Album));
+                var key = Norm(g.Artist) + "|" + Norm(g.Album);
+                bool already = have.Contains(key);
+                bool inboxBetter = false;
+                if (already && g.Files.Count > 0 && libQ.TryGetValue(key, out var lq))
+                {
+                    double inFrac = (g.Files.Count - g.Lossy) / (double)g.Files.Count;
+                    double inAvg = g.BrSum / (double)g.Files.Count;
+                    inboxBetter = inFrac > lq.LosslessFrac + 0.001
+                        || (Math.Abs(inFrac - lq.LosslessFrac) < 0.001 && inAvg > lq.AvgBitrate * 1.1);
+                }
                 var flags = new List<string>();
                 if (g.Lossy > 0) flags.Add($"{g.Lossy} lossy");
                 if (g.Untagged > 0) flags.Add($"{g.Untagged} without tags");
@@ -335,10 +575,11 @@ public class StagingViewModel : ViewModelBase
                 if (g.MissingYg > 0) flags.Add("missing year/genre");
                 if (dup) flags.Add("duplicate versions");
                 bool clean = g.Lossy == 0 && g.Untagged == 0 && g.NoCover == 0 && g.MissingYg == 0 && !dup;
-                if (already) flags.Add("already in library");
+                if (already) flags.Add(inboxBetter ? "better quality than library — replace?" : "already in library — better quality there");
                 var sub = $"{g.Files.Count} tracks" + (string.IsNullOrEmpty(g.Year) ? "" : $"  ·  {g.Year}");
                 albums.Add(new StagingAlbumViewModel(g.Artist, g.Album, g.Year, g.Files, g.Dirs.ToList(),
-                    flags, clean, already, sub, g.Cover.Length > 0 ? g.Cover : null, OpenDetail));
+                    flags, clean, already, inboxBetter, sub, g.Cover.Length > 0 ? g.Cover : null,
+                    OpenDetail, DeleteInboxAlbum, ReplaceInLibrary));
             }
 
             Dispatcher.UIThread.Post(() =>

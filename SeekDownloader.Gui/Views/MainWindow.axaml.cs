@@ -243,6 +243,68 @@ public partial class MainWindow : Window
         if (path != null && Vm != null) Vm.Sync.IpodFolder = path;
     }
 
+    // ---- Artwork: klembord (Mp3tag-stijl) ----
+    private async System.Threading.Tasks.Task<byte[]?> ReadClipboardImageAsync()
+    {
+        try
+        {
+            var cb = Clipboard;
+            if (cb == null) return null;
+            var formats = await cb.GetFormatsAsync();
+            foreach (var f in formats)
+            {
+                var fl = f.ToLowerInvariant();
+                if (!(fl.Contains("png") || fl.Contains("jpeg") || fl.Contains("jpg") || fl.Contains("tiff") || fl.Contains("image"))) continue;
+                if (await cb.GetDataAsync(f) is not byte[] b || b.Length < 16) continue;
+                if (fl.Contains("tiff"))
+                {
+                    try
+                    {
+                        using var ms = new System.IO.MemoryStream(b);
+                        var bmp = new Avalonia.Media.Imaging.Bitmap(ms);
+                        using var outMs = new System.IO.MemoryStream();
+                        bmp.Save(outMs);
+                        return outMs.ToArray();
+                    }
+                    catch { continue; }
+                }
+                return b;
+            }
+        }
+        catch { }
+        return null;
+    }
+
+    private async void OnPasteMetaArt(object? sender, RoutedEventArgs e)
+    {
+        var data = await ReadClipboardImageAsync();
+        if (data != null) Vm?.Meta.SetArtBytes(data);
+        else Vm?.Meta.Notify("No image on the clipboard.");
+    }
+
+    private async void OnInboxCoverChoose(object? sender, RoutedEventArgs e)
+    {
+        var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+        {
+            Title = "Choose album art",
+            AllowMultiple = false,
+            FileTypeFilter = new[] { new FilePickerFileType("Images") { Patterns = new[] { "*.jpg", "*.jpeg", "*.png" } } }
+        });
+        var p = files.Count > 0 ? files[0].TryGetLocalPath() : null;
+        if (p != null && Vm != null)
+        {
+            try { Vm.Staging.ApplyCoverToDetailAlbum(System.IO.File.ReadAllBytes(p)); }
+            catch { Vm.Staging.Notify("Couldn't read that image."); }
+        }
+    }
+
+    private async void OnInboxCoverPaste(object? sender, RoutedEventArgs e)
+    {
+        var data = await ReadClipboardImageAsync();
+        if (data != null) Vm?.Staging.ApplyCoverToDetailAlbum(data);
+        else Vm?.Staging.Notify("No image on the clipboard.");
+    }
+
     private async void OnLoadMetaArt(object? sender, RoutedEventArgs e)
     {
         var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions

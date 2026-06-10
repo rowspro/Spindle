@@ -28,6 +28,7 @@ public class MetadataEditorViewModel : ViewModelBase
         ApplyAppleArtistCommand = new RelayCommand(ApplyAppleArtist, () => HasFile && !IsBusy);
         AutoFillCommand = new RelayCommand(AutoFill, () => HasFile && !IsBusy);
         RemoveArtCommand = new RelayCommand(RemoveArt, () => HasFile && !IsBusy);
+        ApplyArtNowCommand = new RelayCommand(ApplyArtNow, () => HasFile && !IsBusy);
         MatchAlbumCommand = new RelayCommand(MatchAlbum, () => HasFile && !IsBusy);
         ApplyAlbumMatchCommand = new RelayCommand(ApplyAlbumMatch, () => SelectedCandidate != null && !IsBusy);
         CancelCandidatesCommand = new RelayCommand(() => ShowCandidates = false);
@@ -107,6 +108,7 @@ public class MetadataEditorViewModel : ViewModelBase
     public RelayCommand ApplyAppleArtistCommand { get; }
     public RelayCommand AutoFillCommand { get; }
     public RelayCommand RemoveArtCommand { get; }
+    public RelayCommand ApplyArtNowCommand { get; }
 
     // ---- weergavemodus: formulier / tabel / converters (fase 2) ----
     public RelayCommand ModeFormCommand { get; }
@@ -303,6 +305,54 @@ public class MetadataEditorViewModel : ViewModelBase
         {
             Status = "Couldn't load file: " + e.Message;
         }
+    }
+
+    /// <summary>Status helper for code-behind (e.g. clipboard paste feedback).</summary>
+    public void Notify(string msg) => Status = msg;
+
+    /// <summary>Set cover art from raw image bytes (clipboard paste, Mp3tag-style).</summary>
+    public void SetArtBytes(byte[] data)
+    {
+        try
+        {
+            _artData = data;
+            _artChanged = true;
+            AlbumArt = BitmapFrom(data);
+            Status = "Cover pasted — saved on Approve, or use 'Apply to whole album'.";
+        }
+        catch (Exception e) { Status = "Couldn't read pasted image: " + e.Message; }
+    }
+
+    /// <summary>Write the current cover to ALL loaded files immediately (no Approve needed).</summary>
+    private void ApplyArtNow()
+    {
+        if (_artData == null) { Status = "No cover loaded — choose or paste one first."; return; }
+        var files = _allFiles.ToList();
+        var art = _artData;
+        IsBusy = true;
+        Status = "Applying cover to the whole album…";
+        Task.Run(() =>
+        {
+            int n = 0;
+            foreach (var f in files)
+            {
+                try
+                {
+                    var t = new Track(f);
+                    t.EmbeddedPictures.Clear();
+                    t.EmbeddedPictures.Add(PictureInfo.fromBinaryData(art));
+                    t.Save();
+                    n++;
+                }
+                catch { }
+            }
+            Dispatcher.UIThread.Post(() =>
+            {
+                IsBusy = false;
+                _artChanged = false;
+                Status = $"Cover applied to {n} files.";
+            });
+        });
     }
 
     public void SetArt(string imagePath)
@@ -631,6 +681,7 @@ public class MetadataEditorViewModel : ViewModelBase
         ApplyAppleArtistCommand.RaiseCanExecuteChanged();
         AutoFillCommand.RaiseCanExecuteChanged();
         RemoveArtCommand.RaiseCanExecuteChanged();
+        ApplyArtNowCommand.RaiseCanExecuteChanged();
         MatchAlbumCommand.RaiseCanExecuteChanged();
         ApplyAlbumMatchCommand.RaiseCanExecuteChanged();
         OnPropertyChanged(nameof(FolderMode));
