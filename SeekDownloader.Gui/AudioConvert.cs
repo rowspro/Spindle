@@ -59,15 +59,18 @@ public static class AudioConvert
         return true;
     }
 
-    public static void CopyTags(string src, string dst)
+    // artistFromAlbumArtist: ALAC-uitvoer is voor de iPod — daar wordt Artist gelijkgezet aan
+    // AlbumArtist zodat de artiestenlijst niet vol "feat."-varianten komt. De bron blijft intact.
+    public static void CopyTags(string src, string dst, bool artistFromAlbumArtist = false)
     {
         try
         {
             var s = new ATL.Track(src);
+            var artist = artistFromAlbumArtist && !string.IsNullOrWhiteSpace(s.AlbumArtist) ? s.AlbumArtist : s.Artist;
             var d = new ATL.Track(dst)
             {
                 Title = s.Title,
-                Artist = s.Artist,
+                Artist = artist,
                 AlbumArtist = s.AlbumArtist,
                 Album = s.Album,
                 Composer = s.Composer,

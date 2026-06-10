@@ -388,7 +388,7 @@ public class SyncViewModel : ViewModelBase
                                 {
                                     if (AudioConvert.Encode(job.File, part, true, token, out var encErr) && File.Exists(part))
                                     {
-                                        AudioConvert.CopyTags(job.File, part);
+                                        AudioConvert.CopyTags(job.File, part, artistFromAlbumArtist: true);
                                         File.Move(part, dest, true);
                                         Interlocked.Increment(ref copied);
                                     }

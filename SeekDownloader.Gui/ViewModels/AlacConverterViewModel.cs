@@ -135,7 +135,7 @@ public class AlacConverterViewModel : ViewModelBase
                             {
                                 if (AudioConvert.Encode(item.SourcePath, part, ipod, token, out var encErr) && File.Exists(part))
                                 {
-                                    AudioConvert.CopyTags(item.SourcePath, part);
+                                    AudioConvert.CopyTags(item.SourcePath, part, artistFromAlbumArtist: true);
                                     File.Move(part, dst, true); // atomic publish: dst only appears when complete
                                     if (delete) { try { File.Delete(item.SourcePath); } catch { } }
                                     Interlocked.Increment(ref done);
