@@ -894,6 +894,21 @@ public class StagingViewModel : ViewModelBase
     private RelayCommand? _dismissReceipt;
     public RelayCommand DismissReceiptCommand => _dismissReceipt ??= new RelayCommand(() => LastReceipt = "");
 
+    private static string VolRoot(string p)
+    {
+        try
+        {
+            var full = Path.GetFullPath(p);
+            if (full.StartsWith("/Volumes/", StringComparison.Ordinal))
+            {
+                var ix = full.IndexOf('/', 9);
+                return ix > 0 ? full[..ix] : full;
+            }
+        }
+        catch { }
+        return "/";
+    }
+
     private static string FmtBytes(long b) =>
         b >= 1L << 30 ? $"{b / (double)(1L << 30):0.0} GB" : b >= 1L << 20 ? $"{b / (double)(1L << 20):0} MB" : $"{b / 1024.0:0} kB";
 
@@ -1030,6 +1045,27 @@ public class StagingViewModel : ViewModelBase
 
         Task.Run(() =>
         {
+            // Vrije-ruimte-check bij cross-volume approve (zelfde volume = rename, kost geen ruimte).
+            try
+            {
+                if (!string.Equals(VolRoot(plan[0].FromPath), VolRoot(LibraryFolder), StringComparison.OrdinalIgnoreCase))
+                {
+                    long need = 0;
+                    foreach (var it in plan) { try { need += new FileInfo(it.FromPath).Length; } catch { } }
+                    long free = 0;
+                    try { free = new DriveInfo(VolRoot(LibraryFolder)).AvailableFreeSpace; } catch { }
+                    if (free > 0 && need > free)
+                    {
+                        Dispatcher.UIThread.Post(() =>
+                        {
+                            IsBusy = false;
+                            Status = $"⚠ Not enough free space on the library volume — needs ~{FmtBytes(need)}, only {FmtBytes(free)} free.";
+                        });
+                        return;
+                    }
+                }
+            }
+            catch { }
             int moved = 0;
             var ops = new List<UndoJournal.MoveOp>();
             var dirs = new HashSet<string>();

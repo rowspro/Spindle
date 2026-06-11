@@ -28,7 +28,9 @@ internal static class Program
             var dir = System.IO.Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "SeekDownloader");
             System.IO.Directory.CreateDirectory(dir);
-            System.IO.File.AppendAllText(System.IO.Path.Combine(dir, "crash.log"),
+            var logPath = System.IO.Path.Combine(dir, "crash.log");
+            try { var fi = new System.IO.FileInfo(logPath); if (fi.Exists && fi.Length > 1_000_000) fi.Delete(); } catch { }
+            System.IO.File.AppendAllText(logPath,
                 $"==== {DateTime.Now:yyyy-MM-dd HH:mm:ss} ===={Environment.NewLine}{ex}{Environment.NewLine}");
         }
         catch { }

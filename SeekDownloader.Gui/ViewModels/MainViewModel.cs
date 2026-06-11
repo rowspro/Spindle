@@ -108,6 +108,28 @@ public class MainViewModel : ViewModelBase
             MaybeKickMirror();   // iTunes-modus: spiegel bijwerken zodra de bieb verandert
         };
         Lib.Configure(MusicLibrary, DownloadFilePath);
+        CheckFolderSanity();
+
+        // Externe-SSD-wacht: meld als het bieb-volume weg is en herstel automatisch zodra het terugkomt.
+        _volTimer = new Avalonia.Threading.DispatcherTimer { Interval = TimeSpan.FromSeconds(5) };
+        _volTimer.Tick += (_, _) =>
+        {
+            bool missing = !string.IsNullOrWhiteSpace(MusicLibrary) && !System.IO.Directory.Exists(MusicLibrary);
+            if (missing && !_volMissing)
+            {
+                _volMissing = true;
+                GlobalStatus = "⚠ Library volume not mounted — waiting for it to come back…";
+            }
+            else if (!missing && _volMissing)
+            {
+                _volMissing = false;
+                GlobalStatus = "Library volume is back — re-indexing…";
+                Lib.Configure(MusicLibrary, DownloadFilePath);
+            }
+            else if (missing)
+                GlobalStatus = "⚠ Library volume not mounted — waiting for it to come back…";
+        };
+        _volTimer.Start();
 
         // Restore unfinished downloads from the previous session so they can be resumed (no re-search).
         foreach (var e in QueueStore.Load())
@@ -364,9 +386,38 @@ public class MainViewModel : ViewModelBase
     private string _musicLibrary = string.Empty;
     private string _searchFilePath = string.Empty;
     private string _downloadArchiveFilePath = string.Empty;
-    public string DownloadFilePath { get => _downloadFilePath; set { if (SetField(ref _downloadFilePath, value)) Staging.NieuwFolder = value; } }
-    public string MusicLibrary { get => _musicLibrary; set { if (SetField(ref _musicLibrary, value)) { OnPropertyChanged(nameof(HasMusicLibrary)); Staging.LibraryFolder = value; } } }
+    public string DownloadFilePath { get => _downloadFilePath; set { if (SetField(ref _downloadFilePath, value)) { Staging.NieuwFolder = value; CheckFolderSanity(); } } }
+    public string MusicLibrary { get => _musicLibrary; set { if (SetField(ref _musicLibrary, value)) { OnPropertyChanged(nameof(HasMusicLibrary)); Staging.LibraryFolder = value; CheckFolderSanity(); } } }
     public bool HasMusicLibrary => !string.IsNullOrWhiteSpace(MusicLibrary);
+
+    // ---- Map-validatie: inbox en bieb mogen niet samenvallen of genest zijn ----
+    private Avalonia.Threading.DispatcherTimer? _volTimer;
+    private bool _volMissing;
+    private string _folderWarning = "";
+    public string FolderWarning { get => _folderWarning; private set => SetField(ref _folderWarning, value); }
+
+    private void CheckFolderSanity()
+    {
+        var a = MusicLibrary; var b = DownloadFilePath;
+        string w = "";
+        if (!string.IsNullOrWhiteSpace(a) && !string.IsNullOrWhiteSpace(b))
+        {
+            string fa = a, fb = b;
+            try
+            {
+                fa = System.IO.Path.GetFullPath(a).TrimEnd('/');
+                fb = System.IO.Path.GetFullPath(b).TrimEnd('/');
+            }
+            catch { }
+            if (string.Equals(fa, fb, StringComparison.OrdinalIgnoreCase))
+                w = "⚠ 'New music' and 'Music library' point to the same folder — approving would import the library into itself.";
+            else if ((fb + "/").StartsWith(fa + "/", StringComparison.OrdinalIgnoreCase))
+                w = "⚠ The 'New music' folder sits inside your music library — incoming files would already count as library tracks.";
+            else if ((fa + "/").StartsWith(fb + "/", StringComparison.OrdinalIgnoreCase))
+                w = "⚠ Your music library sits inside the 'New music' folder — the whole library would show up in the inbox.";
+        }
+        FolderWarning = w;
+    }
     public string SearchFilePath { get => _searchFilePath; set => SetField(ref _searchFilePath, value); }
     public string DownloadArchiveFilePath { get => _downloadArchiveFilePath; set => SetField(ref _downloadArchiveFilePath, value); }
 

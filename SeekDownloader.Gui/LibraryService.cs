@@ -71,7 +71,20 @@ public sealed class LibraryService : IDisposable
             w.Deleted += (_, _) => MarkDirty(root);
             w.Renamed += (_, _) => MarkDirty(root);
             w.Changed += (_, _) => MarkDirty(root);
-            w.Error += (_, _) => { try { w.EnableRaisingEvents = false; } catch { } }; // volume weg → watcher uit
+            w.Error += (_, _) =>
+            {
+                // Volume weg of buffer-overflow → uitschakelen en her-bewapenen zodra de map terug is.
+                try { w.EnableRaisingEvents = false; } catch { }
+                Task.Run(async () =>
+                {
+                    for (int i = 0; i < 60; i++)
+                    {
+                        await Task.Delay(5000);
+                        if (!Directory.Exists(root)) continue;
+                        try { w.EnableRaisingEvents = true; Refresh(root); return; } catch { }
+                    }
+                });
+            };
             w.EnableRaisingEvents = true;
             return w;
         }

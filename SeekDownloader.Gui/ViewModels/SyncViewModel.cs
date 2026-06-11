@@ -285,6 +285,9 @@ public class SyncViewModel : ViewModelBase
         return _all.Where(a => a.Selected).Select(WKey).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
     }
 
+    private static string FmtBytes(long b) =>
+        b >= 1L << 30 ? $"{b / (double)(1L << 30):0.0} GB" : b >= 1L << 20 ? $"{b / (double)(1L << 20):0} MB" : $"{b / 1024.0:0} kB";
+
     private void MarkIpodPresence()
     {
         var ipod = IpodFolder;
@@ -371,6 +374,7 @@ public class SyncViewModel : ViewModelBase
         {
             using var awake = KeepAwake.Start();   // Mac niet laten slapen midden in een transfer
             int copied = 0, skipped = 0, failed = 0, processed = 0, removed = 0;
+            bool deviceGone = false;
             try
             {
                 var musicRoot = Path.Combine(ipod, "Music");
@@ -382,6 +386,7 @@ public class SyncViewModel : ViewModelBase
             foreach (var a in deletes)
             {
                 if (token.IsCancellationRequested) break;
+                if (!Directory.Exists(ipod)) { deviceGone = true; break; }
                 try
                 {
                     var dir = Path.Combine(ipod, "Music", Clean(a.Artist), Clean(a.Album));
@@ -389,18 +394,57 @@ public class SyncViewModel : ViewModelBase
                 }
                 catch { }
             }
+
+            // Deterministisch plan: vaste volgorde, unieke doelnamen (geen stille botsingen na Clean())
+            // en een vrije-ruimte-check vóór er één byte wordt gekopieerd.
+            var takenDest = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var planned = new List<(string File, string Dest, bool DoConvert)>();
+            long need = 0;
+            foreach (var job in jobs.OrderBy(j => j.File, StringComparer.OrdinalIgnoreCase))
+            {
+                var ext = Path.GetExtension(job.File).ToLowerInvariant();
+                var doConvert = convert && ConvertExt.Contains(ext);
+                var destDir = Path.Combine(ipod, "Music", Clean(job.Artist), Clean(job.Album));
+                var name = Path.GetFileName(job.File);
+                var dest = Path.Combine(destDir, doConvert ? Path.ChangeExtension(name, ".m4a") : name);
+                if (!takenDest.Add(dest))
+                {
+                    int n2 = 2;
+                    var bare = Path.GetFileNameWithoutExtension(dest);
+                    var ex2 = Path.GetExtension(dest);
+                    while (!takenDest.Add(dest = Path.Combine(destDir, bare + $" ({n2++})" + ex2))) { }
+                }
+                planned.Add((job.File, dest, doConvert));
+                if (!File.Exists(dest))
+                    try { var len = new FileInfo(job.File).Length; need += doConvert ? (long)(len * 0.7) : len; } catch { }
+            }
+            long freeBytes = 0;
+            try { freeBytes = new DriveInfo(ipod).AvailableFreeSpace; } catch { }
+            if (!deviceGone && freeBytes > 0 && need > freeBytes)
+            {
+                Dispatcher.UIThread.Post(() =>
+                {
+                    IsBusy = false; IsTransferring = false; TransferProgress = 0;
+                    Status = $"⚠ Not enough free space on the iPod — this selection needs ~{FmtBytes(need)} and only {FmtBytes(freeBytes)} is free. Untick some albums.";
+                });
+                return;
+            }
             try
             {
-                Parallel.ForEach(jobs, new ParallelOptions { MaxDegreeOfParallelism = dop, CancellationToken = token }, job =>
+                Parallel.ForEach(planned, new ParallelOptions { MaxDegreeOfParallelism = dop, CancellationToken = token }, job =>
                 {
                     token.ThrowIfCancellationRequested();
                     try
                     {
-                        var ext = Path.GetExtension(job.File).ToLowerInvariant();
-                        var doConvert = convert && ConvertExt.Contains(ext);
-                        var destDir = Path.Combine(ipod, "Music", Clean(job.Artist), Clean(job.Album));
-                        var name = Path.GetFileName(job.File);
-                        var dest = Path.Combine(destDir, doConvert ? Path.ChangeExtension(name, ".m4a") : name);
+                        if (!Directory.Exists(ipod))
+                        {
+                            deviceGone = true;
+                            try { _cts?.Cancel(); } catch { }
+                            throw new OperationCanceledException();
+                        }
+                        var doConvert = job.DoConvert;
+                        var dest = job.Dest;
+                        var destDir = Path.GetDirectoryName(dest)!;
                         if (File.Exists(dest)) { Interlocked.Increment(ref skipped); }
                         else
                         {
@@ -450,7 +494,9 @@ public class SyncViewModel : ViewModelBase
                 IsBusy = false;
                 IsTransferring = false;
                 if (!token.IsCancellationRequested) TransferProgress = 100;
-                Status = token.IsCancellationRequested
+                Status = deviceGone
+                    ? $"⚠ iPod disconnected — transfer stopped after {copied} track(s). Reconnect and press Transfer; it continues where it left off."
+                    : token.IsCancellationRequested
                     ? $"Stopped — {copied} transferred, {removed} removed, {skipped} skipped."
                     : $"Done — {copied} transferred, {removed} removed from iPod, {skipped} skipped, {failed} failed.  ✓ Safe to disconnect the iPod.";
                 MarkIpodPresence();
