@@ -191,6 +191,12 @@ public partial class MainWindow : Window
         return files.Count > 0 ? files[0].TryGetLocalPath() : null;
     }
 
+    private async void OnBrowseAlacMirror(object? sender, RoutedEventArgs e)
+    {
+        var path = await PickFolderAsync("Choose the ALAC mirror folder (outside your library)");
+        if (path != null && Vm != null) Vm.AlacMirrorFolder = path;
+    }
+
     // ---- Metadata editor tab ----
     private async void OnOpenMetaFile(object? sender, RoutedEventArgs e)
     {

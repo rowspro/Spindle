@@ -77,6 +77,7 @@ public class MainViewModel : ViewModelBase
             setAlbumLevel: v => GalaxyAlbumLevel = v);
 
         Wantlist = new WantlistViewModel(Lib, () => MusicLibrary);
+        _mirror.Status += msg => Avalonia.Threading.Dispatcher.UIThread.Post(() => MirrorStatus = msg);
 
         LoadFromConfig(Settings.Load());
 
@@ -104,6 +105,7 @@ public class MainViewModel : ViewModelBase
             GlobalStatus = $"{Lib.Index.TrackCount():N0} tracks indexed";
             RefreshArtistSuggestions();
             Wantlist.RefreshOwned();
+            MaybeKickMirror();   // iTunes-modus: spiegel bijwerken zodra de bieb verandert
         };
         Lib.Configure(MusicLibrary, DownloadFilePath);
 
@@ -519,6 +521,39 @@ public class MainViewModel : ViewModelBase
     public BrowserViewModel Browser { get; }
     public GalaxyViewModel Galaxy { get; }
     public WantlistViewModel Wantlist { get; }
+
+    // ---- iPod mode: Rockbox (direct uit de bieb) of iTunes (ALAC-spiegel op de achtergrond) ----
+    private readonly AlacMirrorService _mirror = new();
+    private bool _itunesMode;
+    public bool ItunesMode { get => _itunesMode; set { if (SetField(ref _itunesMode, value)) { OnPropertyChanged(nameof(RockboxMode)); ApplyMirrorMode(); } } }
+    public bool RockboxMode => !_itunesMode;
+    private string _alacMirrorFolder = "";
+    public string AlacMirrorFolder { get => _alacMirrorFolder; set { if (SetField(ref _alacMirrorFolder, value)) MaybeKickMirror(); } }
+    private string _mirrorStatus = "";
+    public string MirrorStatus { get => _mirrorStatus; private set => SetField(ref _mirrorStatus, value); }
+
+    private void ApplyMirrorMode()
+    {
+        if (_itunesMode)
+        {
+            if (string.IsNullOrWhiteSpace(AlacMirrorFolder) && !string.IsNullOrWhiteSpace(MusicLibrary))
+                AlacMirrorFolder = MusicLibrary.TrimEnd('/', System.IO.Path.DirectorySeparatorChar) + " (ALAC)";
+            MirrorStatus = "iTunes mode on — the mirror syncs in the background.";
+            MaybeKickMirror();
+        }
+        else
+        {
+            _mirror.Stop();
+            MirrorStatus = "";
+        }
+    }
+
+    private void MaybeKickMirror()
+    {
+        if (_itunesMode && !string.IsNullOrWhiteSpace(AlacMirrorFolder)
+            && !string.IsNullOrWhiteSpace(MusicLibrary) && System.IO.Directory.Exists(MusicLibrary))
+            _mirror.Kick(MusicLibrary, AlacMirrorFolder);
+    }
 
     // ---- Runtime state ----
     private bool _isRunning;
@@ -1146,6 +1181,8 @@ public class MainViewModel : ViewModelBase
             AutoOrganize = AutoOrganize,
             Watchlist = Wantlist.WatchNames(),
             Wantlist = Wantlist.WantEntries(),
+            ItunesMode = ItunesMode,
+            AlacMirrorFolder = AlacMirrorFolder,
             GalaxyAlbumLevel = GalaxyAlbumLevel,
             DarkMode = DarkMode,
             FilenameTemplate = string.IsNullOrWhiteSpace(FilenameTemplate) ? NameTemplate.Default : FilenameTemplate.Trim(),
@@ -1196,6 +1233,12 @@ public class MainViewModel : ViewModelBase
         AppleMusic.LibraryFolder = c.AppleLibrary;
         AutoOrganize = c.AutoOrganize;
         Wantlist.Load(c.Watchlist, c.Wantlist);
+        _itunesMode = c.ItunesMode;
+        _alacMirrorFolder = c.AlacMirrorFolder;
+        OnPropertyChanged(nameof(ItunesMode));
+        OnPropertyChanged(nameof(RockboxMode));
+        OnPropertyChanged(nameof(AlacMirrorFolder));
+        if (_itunesMode) MaybeKickMirror();
         GalaxyAlbumLevel = c.GalaxyAlbumLevel;
         DarkMode = c.DarkMode;
         FilenameTemplate = string.IsNullOrWhiteSpace(c.FilenameTemplate) ? NameTemplate.Default : c.FilenameTemplate;

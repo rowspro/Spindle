@@ -63,4 +63,6 @@ public class SeekConfig
     // Followed artists for the discography/watchlist tab.
     public List<string> Watchlist { get; set; } = new();
     public List<string> Wantlist { get; set; } = new();
+    public bool ItunesMode { get; set; }
+    public string AlacMirrorFolder { get; set; } = string.Empty;
 }

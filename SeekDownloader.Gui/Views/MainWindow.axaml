@@ -1156,6 +1156,26 @@
 
                         <Border Classes="card">
                             <StackPanel>
+                                <TextBlock Classes="title" Text="IPOD MODE" />
+                                <ToggleSwitch Margin="0,8,0,0" IsChecked="{Binding ItunesMode}" OnContent="iTunes / stock iPod" OffContent="Rockbox" />
+                                <TextBlock Classes="caption" TextWrapping="Wrap" Margin="0,6,0,0" IsVisible="{Binding RockboxMode}"
+                                           Text="Rockbox: the Transfer tab copies straight from your music library — no conversion needed (Rockbox plays FLAC natively)." />
+                                <StackPanel IsVisible="{Binding ItunesMode}">
+                                    <TextBlock Classes="caption" TextWrapping="Wrap" Margin="0,6,0,0"
+                                               Text="iTunes / stock iPod: Spindle keeps an ALAC mirror of your library in sync automatically, in the background — FLAC/WAV become iPod-ready ALAC (Artist = Album artist), MP3/AAC are copied as-is, removed albums are cleaned up. Point iTunes/Finder at this folder and sync; no manual converting, no waiting." />
+                                    <Grid ColumnDefinitions="Auto,*,Auto" Margin="0,8,0,0">
+                                        <TextBlock Grid.Column="0" Classes="label" Text="ALAC mirror" />
+                                        <TextBox Grid.Column="1" Text="{Binding AlacMirrorFolder}" Watermark="Folder for the ALAC copy (outside your library)" />
+                                        <Button Grid.Column="2" Classes="ghost" Content="Browse…" Margin="8,0,0,0" Click="OnBrowseAlacMirror" />
+                                    </Grid>
+                                    <TextBlock Classes="caption" Margin="0,6,0,0" Text="{Binding MirrorStatus}"
+                                               IsVisible="{Binding MirrorStatus, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Classes="card">
+                            <StackPanel>
                                 <TextBlock Classes="section" Text="FOLDERS" />
                                 <Grid ColumnDefinitions="110,*,Auto" RowDefinitions="Auto,Auto">
                                     <TextBlock Grid.Row="0" Grid.Column="0" Classes="label" Text="New music" />
