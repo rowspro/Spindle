@@ -23,7 +23,6 @@ public sealed class PlayerViewModel : ViewModelBase
     private int _idx = -1;
     private Process? _proc;
     private bool _paused;
-    private bool _expectExit;
     private readonly Stopwatch _sw = new();
     private readonly DispatcherTimer _tick;
 
@@ -88,8 +87,9 @@ public sealed class PlayerViewModel : ViewModelBase
 
     private void OnExited(Process proc)
     {
+        // Alleen het natuurlijke einde van het HUIDIGE proces telt. Een gekild proces is
+        // op dat moment al uit _proc gehaald (KillProc nult eerst), dus die exits vallen hier af.
         if (!ReferenceEquals(proc, _proc)) return;
-        if (_expectExit) { _expectExit = false; return; }
         if (_idx < _queue.Count - 1) { _idx++; StartCurrent(); }   // natuurlijk einde → volgende
         else Stop();
     }
@@ -125,17 +125,17 @@ public sealed class PlayerViewModel : ViewModelBase
 
     private void KillProc()
     {
+        var p = _proc;
+        _proc = null;   // eerst loskoppelen, dan pas killen — zo kan de Exited-handler nooit meer matchen
         try
         {
-            if (_proc != null && !_proc.HasExited)
+            if (p != null && !p.HasExited)
             {
-                _expectExit = true;
-                if (_paused) Process.Start("/bin/kill", new[] { "-CONT", _proc.Id.ToString() });
-                _proc.Kill();
+                if (_paused) Process.Start("/bin/kill", new[] { "-CONT", p.Id.ToString() });
+                p.Kill();
             }
         }
         catch { }
-        _proc = null;
     }
 
     private void UpdateTime()
