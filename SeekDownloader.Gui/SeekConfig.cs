@@ -47,10 +47,6 @@ public class SeekConfig
     public int SearchMatchTrackPercentage { get; set; } = 50;
 
     // Last-used folders per tool, so the app remembers them between launches.
-    public string SortSource { get; set; } = string.Empty;
-    public string SortDest { get; set; } = string.Empty;
-    public string AlacSource { get; set; } = string.Empty;
-    public string AlacOutput { get; set; } = string.Empty;
     public string DupFolder { get; set; } = string.Empty;
     public string SyncLibrary { get; set; } = string.Empty;
     public string SyncIpod { get; set; } = string.Empty;

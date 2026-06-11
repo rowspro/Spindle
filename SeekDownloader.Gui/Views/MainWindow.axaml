@@ -400,48 +400,36 @@
                 <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
                     <StackPanel>
                         <TextBlock Classes="navGroup" Text="WORKFLOW" />
-                        <Button Classes="nav" Tag="8" Click="OnNav"
-                                Classes.active="{Binding SelectedTabIndex, Converter={x:Static vm:IntEquals.Instance}, ConverterParameter=8}">
+                        <Button Classes="nav" Tag="5" Click="OnNav"
+                                Classes.active="{Binding SelectedTabIndex, Converter={x:Static vm:IntEquals.Instance}, ConverterParameter=5}">
                             <StackPanel Orientation="Horizontal"><TextBlock Classes="icon" FontSize="19" Width="28" Text="&#xE168;" /><TextBlock Text="Inbox" VerticalAlignment="Center" /></StackPanel>
                         </Button>
 
                         <TextBlock Classes="navGroup" Text="LIBRARY" />
-                        <Button Classes="nav" Tag="9" Click="OnNav"
-                                Classes.active="{Binding SelectedTabIndex, Converter={x:Static vm:IntEquals.Instance}, ConverterParameter=9}">
+                        <Button Classes="nav" Tag="6" Click="OnNav"
+                                Classes.active="{Binding SelectedTabIndex, Converter={x:Static vm:IntEquals.Instance}, ConverterParameter=6}">
                             <StackPanel Orientation="Horizontal"><TextBlock Classes="icon" FontSize="19" Width="28" Text="&#xE030;" /><TextBlock Text="Library" VerticalAlignment="Center" /></StackPanel>
                         </Button>
-                        <Button Classes="nav" Tag="10" Click="OnNav"
-                                Classes.active="{Binding SelectedTabIndex, Converter={x:Static vm:IntEquals.Instance}, ConverterParameter=10}">
+                        <Button Classes="nav" Tag="7" Click="OnNav"
+                                Classes.active="{Binding SelectedTabIndex, Converter={x:Static vm:IntEquals.Instance}, ConverterParameter=7}">
                             <StackPanel Orientation="Horizontal"><TextBlock Classes="icon" FontSize="19" Width="28" Text="&#xE838;" /><TextBlock Text="Galaxy" VerticalAlignment="Center" /></StackPanel>
                         </Button>
-                        <Button Classes="nav" Tag="4" Click="OnNav"
-                                Classes.active="{Binding SelectedTabIndex, Converter={x:Static vm:IntEquals.Instance}, ConverterParameter=4}">
+                        <Button Classes="nav" Tag="1" Click="OnNav"
+                                Classes.active="{Binding SelectedTabIndex, Converter={x:Static vm:IntEquals.Instance}, ConverterParameter=1}">
                             <StackPanel Orientation="Horizontal"><TextBlock Classes="icon" FontSize="19" Width="28" Text="&#xEAA2;" /><TextBlock Text="Health" VerticalAlignment="Center" /></StackPanel>
                         </Button>
 
                         <TextBlock Classes="navGroup" Text="TOOLS" />
-                        <Button Classes="nav" Tag="1" Click="OnNav"
-                                Classes.active="{Binding SelectedTabIndex, Converter={x:Static vm:IntEquals.Instance}, ConverterParameter=1}">
-                            <StackPanel Orientation="Horizontal"><TextBlock Classes="icon" FontSize="19" Width="28" Text="&#xE663;" /><TextBlock Text="Organize" VerticalAlignment="Center" /></StackPanel>
-                        </Button>
                         <Button Classes="nav" Tag="0" Click="OnNav"
                                 Classes.active="{Binding SelectedTabIndex, Converter={x:Static vm:IntEquals.Instance}, ConverterParameter=0}">
-                            <StackPanel Orientation="Horizontal"><TextBlock Classes="icon" FontSize="19" Width="28" Text="&#xE164;" /><TextBlock Text="Sort" VerticalAlignment="Center" /></StackPanel>
-                        </Button>
-                        <Button Classes="nav" Tag="3" Click="OnNav"
-                                Classes.active="{Binding SelectedTabIndex, Converter={x:Static vm:IntEquals.Instance}, ConverterParameter=3}">
                             <StackPanel Orientation="Horizontal"><TextBlock Classes="icon" FontSize="19" Width="28" Text="&#xE892;" /><TextBlock Text="Metadata" VerticalAlignment="Center" /></StackPanel>
-                        </Button>
-                        <Button Classes="nav" Tag="5" Click="OnNav"
-                                Classes.active="{Binding SelectedTabIndex, Converter={x:Static vm:IntEquals.Instance}, ConverterParameter=5}">
-                            <StackPanel Orientation="Horizontal"><TextBlock Classes="icon" FontSize="19" Width="28" Text="&#xE14D;" /><TextBlock Text="Duplicates" VerticalAlignment="Center" /></StackPanel>
                         </Button>
                         <Button Classes="nav" Tag="2" Click="OnNav"
                                 Classes.active="{Binding SelectedTabIndex, Converter={x:Static vm:IntEquals.Instance}, ConverterParameter=2}">
-                            <StackPanel Orientation="Horizontal"><TextBlock Classes="icon" FontSize="19" Width="28" Text="&#xE1B8;" /><TextBlock Text="ALAC Converter" VerticalAlignment="Center" /></StackPanel>
+                            <StackPanel Orientation="Horizontal"><TextBlock Classes="icon" FontSize="19" Width="28" Text="&#xE14D;" /><TextBlock Text="Duplicates" VerticalAlignment="Center" /></StackPanel>
                         </Button>
-                        <Button Classes="nav" Tag="6" Click="OnNav"
-                                Classes.active="{Binding SelectedTabIndex, Converter={x:Static vm:IntEquals.Instance}, ConverterParameter=6}">
+                        <Button Classes="nav" Tag="3" Click="OnNav"
+                                Classes.active="{Binding SelectedTabIndex, Converter={x:Static vm:IntEquals.Instance}, ConverterParameter=3}">
                             <StackPanel Orientation="Horizontal"><TextBlock Classes="icon" FontSize="19" Width="28" Text="&#xE32C;" /><TextBlock Text="Transfer" VerticalAlignment="Center" /></StackPanel>
                         </Button>
                     </StackPanel>
@@ -449,8 +437,8 @@
 
                 <!-- Bottom: settings -->
                 <StackPanel Grid.Row="2">
-                    <Button Classes="nav" Tag="7" Click="OnNav"
-                            Classes.active="{Binding SelectedTabIndex, Converter={x:Static vm:IntEquals.Instance}, ConverterParameter=7}">
+                    <Button Classes="nav" Tag="4" Click="OnNav"
+                            Classes.active="{Binding SelectedTabIndex, Converter={x:Static vm:IntEquals.Instance}, ConverterParameter=4}">
                         <StackPanel Orientation="Horizontal"><TextBlock Classes="icon" FontSize="19" Width="28" Text="&#xE8B8;" /><TextBlock Text="Settings" VerticalAlignment="Center" /></StackPanel>
                     </Button>
                 </StackPanel>
@@ -482,183 +470,8 @@
         <TabControl Grid.Row="1" Margin="24,12,24,16" SelectedIndex="{Binding SelectedTabIndex, Mode=TwoWay}" Background="Transparent">
 
             <!-- ============ TAB: SORTEREN ============ -->
-            <TabItem Header="Sort">
-                <Grid x:CompileBindings="False" DataContext="{Binding Sort}" RowDefinitions="Auto,Auto,Auto,Auto,*,Auto,Auto" Margin="0,12,0,0">
-                    <StackPanel Grid.Row="0">
-                        <TextBlock Classes="h2" Text="Sort" />
-                        <TextBlock Classes="body" Margin="0,4,0,0" TextWrapping="Wrap"
-                                   Text="Sorts a folder based on tags into: Artist / Album (Year) / 'main artist - album - ## title'. Compilations go under 'Various Artists'. Uses the album artist, never splits names. 'Clean up genre' rewrites the genre to one canonical value." />
-                    </StackPanel>
-                    <Grid Grid.Row="1" ColumnDefinitions="Auto,*,Auto" Margin="0,12,0,0">
-                        <TextBlock Grid.Column="0" Classes="label" Text="Folder" />
-                        <TextBox Grid.Column="1" Text="{Binding SourceFolder}" Watermark="Folder to sort" />
-                        <Button Grid.Column="2" Classes="ghost" Content="Browse…" Margin="8,0,0,0" Click="OnBrowseSortSource" />
-                    </Grid>
-                    <Grid Grid.Row="2" ColumnDefinitions="Auto,*,Auto" Margin="0,8,0,0">
-                        <TextBlock Grid.Column="0" Classes="label" Text="Destination folder" />
-                        <TextBox Grid.Column="1" Text="{Binding DestFolder}" Watermark="Optional — empty = sort in place" />
-                        <Button Grid.Column="2" Classes="ghost" Content="Browse…" Margin="8,0,0,0" Click="OnBrowseSortDest" />
-                    </Grid>
-                    <WrapPanel Grid.Row="3" Margin="0,10,0,0">
-                        <CheckBox Margin="0,0,16,0" Content="Preview only (dry run)" IsChecked="{Binding TestMode}" />
-                        <CheckBox Margin="0,0,16,0" Content="Clean up empty folders" IsChecked="{Binding CleanEmpty}" />
-                        <CheckBox Content="Clean up genre" IsChecked="{Binding CleanGenre}"
-                                  ToolTip.Tip="Writes one canonical genre back (e.g. all hip-hop variants → Hip-Hop/Rap; long lists → the primary genre). Only applies when actually sorting, not in dry run." />
-                    </WrapPanel>
-                    <Border Grid.Row="4" Classes="card" Margin="0,12,0,0">
-                        <TreeView ItemsSource="{Binding Tree}">
-                            <TreeView.DataTemplates>
-                                <TreeDataTemplate DataType="vm:SortArtistGroupViewModel" ItemsSource="{Binding Albums}">
-                                    <TextBlock Text="{Binding Header}" FontWeight="SemiBold" FontSize="13" Foreground="{DynamicResource TextPrimary}" />
-                                </TreeDataTemplate>
-                                <TreeDataTemplate DataType="vm:SortAlbumGroupViewModel" ItemsSource="{Binding Files}">
-                                    <TextBlock Text="{Binding Header}" FontSize="12" Foreground="{DynamicResource TextSecondary}" />
-                                </TreeDataTemplate>
-                                <DataTemplate DataType="vm:SortItemViewModel">
-                                    <Button Classes="ghost" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="6,2" Command="{Binding ShowCommand}">
-                                        <Grid ColumnDefinitions="*,Auto">
-                                            <TextBlock Grid.Column="0" Text="{Binding FileName}" Foreground="{DynamicResource TextPrimary}" FontSize="12" TextTrimming="CharacterEllipsis" />
-                                            <TextBlock Grid.Column="1" Text="{Binding Status}" Foreground="{Binding StatusBrush}" FontSize="12" FontWeight="SemiBold" Margin="8,0,0,0" />
-                                        </Grid>
-                                    </Button>
-                                </DataTemplate>
-                            </TreeView.DataTemplates>
-                        </TreeView>
-                    </Border>
-                    <Border Grid.Row="5" Margin="0,10,0,0" Padding="10" CornerRadius="8" Background="#EEEEF0" BorderBrush="{DynamicResource CardBorder}" BorderThickness="1"
-                            IsVisible="{Binding Detail, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
-                        <SelectableTextBlock Text="{Binding Detail}" Foreground="{DynamicResource TextPrimary}" FontSize="12" TextWrapping="Wrap" />
-                    </Border>
-                    <Grid Grid.Row="6" ColumnDefinitions="*,Auto,Auto" Margin="0,12,0,0">
-                        <SelectableTextBlock Grid.Column="0" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondary}" Text="{Binding Status}" />
-                        <Button Grid.Column="1" Classes="ghost" Content="Undo" Command="{Binding UndoCommand}"
-                                ToolTip.Tip="Reverts the last sort/organize action (last batch of moves)." />
-                        <Button Grid.Column="2" Classes="primary" Content="Sort" Margin="8,0,0,0" Command="{Binding SortCommand}" />
-                    </Grid>
-                </Grid>
-            </TabItem>
-
             <!-- ============ TAB: ORGANISEREN ============ -->
-            <TabItem Header="Organize">
-                <Grid x:CompileBindings="False" DataContext="{Binding Organize}" RowDefinitions="Auto,Auto,Auto,Auto,*,Auto,Auto" Margin="0,12,0,0">
-                    <StackPanel Grid.Row="0">
-                        <TextBlock Classes="h2" Text="Organize" />
-                        <TextBlock Classes="body" Margin="0,4,0,0" TextWrapping="Wrap"
-                                   Text="All-in-one: matches every album against MusicBrainz, fills and polishes the tags (Apple-style artist, primary artist as album artist, canonical genre, album art) and then sorts into Artist / Album (Year) / 'main artist - album - ## title'. 'Preview only' shows everything without changing anything." />
-                    </StackPanel>
-                    <Grid Grid.Row="1" ColumnDefinitions="Auto,*,Auto" Margin="0,12,0,0">
-                        <TextBlock Grid.Column="0" Classes="label" Text="Folder" />
-                        <TextBox Grid.Column="1" Text="{Binding SourceFolder}" Watermark="Folder to organize (e.g. your download folder)" />
-                        <Button Grid.Column="2" Classes="ghost" Content="Browse…" Margin="8,0,0,0" Click="OnBrowseOrganizeSource" />
-                    </Grid>
-                    <Grid Grid.Row="2" ColumnDefinitions="Auto,*,Auto" Margin="0,8,0,0">
-                        <TextBlock Grid.Column="0" Classes="label" Text="Library" />
-                        <TextBox Grid.Column="1" Text="{Binding DestFolder}" Watermark="Destination (empty = same folder)" />
-                        <Button Grid.Column="2" Classes="ghost" Content="Browse…" Margin="8,0,0,0" Click="OnBrowseOrganizeDest" />
-                    </Grid>
-                    <WrapPanel Grid.Row="3" Margin="0,10,0,0">
-                        <CheckBox Margin="0,0,16,0" Content="Preview only (dry run)" IsChecked="{Binding TestMode}" />
-                        <CheckBox Margin="0,0,16,0" Content="Album match (MusicBrainz)" IsChecked="{Binding AlbumMatch}"
-                                  ToolTip.Tip="Matches each album as a whole against a MusicBrainz release for consistent titles, track numbers, year and album artist." />
-                        <CheckBox Margin="0,0,16,0" Content="Fetch album art" IsChecked="{Binding FetchCover}"
-                                  ToolTip.Tip="Fetches album art (Cover Art Archive) and embeds it in files that don't have any yet." />
-                        <CheckBox Margin="0,0,16,0" Content="Clean up genre" IsChecked="{Binding CleanGenre}"
-                                  ToolTip.Tip="Writes one canonical genre back." />
-                        <CheckBox Margin="0,0,16,0" Content="ReplayGain" IsChecked="{Binding ReplayGain}"
-                                  ToolTip.Tip="Analyzes loudness (EBU R128, via ffmpeg) and writes ReplayGain tags so everything plays at the same volume. Slower." />
-                        <CheckBox Content="Lyrics (.lrc)" IsChecked="{Binding Lyrics}"
-                                  ToolTip.Tip="Fetches lyrics (lrclib) and writes an .lrc file next to the track (synced when available; read by Rockbox)." />
-                    </WrapPanel>
-                    <Border Grid.Row="4" Classes="card" Margin="0,12,0,0">
-                        <ScrollViewer VerticalScrollBarVisibility="Auto">
-                            <ItemsControl ItemsSource="{Binding Items}">
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate>
-                                        <Button Classes="ghost" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="8,4" Margin="0,0,0,4" Command="{Binding ShowCommand}">
-                                            <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="*,Auto">
-                                                <TextBlock Grid.Row="0" Grid.Column="0" Text="{Binding FileName}" Foreground="{DynamicResource TextPrimary}" FontSize="12" TextTrimming="CharacterEllipsis" />
-                                                <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding Status}" Foreground="{Binding StatusBrush}" FontSize="12" FontWeight="SemiBold" Margin="8,0,0,0" />
-                                                <TextBlock Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Text="{Binding Target}" Foreground="{DynamicResource TextMuted}" FontSize="11" TextTrimming="CharacterEllipsis" />
-                                            </Grid>
-                                        </Button>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                        </ScrollViewer>
-                    </Border>
-                    <Border Grid.Row="5" Margin="0,10,0,0" Padding="10" CornerRadius="8" Background="#EEEEF0" BorderBrush="{DynamicResource CardBorder}" BorderThickness="1"
-                            IsVisible="{Binding Detail, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
-                        <SelectableTextBlock Text="{Binding Detail}" Foreground="{DynamicResource TextPrimary}" FontSize="12" TextWrapping="Wrap" />
-                    </Border>
-                    <Grid Grid.Row="6" ColumnDefinitions="*,Auto,Auto,Auto" Margin="0,12,0,0">
-                        <SelectableTextBlock Grid.Column="0" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondary}" Text="{Binding Status}" />
-                        <Button Grid.Column="1" Classes="ghost" Content="Undo" Command="{Binding UndoCommand}"
-                                ToolTip.Tip="Reverts the last sort/organize action." />
-                        <Button Grid.Column="2" Classes="ghost" Content="Stop" Width="90" Margin="8,0,0,0" Command="{Binding StopCommand}" HorizontalContentAlignment="Center" />
-                        <Button Grid.Column="3" Classes="primary" Content="Organize" Margin="8,0,0,0" Command="{Binding RunCommand}" />
-                    </Grid>
-                </Grid>
-            </TabItem>
-
             <!-- ============ TAB: ALAC-CONVERTER ============ -->
-            <TabItem Header="ALAC Converter">
-                <Grid x:CompileBindings="False" DataContext="{Binding Alac}" RowDefinitions="Auto,Auto,Auto,Auto,*,Auto,Auto" Margin="0,12,0,0">
-                    <StackPanel Grid.Row="0">
-                        <TextBlock Classes="h2" Text="ALAC Converter" />
-                        <TextBlock Classes="body" Margin="0,4,0,0" TextWrapping="Wrap"
-                                   Text="Converts a music folder (FLAC/WAV/AIFF) to Apple Lossless (ALAC, .m4a) in a destination folder (e.g. your iPod folder). Files that already exist are skipped. Tags and album art come along." />
-                    </StackPanel>
-                    <Grid Grid.Row="1" ColumnDefinitions="Auto,*,Auto" Margin="0,12,0,0">
-                        <TextBlock Grid.Column="0" Classes="label" Text="Source folder" />
-                        <TextBox Grid.Column="1" Text="{Binding SourceFolder}" Watermark="Music folder with FLAC/WAV" />
-                        <Button Grid.Column="2" Classes="ghost" Content="Browse…" Margin="8,0,0,0" Click="OnBrowseAlacSource" />
-                    </Grid>
-                    <Grid Grid.Row="2" ColumnDefinitions="Auto,*,Auto" Margin="0,8,0,0">
-                        <TextBlock Grid.Column="0" Classes="label" Text="Destination folder" />
-                        <TextBox Grid.Column="1" Text="{Binding OutputFolder}" Watermark="iPod folder for the ALAC output" />
-                        <Button Grid.Column="2" Classes="ghost" Content="Browse…" Margin="8,0,0,0" Click="OnBrowseAlacOutput" />
-                    </Grid>
-                    <WrapPanel Grid.Row="3" Margin="0,10,0,0">
-                        <CheckBox Margin="0,0,16,0" Content="iPod-compatible (16-bit / 44.1 kHz)" IsChecked="{Binding IpodCompatible}"
-                                  ToolTip.Tip="Converts to 16-bit/44.1 kHz so it plays on an iPod 5.5G. Hi-res (24-bit/96 kHz) is otherwise rejected by the iPod. Off = keep source quality." />
-                        <CheckBox Margin="0,0,16,0" Content="Preserve folder structure" IsChecked="{Binding MirrorStructure}"
-                                  ToolTip.Tip="Preserves the source folder's subfolders in the destination." />
-                        <CheckBox Margin="0,0,16,0" Content="Delete originals after conversion" IsChecked="{Binding DeleteOriginals}"
-                                  ToolTip.Tip="Deletes the source file after a successful conversion." />
-                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                            <TextBlock Classes="label" Text="Concurrent" VerticalAlignment="Center" />
-                            <NumericUpDown Value="{Binding Concurrency}" Minimum="1" Maximum="10" Increment="1" FormatString="0" Width="100"
-                                           ToolTip.Tip="Number of simultaneous conversions. Higher = faster (up to your core count), but more CPU/disk load." />
-                        </StackPanel>
-                    </WrapPanel>
-                    <Border Grid.Row="4" Classes="card" Margin="0,12,0,0">
-                        <ScrollViewer VerticalScrollBarVisibility="Auto">
-                            <ItemsControl ItemsSource="{Binding Items}">
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate>
-                                        <Button Classes="ghost" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="8,4" Margin="0,0,0,4" Command="{Binding ShowCommand}">
-                                            <Grid ColumnDefinitions="*,Auto">
-                                                <TextBlock Grid.Column="0" Text="{Binding FileName}" Foreground="{DynamicResource TextPrimary}" FontSize="12" TextTrimming="CharacterEllipsis" />
-                                                <TextBlock Grid.Column="1" Text="{Binding Status}" Foreground="{Binding StatusBrush}" FontSize="12" FontWeight="SemiBold" Margin="8,0,0,0" />
-                                            </Grid>
-                                        </Button>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                        </ScrollViewer>
-                    </Border>
-                    <Border Grid.Row="5" Margin="0,10,0,0" Padding="10" CornerRadius="8" Background="#EEEEF0" BorderBrush="{DynamicResource CardBorder}" BorderThickness="1"
-                            IsVisible="{Binding Detail, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
-                        <SelectableTextBlock Text="{Binding Detail}" Foreground="{DynamicResource TextPrimary}" FontSize="12" TextWrapping="Wrap" />
-                    </Border>
-                    <Grid Grid.Row="6" ColumnDefinitions="*,Auto,Auto" Margin="0,12,0,0">
-                        <SelectableTextBlock Grid.Column="0" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondary}" Text="{Binding Status}" />
-                        <Button Grid.Column="1" Classes="ghost" Content="Stop" Width="90" Command="{Binding StopCommand}" HorizontalContentAlignment="Center" />
-                        <Button Grid.Column="2" Classes="primary" Content="Convert to ALAC" Margin="8,0,0,0" Command="{Binding ConvertCommand}" />
-                    </Grid>
-                </Grid>
-            </TabItem>
-
             <!-- ============ TAB: METADATA ============ -->
             <TabItem Header="Metadata">
                 <Grid x:CompileBindings="False" DataContext="{Binding Meta}" RowDefinitions="Auto,Auto,*,Auto" Margin="0,12,0,0">

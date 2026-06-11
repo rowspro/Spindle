@@ -44,9 +44,9 @@ public partial class MainWindow : Window
         }
         // Spatie: 10s audio-preview in de Bibliotheek-browser.
         if (e.Key == Key.Space && e.Source is not TextBox && !Vm.IsPaletteOpen
-            && (Vm.SelectedTabIndex == 9 || Vm.Player.HasTrack))
+            && (Vm.SelectedTabIndex == 6 || Vm.Player.HasTrack))
         {
-            if (Vm.SelectedTabIndex == 9) Vm.PlayBrowserSelection();
+            if (Vm.SelectedTabIndex == 6) Vm.PlayBrowserSelection();
             else Vm.Player.PlayPause();
             e.Handled = true;
             return;
@@ -71,7 +71,7 @@ public partial class MainWindow : Window
             }
         }
 
-        if (Vm.SelectedTabIndex != 3) return; // Metadata tab
+        if (Vm.SelectedTabIndex != 0) return; // Metadata tab
         if (e.Source is TextBox) return;
         if (e.Key == Key.Left)
         {
@@ -166,45 +166,6 @@ public partial class MainWindow : Window
             AllowMultiple = false
         });
         return files.Count > 0 ? files[0].TryGetLocalPath() : null;
-    }
-
-    // ---- ALAC converter tab ----
-    private async void OnBrowseAlacOutput(object? sender, RoutedEventArgs e)
-    {
-        var path = await PickFolderAsync("Kies een doelmap voor de ALAC-bestanden");
-        if (path != null && Vm != null) Vm.Alac.OutputFolder = path;
-    }
-
-    private async void OnBrowseAlacSource(object? sender, RoutedEventArgs e)
-    {
-        var path = await PickFolderAsync("Kies de bronmap (muziek)");
-        if (path != null && Vm != null) Vm.Alac.SourceFolder = path;
-    }
-
-    // ---- Sort tab ----
-    private async void OnBrowseSortSource(object? sender, RoutedEventArgs e)
-    {
-        var path = await PickFolderAsync("Kies de map om te sorteren");
-        if (path != null && Vm != null) Vm.Sort.SourceFolder = path;
-    }
-
-    private async void OnBrowseSortDest(object? sender, RoutedEventArgs e)
-    {
-        var path = await PickFolderAsync("Kies de doelmap");
-        if (path != null && Vm != null) Vm.Sort.DestFolder = path;
-    }
-
-    // ---- Organiseren tab ----
-    private async void OnBrowseOrganizeSource(object? sender, RoutedEventArgs e)
-    {
-        var path = await PickFolderAsync("Kies de map om te organiseren");
-        if (path != null && Vm != null) Vm.Organize.SourceFolder = path;
-    }
-
-    private async void OnBrowseOrganizeDest(object? sender, RoutedEventArgs e)
-    {
-        var path = await PickFolderAsync("Kies de bibliotheek-doelmap");
-        if (path != null && Vm != null) Vm.Organize.DestFolder = path;
     }
 
     // ---- Metadata editor tab ----

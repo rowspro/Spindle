@@ -59,19 +59,19 @@ public class MainViewModel : ViewModelBase
             onEdit: (files, status) =>
             {
                 Meta.LoadFiles(files, status);
-                SelectedTabIndex = 3; // Metadata
+                SelectedTabIndex = 0; // Metadata
             }, lib: Lib, undo: Undo);
 
         Staging = new StagingViewModel(
-            onFix: (files, status) => { Meta.LoadFiles(files, status); SelectedTabIndex = 3; }, // Metadata
+            onFix: (files, status) => { Meta.LoadFiles(files, status); SelectedTabIndex = 0; }, // Metadata
             lib: Lib, undo: Undo,
             template: () => FilenameTemplate);
 
         Browser = new BrowserViewModel(Lib, () => MusicLibrary,
-            (files, status) => { Meta.LoadFiles(files, status); SelectedTabIndex = 3; });
+            (files, status) => { Meta.LoadFiles(files, status); SelectedTabIndex = 0; });
 
         Galaxy = new GalaxyViewModel(Lib, () => MusicLibrary,
-            onOpenAlbum: (artist, album) => { SelectedTabIndex = 9; Browser.FocusAlbum(artist, album); },
+            onOpenAlbum: (artist, album) => { SelectedTabIndex = 6; Browser.FocusAlbum(artist, album); },
             getAlbumLevel: () => GalaxyAlbumLevel,
             setAlbumLevel: v => GalaxyAlbumLevel = v);
 
@@ -83,8 +83,6 @@ public class MainViewModel : ViewModelBase
             : (!string.IsNullOrWhiteSpace(DownloadFilePath) ? DownloadFilePath : string.Empty);
         if (string.IsNullOrWhiteSpace(AppleMusic.LibraryFolder)) AppleMusic.LibraryFolder = fallback;
         if (string.IsNullOrWhiteSpace(Sync.LibraryFolder)) Sync.LibraryFolder = fallback;
-        if (string.IsNullOrWhiteSpace(Organize.SourceFolder)) Organize.SourceFolder = DownloadFilePath;
-        if (string.IsNullOrWhiteSpace(Organize.DestFolder)) Organize.DestFolder = MusicLibrary;
         if (string.IsNullOrWhiteSpace(Artists.LibraryFolder)) Artists.LibraryFolder = fallback;
         if (string.IsNullOrWhiteSpace(Library.LibraryFolder)) Library.LibraryFolder = fallback;
         Staging.NieuwFolder = DownloadFilePath;
@@ -233,8 +231,8 @@ public class MainViewModel : ViewModelBase
     // ---- Top bar ----
     public string CurrentSection => SelectedTabIndex switch
     {
-        0 => "Sort", 1 => "Organize", 2 => "ALAC Converter", 3 => "Metadata",
-        4 => "Health", 5 => "Duplicates", 6 => "Transfer", 7 => "Settings", 8 => "Inbox", 9 => "Library", 10 => "Galaxy", _ => "Spindle"
+        0 => "Metadata", 1 => "Health", 2 => "Duplicates", 3 => "Transfer",
+        4 => "Settings", 5 => "Inbox", 6 => "Library", 7 => "Galaxy", _ => "Spindle"
     };
 
     public string UserInitial => "S";
@@ -242,12 +240,14 @@ public class MainViewModel : ViewModelBase
     // ---- Cmd+F command palette ----
     private static readonly (string Name, int Idx, string Glyph)[] PaletteSections =
     {
-        ("Galaxy", 10, ""),
-        ("Library", 9, ""),
-        ("Inbox", 8, ""),
-        ("Organize", 1, ""), ("Sort", 0, ""), ("Metadata", 3, ""),
-        ("Duplicates", 5, ""), ("Health", 4, ""), ("ALAC Converter", 2, ""),
-        ("Transfer", 6, ""), ("Settings", 7, ""),
+        ("Galaxy", 7, ""),
+        ("Library", 6, ""),
+        ("Inbox", 5, ""),
+        ("Metadata", 0, ""),
+        ("Duplicates", 2, ""),
+        ("Health", 1, ""),
+        ("Transfer", 3, ""),
+        ("Settings", 4, ""),
     };
 
     private bool _isPaletteOpen;
@@ -281,7 +281,7 @@ public class MainViewModel : ViewModelBase
                 var aa = a.AlbumArtist; var al = a.Album;
                 PaletteResults.Add(new PaletteItem(
                     (aa.Length > 0 ? aa + " — " : "") + al, "Open in Library", "",
-                    () => { SelectedTabIndex = 9; Browser.FocusAlbum(aa, al); ClosePalette(); }));
+                    () => { SelectedTabIndex = 6; Browser.FocusAlbum(aa, al); ClosePalette(); }));
             }
         }
         SelectedPaletteItem = PaletteResults.Count > 0 ? PaletteResults[0] : null;
@@ -432,7 +432,7 @@ public class MainViewModel : ViewModelBase
     public bool IsArtistMode => Mode == 2;
     public bool IsPickMode => Mode == 1 || Mode == 2; // modes with a Zoek/results step
 
-    private int _selectedTabIndex = 8; // open op 'Nieuw' (de inbox/review-gate)
+    private int _selectedTabIndex = 5; // open op de Inbox (review-gate)
     public int SelectedTabIndex
     {
         get => _selectedTabIndex;
@@ -448,11 +448,11 @@ public class MainViewModel : ViewModelBase
         bool ran = false;
         switch (tab)
         {
-            case 4: if (Library.ScanCommand.CanExecute(null)) { Library.ScanCommand.Execute(null); ran = true; } break; // Gezondheid
-            case 6: if (Sync.ScanCommand.CanExecute(null))    { Sync.ScanCommand.Execute(null); ran = true; } break;    // Overzetten
-            case 8: if (Staging.ScanCommand.CanExecute(null)) { Staging.ScanCommand.Execute(null); ran = true; } break; // Nieuw
-            case 9: Browser.Refresh(); ran = true; break; // Bibliotheek (leest direct uit de index)
-            case 10: Galaxy.Refresh(); ran = true; break; // Galaxy
+            case 1: if (Library.ScanCommand.CanExecute(null)) { Library.ScanCommand.Execute(null); ran = true; } break; // Health
+            case 3: if (Sync.ScanCommand.CanExecute(null))    { Sync.ScanCommand.Execute(null); ran = true; } break;    // Transfer
+            case 5: if (Staging.ScanCommand.CanExecute(null)) { Staging.ScanCommand.Execute(null); ran = true; } break; // Inbox
+            case 6: Browser.Refresh(); ran = true; break; // Library (leest direct uit de index)
+            case 7: Galaxy.Refresh(); ran = true; break; // Galaxy
         }
         if (ran) _autoScanned.Add(tab);
     }
@@ -479,10 +479,7 @@ public class MainViewModel : ViewModelBase
     public ObservableCollection<QueueItemViewModel> Queue { get; } = new();
 
     // ---- Extra tools (own tabs) ----
-    public AlacConverterViewModel Alac { get; } = new();
     public MetadataEditorViewModel Meta { get; }
-    public SortViewModel Sort { get; } = new();
-    public OrganizeViewModel Organize { get; } = new();
     public DuplicatesViewModel Duplicates { get; } = new();
     public SyncViewModel Sync { get; } = new();
     public AppleMusicViewModel AppleMusic { get; }
@@ -579,15 +576,6 @@ public class MainViewModel : ViewModelBase
                 else
                 {
                     StatusMessage = $"Klaar — {SuccessfulDownloadsCount} gedownload, {SkippedCount} overgeslagen.";
-                    if (AutoOrganize && !string.IsNullOrWhiteSpace(DownloadFilePath) && System.IO.Directory.Exists(DownloadFilePath))
-                    {
-                        Organize.SourceFolder = DownloadFilePath;
-                        Organize.DestFolder = string.IsNullOrWhiteSpace(MusicLibrary) ? DownloadFilePath : MusicLibrary;
-                        Organize.TestMode = false;
-                        SelectedTabIndex = 3; // Organiseren-tab
-                        StatusMessage = "Klaar met downloaden — automatisch organiseren…";
-                        if (Organize.RunCommand.CanExecute(null)) Organize.RunCommand.Execute(null);
-                    }
                 }
             }, TaskScheduler.FromCurrentSynchronizationContext());
     }
@@ -1120,10 +1108,6 @@ public class MainViewModel : ViewModelBase
             AcoustIdKey = Meta.AcoustIdKey,
             DiscogsToken = DiscogsToken.Trim(),
             FilterOutFileNames = SplitList(FilterOutFileNames),
-            SortSource = Sort.SourceFolder,
-            SortDest = Sort.DestFolder,
-            AlacSource = Alac.SourceFolder,
-            AlacOutput = Alac.OutputFolder,
             DupFolder = Duplicates.Folder,
             SyncLibrary = Sync.LibraryFolder,
             SyncIpod = Sync.IpodFolder,
@@ -1173,10 +1157,6 @@ public class MainViewModel : ViewModelBase
         FilterOutFileNames = string.Join(" ", c.FilterOutFileNames ?? new List<string>());
         SearchFileExtensions = string.Join(" ", c.SearchFileExtensions ?? new List<string>());
 
-        Sort.SourceFolder = c.SortSource;
-        Sort.DestFolder = c.SortDest;
-        Alac.SourceFolder = c.AlacSource;
-        Alac.OutputFolder = c.AlacOutput;
         Duplicates.Folder = c.DupFolder;
         Sync.LibraryFolder = c.SyncLibrary;
         Sync.IpodFolder = c.SyncIpod;
