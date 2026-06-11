@@ -90,7 +90,7 @@ public class LibraryViewModel : ViewModelBase
     private readonly LibraryService _lib;
     private readonly UndoJournal _undo;
 
-    public LibraryViewModel(Action<List<string>> onDownload, Action<IReadOnlyList<string>, string> onEdit, LibraryService lib, UndoJournal undo, Func<string>? template = null)
+    public LibraryViewModel(Action<List<string>> onDownload, Action<IReadOnlyList<string>, string> onEdit, LibraryService lib, UndoJournal undo, Func<string>? template = null, Action? openLibrary = null)
     {
         _onDownload = onDownload;
         _onEdit = onEdit;
@@ -106,7 +106,7 @@ public class LibraryViewModel : ViewModelBase
         EditNoCoverCommand = new RelayCommand(
             () => _onEdit(_noCoverFiles, $"{_noCoverFiles.Count} tracks from albums without art — set a cover (or Auto-fill) and approve."),
             () => _noCoverFiles.Count > 0);
-        ShowFilesCommand = new RelayCommand(ShowFiles);
+        ShowFilesCommand = new RelayCommand(() => openLibrary?.Invoke());   // Files-statknop → Library-tab
         ShowAlbumsCommand = new RelayCommand(ShowAlbums);
         ShowUpgradesCommand = new RelayCommand(ShowUpgrades);
         ShowLossyCommand = new RelayCommand(ShowLossy);
@@ -125,7 +125,6 @@ public class LibraryViewModel : ViewModelBase
     public RelayCommand OpenDoctorCommand { get; }
 
     // ---- Detail drill-down (clicking a stat box) ----
-    public ObservableCollection<string> DetailFiles { get; } = new();
     public ObservableCollection<HealthArtistNode> AlbumTree { get; } = new();
     public ObservableCollection<HealthAlbumViewModel> DetailAlbums { get; } = new();
 
@@ -139,7 +138,6 @@ public class LibraryViewModel : ViewModelBase
             {
                 OnPropertyChanged(nameof(ShowDetail));
                 OnPropertyChanged(nameof(ShowDashboard));
-                OnPropertyChanged(nameof(ShowFilesPanel));
                 OnPropertyChanged(nameof(ShowAlbumsPanel));
                 OnPropertyChanged(nameof(ShowListPanel));
                 OnPropertyChanged(nameof(ShowDoctorPanel));
@@ -148,7 +146,6 @@ public class LibraryViewModel : ViewModelBase
     }
     public bool ShowDetail => _detailKind.Length > 0;
     public bool ShowDashboard => _detailKind.Length == 0;
-    public bool ShowFilesPanel => _detailKind == "files";
     public bool ShowAlbumsPanel => _detailKind == "albums";
     public bool ShowListPanel => _detailKind == "list";
     public bool ShowDoctorPanel => _detailKind == "doctor";
@@ -161,16 +158,6 @@ public class LibraryViewModel : ViewModelBase
     public RelayCommand ShowUpgradesCommand { get; }
     public RelayCommand ShowLossyCommand { get; }
     public RelayCommand CloseDetailCommand { get; }
-
-    private void ShowFiles()
-    {
-        DetailFiles.Clear();
-        foreach (var a in _albums.OrderBy(a => a.Artist).ThenBy(a => a.Name))
-            foreach (var f in a.Files.OrderBy(x => x))
-                DetailFiles.Add(RelativeOrName(f));
-        DetailTitle = $"All files ({DetailFiles.Count})";
-        DetailKind = "files";
-    }
 
     private void ShowAlbums()
     {
@@ -211,12 +198,6 @@ public class LibraryViewModel : ViewModelBase
         }
         DetailTitle = $"Lossy files ({LossyFileCount})";
         DetailKind = "list";
-    }
-
-    private string RelativeOrName(string f)
-    {
-        try { var rel = Path.GetRelativePath(LibraryFolder, f); return rel.StartsWith("..") ? Path.GetFileName(f) : rel; }
-        catch { return Path.GetFileName(f); }
     }
 
     private string _libraryFolder = string.Empty;

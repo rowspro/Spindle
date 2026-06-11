@@ -699,7 +699,7 @@
                         </Border>
 
                         <UniformGrid Columns="3" VerticalAlignment="Top">
-                            <Button Classes="statbtn" Command="{Binding ShowFilesCommand}" ToolTip.Tip="View all files in your library.">
+                            <Button Classes="statbtn" Command="{Binding ShowFilesCommand}" ToolTip.Tip="Open your library.">
                                 <Grid RowDefinitions="Auto,Auto,Auto">
                                     <Grid Grid.Row="0" ColumnDefinitions="*,Auto">
                                         <TextBlock Grid.Column="0" Classes="statNum" Text="{Binding FileCount, StringFormat=N0}" />
@@ -879,14 +879,6 @@
                                     </ListBox>
                                 </Grid>
 
-                                <!-- Bestanden -->
-                                <ListBox IsVisible="{Binding ShowFilesPanel}" ItemsSource="{Binding DetailFiles}" Background="Transparent" BorderThickness="0">
-                                    <ListBox.ItemTemplate>
-                                        <DataTemplate>
-                                            <TextBlock Text="{Binding}" FontSize="13" Foreground="{DynamicResource TextPrimary}" Padding="6,3" TextTrimming="CharacterEllipsis" />
-                                        </DataTemplate>
-                                    </ListBox.ItemTemplate>
-                                </ListBox>
                                 <!-- Albums (tree) -->
                                 <TreeView IsVisible="{Binding ShowAlbumsPanel}" ItemsSource="{Binding AlbumTree}" Background="Transparent">
                                     <TreeView.DataTemplates>

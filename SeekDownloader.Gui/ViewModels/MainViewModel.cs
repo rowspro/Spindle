@@ -60,7 +60,8 @@ public class MainViewModel : ViewModelBase
             {
                 Meta.LoadFiles(files, status);
                 SelectedTabIndex = 0; // Metadata
-            }, lib: Lib, undo: Undo, template: () => FilenameTemplate);
+            }, lib: Lib, undo: Undo, template: () => FilenameTemplate,
+            openLibrary: () => SelectedTabIndex = 6);
 
         Staging = new StagingViewModel(
             onFix: (files, status) => { Meta.LoadFiles(files, status); SelectedTabIndex = 0; }, // Metadata
