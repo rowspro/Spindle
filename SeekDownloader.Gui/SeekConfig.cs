@@ -62,4 +62,5 @@ public class SeekConfig
 
     // Followed artists for the discography/watchlist tab.
     public List<string> Watchlist { get; set; } = new();
+    public List<string> Wantlist { get; set; } = new();
 }

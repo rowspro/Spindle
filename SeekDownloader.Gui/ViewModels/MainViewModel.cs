@@ -75,6 +75,8 @@ public class MainViewModel : ViewModelBase
             getAlbumLevel: () => GalaxyAlbumLevel,
             setAlbumLevel: v => GalaxyAlbumLevel = v);
 
+        Wantlist = new WantlistViewModel(Lib, () => MusicLibrary);
+
         LoadFromConfig(Settings.Load());
 
         // Pre-fill comparison/library folders with your library/download path, but only when the
@@ -100,6 +102,7 @@ public class MainViewModel : ViewModelBase
             IndexBusy = false;
             GlobalStatus = $"{Lib.Index.TrackCount():N0} tracks indexed";
             RefreshArtistSuggestions();
+            Wantlist.RefreshOwned();
         };
         Lib.Configure(MusicLibrary, DownloadFilePath);
 
@@ -232,7 +235,7 @@ public class MainViewModel : ViewModelBase
     public string CurrentSection => SelectedTabIndex switch
     {
         0 => "Metadata", 1 => "Health", 2 => "Duplicates", 3 => "Transfer",
-        4 => "Settings", 5 => "Inbox", 6 => "Library", 7 => "Galaxy", _ => "Spindle"
+        4 => "Settings", 5 => "Inbox", 6 => "Library", 7 => "Galaxy", 8 => "Wantlist", _ => "Spindle"
     };
 
     public string UserInitial => "S";
@@ -243,6 +246,7 @@ public class MainViewModel : ViewModelBase
         ("Galaxy", 7, ""),
         ("Library", 6, ""),
         ("Inbox", 5, ""),
+        ("Wantlist", 8, "\uE03B"),
         ("Metadata", 0, ""),
         ("Duplicates", 2, ""),
         ("Health", 1, ""),
@@ -453,6 +457,7 @@ public class MainViewModel : ViewModelBase
             case 5: if (Staging.ScanCommand.CanExecute(null)) { Staging.ScanCommand.Execute(null); ran = true; } break; // Inbox
             case 6: Browser.Refresh(); ran = true; break; // Library (leest direct uit de index)
             case 7: Galaxy.Refresh(); ran = true; break; // Galaxy
+            case 8: Wantlist.OpenedTab(); ran = true; break; // Wantlist (discografieën 1x per sessie)
         }
         if (ran) _autoScanned.Add(tab);
     }
@@ -488,6 +493,7 @@ public class MainViewModel : ViewModelBase
     public StagingViewModel Staging { get; }
     public BrowserViewModel Browser { get; }
     public GalaxyViewModel Galaxy { get; }
+    public WantlistViewModel Wantlist { get; }
 
     // ---- Runtime state ----
     private bool _isRunning;
@@ -1113,6 +1119,8 @@ public class MainViewModel : ViewModelBase
             SyncIpod = Sync.IpodFolder,
             AppleLibrary = AppleMusic.LibraryFolder,
             AutoOrganize = AutoOrganize,
+            Watchlist = Wantlist.WatchNames(),
+            Wantlist = Wantlist.WantEntries(),
             GalaxyAlbumLevel = GalaxyAlbumLevel,
             DarkMode = DarkMode,
             FilenameTemplate = string.IsNullOrWhiteSpace(FilenameTemplate) ? NameTemplate.Default : FilenameTemplate.Trim(),
@@ -1162,6 +1170,7 @@ public class MainViewModel : ViewModelBase
         Sync.IpodFolder = c.SyncIpod;
         AppleMusic.LibraryFolder = c.AppleLibrary;
         AutoOrganize = c.AutoOrganize;
+        Wantlist.Load(c.Watchlist, c.Wantlist);
         GalaxyAlbumLevel = c.GalaxyAlbumLevel;
         DarkMode = c.DarkMode;
         FilenameTemplate = string.IsNullOrWhiteSpace(c.FilenameTemplate) ? NameTemplate.Default : c.FilenameTemplate;

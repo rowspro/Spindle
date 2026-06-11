@@ -428,6 +428,11 @@
                                 </Border></StackPanel>
                         </Button>
 
+                        <Button Classes="nav" Tag="8" Click="OnNav"
+                                Classes.active="{Binding SelectedTabIndex, Converter={x:Static vm:IntEquals.Instance}, ConverterParameter=8}">
+                            <StackPanel Orientation="Horizontal"><TextBlock Classes="icon" FontSize="19" Width="28" Text="&#xE03B;" /><TextBlock Text="Wantlist" VerticalAlignment="Center" /></StackPanel>
+                        </Button>
+
                         <TextBlock Classes="navGroup" Text="LIBRARY" />
                         <Button Classes="nav" Tag="6" Click="OnNav"
                                 Classes.active="{Binding SelectedTabIndex, Converter={x:Static vm:IntEquals.Instance}, ConverterParameter=6}">
@@ -1496,6 +1501,107 @@
                     </Border>
 
                     <views:GalaxyControl Grid.Row="2" Margin="0,12,0,0" />
+                </Grid>
+            </TabItem>
+
+            <TabItem Header="Wantlist">
+                <Grid x:CompileBindings="False" DataContext="{Binding Wantlist}" RowDefinitions="Auto,Auto,Auto,*" Margin="0,12,0,0">
+                    <StackPanel Grid.Row="0">
+                        <TextBlock Classes="h2" Text="Wantlist — close the gaps" />
+                        <TextBlock Classes="body" Margin="0,4,0,0" TextWrapping="Wrap"
+                                   Text="Follow artists and Spindle compares their official discography (MusicBrainz) with your library. Put missing albums on the wantlist, copy the search into Nicotine+ — they tick themselves off the moment they land in your library." />
+                    </StackPanel>
+
+                    <Grid Grid.Row="1" ColumnDefinitions="*,Auto,Auto" Margin="0,12,0,0">
+                        <TextBox Grid.Column="0" Text="{Binding FollowName}" Watermark="Artist to follow (e.g. Daft Punk)" KeyDown="OnFollowKeyDown" />
+                        <Button Grid.Column="1" Classes="primary" Content="Follow artist" Margin="8,0,0,0" Command="{Binding FollowCommand}" />
+                        <Button Grid.Column="2" Classes="ghost" Content="Refresh all" Margin="6,0,0,0" Command="{Binding RefreshAllCommand}"
+                                ToolTip.Tip="Re-fetch every followed artist's discography from MusicBrainz." />
+                    </Grid>
+
+                    <TextBlock Grid.Row="2" Classes="caption" Margin="0,8,0,0" Text="{Binding Status}" TextWrapping="Wrap" />
+
+                    <Grid Grid.Row="3" ColumnDefinitions="*,340" Margin="0,12,0,0">
+                        <ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Auto">
+                            <StackPanel>
+                                <Border Classes="card" Padding="20" IsVisible="{Binding !HasArtists}">
+                                    <TextBlock Classes="body" TextWrapping="Wrap"
+                                               Text="No artists followed yet. Type a name above and press Follow — Spindle shows which of their albums you already own and which are missing." />
+                                </Border>
+                                <ItemsControl ItemsSource="{Binding Artists}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Classes="card" Margin="0,0,8,10" Padding="16,14">
+                                                <StackPanel>
+                                                    <Grid ColumnDefinitions="*,Auto,Auto">
+                                                        <StackPanel Grid.Column="0">
+                                                            <TextBlock Classes="title" Text="{Binding Name}" />
+                                                            <TextBlock Classes="caption" Text="{Binding Progress}" />
+                                                        </StackPanel>
+                                                        <Button Grid.Column="1" Classes="ghost" Padding="8,4" VerticalAlignment="Center" Command="{Binding RefreshCommand}" ToolTip.Tip="Refresh this discography.">
+                                                            <TextBlock Classes="icon" FontSize="16" Text="&#xE5D5;" />
+                                                        </Button>
+                                                        <Button Grid.Column="2" Classes="ghost" Padding="8,4" Margin="4,0,0,0" VerticalAlignment="Center" Command="{Binding UnfollowCommand}" ToolTip.Tip="Stop following this artist.">
+                                                            <TextBlock Classes="icon" FontSize="16" Text="&#xE5CD;" />
+                                                        </Button>
+                                                    </Grid>
+                                                    <ProgressBar Minimum="0" Maximum="100" Value="{Binding OwnedPercent}" Height="6" CornerRadius="3" Margin="0,10,0,8"
+                                                                 Background="{DynamicResource SurfaceVariant}" Foreground="{DynamicResource Accent}" />
+                                                    <ItemsControl ItemsSource="{Binding Albums}">
+                                                        <ItemsControl.ItemTemplate>
+                                                            <DataTemplate>
+                                                                <Grid ColumnDefinitions="24,*,Auto" Margin="0,3,0,3">
+                                                                    <TextBlock Grid.Column="0" Text="✓" FontWeight="Bold" Foreground="{DynamicResource Success}" IsVisible="{Binding Owned}" VerticalAlignment="Center" />
+                                                                    <TextBlock Grid.Column="1" Text="{Binding Display}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
+                                                                               Foreground="{DynamicResource TextPrimary}" />
+                                                                    <Button Grid.Column="2" Classes="ghost" Padding="10,3" Command="{Binding WantCommand}" Content="{Binding WantLabel}" IsVisible="{Binding NotOwned}"
+                                                                            ToolTip.Tip="Put this album on the wantlist (press again to remove)." />
+                                                                </Grid>
+                                                            </DataTemplate>
+                                                        </ItemsControl.ItemTemplate>
+                                                    </ItemsControl>
+                                                </StackPanel>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </ScrollViewer>
+
+                        <Border Grid.Column="1" Classes="card" Padding="16,14" VerticalAlignment="Stretch">
+                            <Grid RowDefinitions="Auto,Auto,*">
+                                <StackPanel Grid.Row="0" Orientation="Horizontal">
+                                    <TextBlock Classes="title" Text="Wanted" />
+                                    <Border CornerRadius="9999" Background="{DynamicResource PrimaryBtn}" Padding="8,1" Margin="8,0,0,0" VerticalAlignment="Center" IsVisible="{Binding HasWanted}">
+                                        <TextBlock Text="{Binding WantedCount}" FontSize="11" FontWeight="SemiBold" Foreground="White" />
+                                    </Border>
+                                </StackPanel>
+                                <TextBlock Grid.Row="1" Classes="caption" Margin="0,4,0,10" TextWrapping="Wrap"
+                                           Text="Copy a search, download it with Nicotine+ and approve it in the Inbox — it disappears from this list automatically." />
+                                <TextBlock Grid.Row="2" Classes="caption" Text="Nothing wanted yet — press '+ Want' on a missing album." IsVisible="{Binding !HasWanted}" />
+                                <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" IsVisible="{Binding HasWanted}">
+                                    <ItemsControl ItemsSource="{Binding Wanted}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Grid ColumnDefinitions="*,Auto,Auto" Margin="0,4,0,4">
+                                                    <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                                        <TextBlock Text="{Binding Artist}" Classes="caption" />
+                                                        <TextBlock Text="{Binding Display}" Foreground="{DynamicResource TextPrimary}" FontWeight="SemiBold" FontSize="13" TextTrimming="CharacterEllipsis" />
+                                                    </StackPanel>
+                                                    <Button Grid.Column="1" Classes="ghost" Padding="8,4" Click="OnWantCopy" ToolTip.Tip="Copy the Nicotine+ search for this album.">
+                                                        <TextBlock Classes="icon" FontSize="16" Text="&#xE14D;" />
+                                                    </Button>
+                                                    <Button Grid.Column="2" Classes="ghost" Padding="8,4" Margin="4,0,0,0" Command="{Binding RemoveCommand}" ToolTip.Tip="Remove from the wantlist.">
+                                                        <TextBlock Classes="icon" FontSize="16" Text="&#xE5CD;" />
+                                                    </Button>
+                                                </Grid>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </ScrollViewer>
+                            </Grid>
+                        </Border>
+                    </Grid>
                 </Grid>
             </TabItem>
         </TabControl>

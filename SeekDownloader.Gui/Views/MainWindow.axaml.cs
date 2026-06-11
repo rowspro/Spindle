@@ -229,6 +229,21 @@ public partial class MainWindow : Window
         if (path != null && Vm != null) Vm.Sync.IpodFolder = path;
     }
 
+    // ---- Wantlist ----
+    private void OnFollowKeyDown(object? sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Enter && Vm != null) { Vm.Wantlist.FollowCommand.Execute(null); e.Handled = true; }
+    }
+
+    private async void OnWantCopy(object? sender, RoutedEventArgs e)
+    {
+        if ((sender as Button)?.DataContext is WantAlbumViewModel w && Clipboard != null)
+        {
+            await Clipboard.SetTextAsync(w.SearchTerm);
+            Vm?.Wantlist.Notify($"Copied \"{w.SearchTerm}\" — paste it into Nicotine+.");
+        }
+    }
+
     private void ScrollInboxCursor()
     {
         if (this.FindControl<ListBox>("InboxList") is { } lb && lb.SelectedItem != null)
