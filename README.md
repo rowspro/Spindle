@@ -26,7 +26,13 @@ There are no scan buttons. Spindle keeps a persistent index (SQLite) of your lib
 
 ## Install
 
-**Homebrew** (macOS, recommended):
+**Homebrew** (macOS, recommended). If you don't have Homebrew yet, install it first — paste this in Terminal (from [brew.sh](https://brew.sh)):
+
+```
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+```
+
+Then install Spindle:
 
 ```
 brew install rowspro/spindle/spindle
@@ -43,6 +49,8 @@ cd Spindle/SeekDownloader.Gui
 ```
 
 For a quick development run, `dotnet run` from the same folder works too.
+
+**Updating:** Homebrew users get new versions with `brew update && brew upgrade spindle`. Direct-download users: grab the newest zip from the releases page and replace the app — your settings and library index live in `~/Library/Application Support/Spindle/` and survive the swap untouched.
 
 **First start:** open Settings and set two folders — "New music" (where your downloads land) and "Music library" (your collection — again: a copy, the first week). The index builds itself from there.
 
@@ -101,6 +109,6 @@ The Windows build starts and works for library management, tagging and the inbox
 
 ## Heritage and license
 
-This repo started life as a GUI for [MusicMoveArr's SeekDownloader](https://github.com/MusicMoveArr/SeekDownloader), a Soulseek command-line downloader — which is why the project folder is still called `SeekDownloader.Gui`, and why this README used to describe a CLI tool. The project has since pivoted completely: downloading was removed (dedicated clients do it better) and Spindle became a pure library manager. Credit to MusicMoveArr for the original foundation.
+This repo started life as a GUI for [MusicMoveArr's SeekDownloader](https://github.com/MusicMoveArr/SeekDownloader), a Soulseek command-line downloader — and this README used to describe that CLI. The project has since pivoted completely: downloading was removed (dedicated clients do it better), the CLI code left the repo, and Spindle became a pure library manager. Credit to MusicMoveArr for the original foundation.
 
 License: GPLv3.
