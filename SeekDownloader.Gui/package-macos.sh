@@ -54,9 +54,29 @@ cat > "$APP/Contents/Info.plist" <<PLIST
 </plist>
 PLIST
 
-# Ad-hoc signature zodat Gatekeeper de lokaal gebouwde app accepteert.
-if command -v codesign >/dev/null 2>&1; then
-    echo ">> Ad-hoc signing…"
+# Developer ID-signing + notarisatie als de spullen aanwezig zijn; anders ad-hoc.
+ENTITLEMENTS="$SCRIPT_DIR/Assets/Spindle.entitlements"
+IDENTITY="$(security find-identity -v -p codesigning 2>/dev/null | grep -o '"Developer ID Application:[^"]*"' | head -1 | tr -d '"')"
+if [ -n "$IDENTITY" ]; then
+    echo ">> Signing with: $IDENTITY (hardened runtime)…"
+    # eerst alle losse Mach-O's (dylibs + helpers), daarna de bundle zelf
+    find "$APP/Contents/MacOS" -type f \( -name "*.dylib" -o -perm -111 \) -print0 | while IFS= read -r -d '' f; do
+        codesign --force --timestamp --options runtime --entitlements "$ENTITLEMENTS" --sign "$IDENTITY" "$f" >/dev/null 2>&1 || true
+    done
+    codesign --force --timestamp --options runtime --entitlements "$ENTITLEMENTS" --sign "$IDENTITY" "$APP"
+    if xcrun notarytool history --keychain-profile spindle-notary >/dev/null 2>&1; then
+        echo ">> Notarizing (kan een paar minuten duren)…"
+        NZIP="$(mktemp -d)/Spindle-notarize.zip"
+        ditto -c -k --keepParent "$APP" "$NZIP"
+        xcrun notarytool submit "$NZIP" --keychain-profile spindle-notary --wait
+        xcrun stapler staple "$APP"
+        rm -f "$NZIP"
+        echo ">> Genotariseerd en gestapled — installeert zonder Gatekeeper-gedoe."
+    else
+        echo "   (geen notary-profiel 'spindle-notary' — getekend maar niet genotariseerd)"
+    fi
+elif command -v codesign >/dev/null 2>&1; then
+    echo ">> Ad-hoc signing (geen Developer ID-certificaat gevonden)…"
     codesign --force --deep --sign - "$APP" >/dev/null 2>&1 || \
         echo "   (codesign overgeslagen — niet kritiek voor lokaal gebruik)"
 fi
