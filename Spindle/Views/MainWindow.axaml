@@ -975,6 +975,8 @@
                         <TextBlock Classes="h2" Text="Find duplicates" />
                         <TextBlock Classes="body" Margin="0,4,0,0" TextWrapping="Wrap"
                                    Text="Finds tracks with the same artist + title and shows the copies side by side. Pick which one to keep per set; the rest goes to the '_Dubbele_verwijderd' folder (reversible)." />
+                        <TextBlock Classes="caption" Margin="0,4,0,0" TextWrapping="Wrap"
+                                   Text="The suggested keeper is ranked by: lossless first, then bit depth, sample rate, bitrate and finally file size. Each set explains its pick — overrule with 'Keep this one', or mark a set 'Not a duplicate' (live versions, re-recordings) and it stays hidden from future scans." />
                     </StackPanel>
                     <Grid Grid.Row="1" ColumnDefinitions="Auto,*,Auto,Auto" Margin="0,12,0,0">
                         <TextBlock Grid.Column="0" Classes="label" Text="Folder" />
@@ -990,7 +992,13 @@
                                 <DataTemplate>
                                     <Border Classes="card" Margin="0,0,0,10">
                                         <StackPanel>
-                                            <TextBlock Text="{Binding Title}" Foreground="{DynamicResource TextPrimary}" FontSize="14" FontWeight="SemiBold" Margin="0,0,0,8" />
+                                            <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,2">
+                                                <TextBlock Text="{Binding Title}" Foreground="{DynamicResource TextPrimary}" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                                <Button Grid.Column="1" Classes="ghost" Padding="9,3" Content="Not a duplicate" Command="{Binding NotDuplicateCommand}"
+                                                        ToolTip.Tip="These are different recordings (live version, remix, re-recording). Removes this set and keeps it hidden in future scans." />
+                                            </Grid>
+                                            <TextBlock Text="{Binding Reason}" Classes="caption" Margin="0,0,0,8" TextWrapping="Wrap"
+                                                       IsVisible="{Binding Reason, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
                                             <ItemsControl ItemsSource="{Binding Files}">
                                                 <ItemsControl.ItemsPanel>
                                                     <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>

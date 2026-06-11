@@ -28,4 +28,7 @@ public class SpindleConfig
     public bool ItunesMode { get; set; }
     public string AlacMirrorFolder { get; set; } = string.Empty;
     public List<string> TransferWanted { get; set; } = new();
+
+    // Duplicate sets the user marked as "not a duplicate" (normalized artist+title keys).
+    public List<string> DuplicateIgnores { get; set; } = new();
 }

@@ -63,8 +63,9 @@ public class DuplicatesViewModel : ViewModelBase
     {
         if (IsBusy) return;
         var folder = Folder;
-        if (!Directory.Exists(folder)) { Status = "Map bestaat niet."; return; }
+        if (!Directory.Exists(folder)) { Status = "That folder doesn't exist."; return; }
         IsBusy = true;
+        _skippedIgnored = 0;
         _cts = new CancellationTokenSource();
         var token = _cts.Token;
         var useFp = UseFingerprint;
@@ -129,7 +130,7 @@ public class DuplicatesViewModel : ViewModelBase
                     {
                         if (token.IsCancellationRequested) break;
                         var snap = i + 1;
-                        Dispatcher.UIThread.Post(() => Status = $"Vingerafdruk... {snap}/{remaining.Count}");
+                        Dispatcher.UIThread.Post(() => Status = $"Fingerprinting… {snap}/{remaining.Count}");
                         var aid = await FingerprintService.AcoustIdOf(remaining[i], fpKey);
                         if (aid != null)
                         {
@@ -159,8 +160,32 @@ public class DuplicatesViewModel : ViewModelBase
             else if (Groups.Count == 0)
                 Status = $"No duplicates found ({scanned} files scanned).";
             else
-                Status = $"{tagSets} op tags + {acousticSets} op vingerafdruk = {Groups.Count} dubbele set(s). Beste kopie voorgeselecteerd.";
+                Status = $"{tagSets} by tags + {acousticSets} by fingerprint = {Groups.Count} duplicate set(s). Best copy preselected."
+                         + (_skippedIgnored > 0 ? $" ({_skippedIgnored} set(s) skipped — marked as not-duplicates earlier.)" : "");
         });
+    }
+
+    // ---- "Geen duplicaat": markeringen overleven herstarts (SpindleConfig.DuplicateIgnores) ----
+    private readonly HashSet<string> _ignores = new(StringComparer.OrdinalIgnoreCase);
+    private int _skippedIgnored;
+
+    private static string IgnoreKey(string title) =>
+        System.Text.RegularExpressions.Regex.Replace(title.ToLowerInvariant(), "[^a-z0-9]", "");
+
+    public void LoadIgnores(List<string>? keys)
+    {
+        _ignores.Clear();
+        foreach (var k in keys ?? new List<string>()) if (k.Length > 0) _ignores.Add(k);
+    }
+
+    public List<string> IgnoreKeys() => _ignores.ToList();
+
+    private void MarkNotDuplicate(DuplicateGroupViewModel group)
+    {
+        _ignores.Add(IgnoreKey(group.Title));
+        Groups.Remove(group);
+        Status = $"Marked as not-a-duplicate — this set stays hidden in future scans ({_ignores.Count} remembered).";
+        RemoveCommand.RaiseCanExecuteChanged();
     }
 
     private void AddGroup(List<string> paths, string prefix)
@@ -168,11 +193,29 @@ public class DuplicatesViewModel : ViewModelBase
         Track t0;
         try { t0 = new Track(paths[0]); } catch { return; }
         var title = prefix + $"{(string.IsNullOrWhiteSpace(t0.Artist) ? "?" : t0.Artist)} — {(string.IsNullOrWhiteSpace(t0.Title) ? "?" : t0.Title)}";
-        var group = new DuplicateGroupViewModel(title);
+        if (_ignores.Contains(IgnoreKey(title))) { _skippedIgnored++; return; }
+        var group = new DuplicateGroupViewModel(title, MarkNotDuplicate);
         foreach (var path in paths)
             group.Files.Add(new DuplicateFileViewModel(path, group.SelectKeep));
-        group.SelectKeep(group.Files.OrderByDescending(x => x.Score).First());
+        var ordered = group.Files.OrderByDescending(x => x.Score).ToList();
+        group.SelectKeep(ordered[0]);
+        group.Reason = BuildReason(ordered);
         Groups.Add(group);
+    }
+
+    /// <summary>Leg uit waarom de winnaar boven de beste runner-up wordt voorgesteld.</summary>
+    private static string BuildReason(List<DuplicateFileViewModel> o)
+    {
+        if (o.Count < 2) return "";
+        var a = o[0]; var b = o[1];
+        string why;
+        if (a.Lossless && !b.Lossless) why = $"lossless beats lossy ({a.Quality} vs {b.Quality})";
+        else if (a.BitDepth > b.BitDepth) why = $"higher bit depth ({a.Quality} vs {b.Quality})";
+        else if (a.SampleRate > b.SampleRate) why = $"higher sample rate ({a.Quality} vs {b.Quality})";
+        else if (a.BitrateVal > b.BitrateVal) why = $"higher bitrate ({a.Quality} vs {b.Quality})";
+        else if (a.SizeVal > b.SizeVal) why = $"equal quality, larger file wins the tiebreak ({a.SizeText} vs {b.SizeText})";
+        else why = "the copies look identical — keep either";
+        return "Suggested keep: " + why + ".";
     }
 
     private void RemoveUnchosen()

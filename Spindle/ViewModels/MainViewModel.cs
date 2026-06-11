@@ -388,6 +388,7 @@ public class MainViewModel : ViewModelBase
         ItunesMode = ItunesMode,
         AlacMirrorFolder = AlacMirrorFolder,
         TransferWanted = Sync.WantedSnapshot(),
+        DuplicateIgnores = Duplicates.IgnoreKeys(),
         GalaxyAlbumLevel = GalaxyAlbumLevel,
         DarkMode = DarkMode,
         FilenameTemplate = string.IsNullOrWhiteSpace(FilenameTemplate) ? NameTemplate.Default : FilenameTemplate.Trim(),
@@ -402,6 +403,7 @@ public class MainViewModel : ViewModelBase
         Sync.IpodFolder = c.SyncIpod;
         Wantlist.Load(c.Watchlist, c.Wantlist);
         Sync.LoadWanted(c.TransferWanted);
+        Duplicates.LoadIgnores(c.DuplicateIgnores);
         _itunesMode = c.ItunesMode;
         _alacMirrorFolder = c.AlacMirrorFolder;
         OnPropertyChanged(nameof(ItunesMode));
