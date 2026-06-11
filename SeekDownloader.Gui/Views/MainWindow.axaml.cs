@@ -22,7 +22,7 @@ public partial class MainWindow : Window
         // Remember tool folders (and other settings) across launches.
         Closing += (_, _) => Vm?.SaveSettings();
         // Fase 5: pas het opgeslagen thema toe en volg de toggle.
-        DataContextChanged += (_, _) => { HookTheme(); WireArtistBoxes(); };
+        DataContextChanged += (_, _) => { HookTheme(); WireArtistBoxes(); WireFormatBar(); };
         HookTheme();
     }
 
@@ -227,6 +227,32 @@ public partial class MainWindow : Window
     {
         var path = await PickFolderAsync("Kies de iPod-map");
         if (path != null && Vm != null) Vm.Sync.IpodFolder = path;
+    }
+
+    // ---- Health: formaat-mix-balk ----
+    private bool _formatBarWired;
+    private void WireFormatBar()
+    {
+        if (Vm == null || _formatBarWired) return;
+        _formatBarWired = true;
+        Vm.Library.Formats.CollectionChanged += (_, _) => RebuildFormatBar();
+        RebuildFormatBar();
+    }
+
+    private void RebuildFormatBar()
+    {
+        if (this.FindControl<Grid>("FormatBar") is not { } grid || Vm == null) return;
+        grid.ColumnDefinitions.Clear();
+        grid.Children.Clear();
+        var segs = Vm.Library.Formats;
+        for (int i = 0; i < segs.Count; i++)
+        {
+            grid.ColumnDefinitions.Add(new ColumnDefinition(segs[i].Count, GridUnitType.Star));
+            var b = new Border { Background = segs[i].Brush };
+            ToolTip.SetTip(b, segs[i].Label);
+            Grid.SetColumn(b, i);
+            grid.Children.Add(b);
+        }
     }
 
     // ---- Wantlist ----

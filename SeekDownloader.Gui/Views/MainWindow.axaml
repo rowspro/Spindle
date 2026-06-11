@@ -796,6 +796,27 @@
                             </Button>
                         </UniformGrid>
 
+                        <!-- Format mix -->
+                        <Border Classes="card" Padding="20" IsVisible="{Binding HasScanned}">
+                            <StackPanel>
+                                <TextBlock Classes="caption" Text="FORMAT MIX" />
+                                <Border Margin="0,12,0,2" Height="14" CornerRadius="7" ClipToBounds="True" Background="{DynamicResource SurfaceVariant}">
+                                    <Grid Name="FormatBar" />
+                                </Border>
+                                <ItemsControl ItemsSource="{Binding Formats}" Margin="0,10,0,0">
+                                    <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <StackPanel Orientation="Horizontal" Margin="0,0,18,4">
+                                                <Ellipse Width="9" Height="9" Fill="{Binding Brush}" VerticalAlignment="Center" />
+                                                <TextBlock Classes="caption" Margin="6,0,0,0" Text="{Binding Label}" VerticalAlignment="Center" />
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </Border>
+
                         <!-- Problematische albums -->
                         <Border Classes="card">
                             <StackPanel>

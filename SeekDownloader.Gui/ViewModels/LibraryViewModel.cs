@@ -126,6 +126,7 @@ public class LibraryViewModel : ViewModelBase
 
     // ---- Detail drill-down (clicking a stat box) ----
     public ObservableCollection<HealthArtistNode> AlbumTree { get; } = new();
+    public ObservableCollection<FormatSegment> Formats { get; } = new();
     public ObservableCollection<HealthAlbumViewModel> DetailAlbums { get; } = new();
 
     private string _detailKind = string.Empty;     // "", "files", "albums", "list"
@@ -304,6 +305,13 @@ public class LibraryViewModel : ViewModelBase
             double coverFrac = albums.Count > 0 ? (double)noCover / albums.Count : 0;
             int score = albums.Count == 0 ? 0 : Math.Clamp((int)Math.Round(100 * (1 - 0.4 * tagFrac - 0.3 * coverFrac - 0.3 * lossyFrac)), 0, 100);
 
+            // Formaatverdeling voor de mix-balk (ALAC = m4a + lossless; m4a lossy = AAC -> Other).
+            int cFlac = files.Count(t => t.Format == "FLAC");
+            int cMp3 = files.Count(t => t.Format == "MP3");
+            int cWav = files.Count(t => t.Format == "WAV");
+            int cAlac = files.Count(t => t.Format == "M4A" && t.Lossless);
+            int cOther = files.Count - cFlac - cMp3 - cWav - cAlac;
+
             Dispatcher.UIThread.Post(() =>
             {
                 _albums.Clear(); _albums.AddRange(albums);
@@ -316,6 +324,16 @@ public class LibraryViewModel : ViewModelBase
                 LossyFileCount = lossyFiles;
                 UpgradeAlbumCount = lossyAlbums;
                 HealthScore = score;
+                Formats.Clear();
+                if (files.Count > 0)
+                {
+                    void AddSeg(string n, int c, string hex) { if (c > 0) Formats.Add(new FormatSegment(n, c, 100.0 * c / files.Count, hex)); }
+                    AddSeg("FLAC", cFlac, "#3568C4");
+                    AddSeg("MP3", cMp3, "#FFB570");
+                    AddSeg("WAV", cWav, "#2EC4B6");
+                    AddSeg("ALAC", cAlac, "#9D7AFF");
+                    AddSeg("Other", cOther, "#8A8FA0");
+                }
                 ProblemAlbums.Clear();
                 foreach (var p in problemData)
                     ProblemAlbums.Add(new ProblemAlbumViewModel(p.Artist, p.Name, p.issue, p.IReadOnlyList, _onEdit, DeleteAlbum));
@@ -439,4 +457,20 @@ public class LibraryViewModel : ViewModelBase
     }
 
     private static string Norm(string? s) => Regex.Replace((s ?? "").ToLowerInvariant(), "[^a-z0-9]", "");
+}
+
+/// <summary>One slice of the Health "format mix" bar (FLAC/MP3/WAV/ALAC/Other).</summary>
+public sealed class FormatSegment
+{
+    public string Name { get; }
+    public int Count { get; }
+    public double Pct { get; }
+    public Avalonia.Media.IBrush Brush { get; }
+    public string Label => $"{Name}  {Pct:0.#}%  ·  {Count:N0}";
+
+    public FormatSegment(string name, int count, double pct, string hex)
+    {
+        Name = name; Count = count; Pct = pct;
+        Brush = new Avalonia.Media.SolidColorBrush(Avalonia.Media.Color.Parse(hex));
+    }
 }
