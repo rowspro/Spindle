@@ -64,8 +64,53 @@ public class StagingAlbumViewModel : ViewModelBase
     public bool HasFlags => Flags.Count > 0;
 
     private bool _isSelected;
-    public bool IsSelected { get => _isSelected; set { if (SetField(ref _isSelected, value)) OnSelectedChanged?.Invoke(); } }
+    public bool IsSelected { get => _isSelected; set { if (value && !CanSelect) return; if (SetField(ref _isSelected, value)) OnSelectedChanged?.Invoke(); } }
     public Action? OnSelectedChanged;
+
+    // ---- Strict gate: kritieke vlaggen blokkeren het vinkje (fouten gaan het magazijn niet in) ----
+    private bool _critical;
+    public bool Critical { get => _critical; private set => SetField(ref _critical, value); }
+    private bool _approveAnyway;
+    public bool CanSelect => !_critical || _approveAnyway;
+    public bool ShowOverride => _critical && !_approveAnyway;
+    public RelayCommand OverrideCommand { get; }
+    public bool Receiving { get; set; }
+
+    // ---- MusicBrainz-tracklijstvalidatie (ASN-check) ----
+    private string _validation = "";
+    public string Validation { get => _validation; private set => SetField(ref _validation, value); }
+    public bool HasValidation => _validation.Length > 0;
+    public bool ValidationOk { get; private set; }
+    public bool ValidationInfo => HasValidation && !ValidationOk;
+
+    public void SetValidation(bool ok, string text, List<string> missingFlags)
+    {
+        ValidationOk = ok;
+        Validation = text;
+        OnPropertyChanged(nameof(HasValidation));
+        OnPropertyChanged(nameof(ValidationOk));
+        OnPropertyChanged(nameof(ValidationInfo));
+        if (missingFlags.Count > 0)
+        {
+            var f = Flags.ToList();
+            foreach (var m in missingFlags) if (!f.Contains(m)) f.Add(m);
+            Flags = f;
+            IsClean = false;
+            OnPropertyChanged(nameof(HasFlags));
+        }
+        RecomputeCritical();
+    }
+
+    /// <summary>Critical = mag het magazijn niet in zonder bewuste override.</summary>
+    public void RecomputeCritical()
+    {
+        Critical = Receiving || Flags.Any(f =>
+            f.Contains("without tags") || f.StartsWith("missing track")
+            || f.StartsWith("still receiving") || f == "already in library — better quality there");
+        if (!CanSelect && _isSelected) { _isSelected = false; OnPropertyChanged(nameof(IsSelected)); OnSelectedChanged?.Invoke(); }
+        OnPropertyChanged(nameof(CanSelect));
+        OnPropertyChanged(nameof(ShowOverride));
+    }
 
     public RelayCommand FixCommand { get; }
     public RelayCommand DeleteCommand { get; }
@@ -88,6 +133,13 @@ public class StagingAlbumViewModel : ViewModelBase
         FixCommand = new RelayCommand(() => onFix(this));
         DeleteCommand = new RelayCommand(() => onDelete(this));
         ReplaceCommand = new RelayCommand(() => onReplace(this));
+        OverrideCommand = new RelayCommand(() =>
+        {
+            _approveAnyway = true;
+            OnPropertyChanged(nameof(CanSelect));
+            OnPropertyChanged(nameof(ShowOverride));
+            IsSelected = true;
+        });
     }
 
     /// <summary>Recompute the card stats after files were deleted in the inspector.</summary>
@@ -97,6 +149,7 @@ public class StagingAlbumViewModel : ViewModelBase
         IsClean = isClean;
         Sub = sub;
         OnPropertyChanged(nameof(HasFlags));
+        RecomputeCritical();
     }
 }
 
@@ -204,6 +257,7 @@ public class StagingViewModel : ViewModelBase
                 foreach (var r in rows.OrderBy(r => r.FileName, StringComparer.OrdinalIgnoreCase)) DetailFiles.Add(r);
                 RebuildDuplicates();
                 ShowDetail = true;
+                RebuildChecks(album);
                 Status = $"{DetailFiles.Count} tracks in '{album.Title}'.";
             });
         });
@@ -296,6 +350,7 @@ public class StagingViewModel : ViewModelBase
             Dispatcher.UIThread.Post(() =>
             {
                 album.UpdateStats(flags, clean, sub);
+                if (ReferenceEquals(_detailAlbum, album)) RebuildChecks(album);
                 Summary = $"{_all.Count} albums · {_all.Sum(a => a.Files.Count)} tracks · {_all.Count(a => !a.IsClean)} need attention";
                 UpdatePipeline();
             });
@@ -501,7 +556,12 @@ public class StagingViewModel : ViewModelBase
     }
 
     public void CursorFix() => CursorAlbum?.FixCommand.Execute(null);
-    public void CursorToggle() { if (CursorAlbum is { } a) a.IsSelected = !a.IsSelected; }
+    public void CursorToggle()
+    {
+        if (CursorAlbum is not { } a) return;
+        if (!a.IsSelected && !a.CanSelect) { Status = "Blocked by critical flags — use 'Approve anyway' on the card to override."; return; }
+        a.IsSelected = !a.IsSelected;
+    }
     public void CursorDelete() => CursorAlbum?.DeleteCommand.Execute(null);
 
     /// <summary>Remove a card and keep the keyboard cursor on a sensible neighbour.</summary>
@@ -605,9 +665,18 @@ public class StagingViewModel : ViewModelBase
                 bool clean = g.Lossy == 0 && g.Untagged == 0 && g.NoCover == 0 && g.MissingYg == 0 && !dup;
                 if (already) flags.Add(inboxBetter ? "better quality than library — replace?" : "already in library — better quality there");
                 var sub = $"{g.Files.Count} tracks" + (string.IsNullOrEmpty(g.Year) ? "" : $"  ·  {g.Year}");
-                albums.Add(new StagingAlbumViewModel(g.Artist, g.Album, g.Year, g.Files, g.Dirs.ToList(),
+                var vm = new StagingAlbumViewModel(g.Artist, g.Album, g.Year, g.Files, g.Dirs.ToList(),
                     flags, clean, already, inboxBetter, sub, g.Cover.Length > 0 ? g.Cover : null,
-                    OpenDetail, DeleteInboxAlbum, ReplaceInLibrary));
+                    OpenDetail, DeleteInboxAlbum, ReplaceInLibrary);
+                if (DirReceiving(g.Dirs))
+                {
+                    vm.Receiving = true;
+                    var rf = vm.Flags.ToList();
+                    rf.Insert(0, "still receiving — download in progress");
+                    vm.UpdateStats(rf, false, sub);
+                }
+                vm.RecomputeCritical();
+                albums.Add(vm);
             }
 
             Dispatcher.UIThread.Post(() =>
@@ -624,9 +693,140 @@ public class StagingViewModel : ViewModelBase
                 ApproveCommand.RaiseCanExecuteChanged();
                 UpdatePipeline();
                 LoadCovers();
+                ValidateAlbums(albums);                                   // ASN-check tegen MusicBrainz
+                if (albums.Any(x => x.Receiving)) ScheduleSettleRescan(); // dok laten settelen
             });
         });
     }
+
+    // ==== Fase B: dock-stabiliteit (niets scannen dat nog binnenkomt) ====
+    private static readonly string[] PartialExt = { ".part", ".tmp", ".incomplete", ".filepart", ".crdownload", ".!sk", ".aria2", ".download" };
+
+    private static bool DirReceiving(IEnumerable<string> dirs)
+    {
+        foreach (var d in dirs)
+        {
+            try
+            {
+                foreach (var f in Directory.EnumerateFiles(d))
+                {
+                    var name = Path.GetFileName(f).ToLowerInvariant();
+                    if (PartialExt.Any(e => name.EndsWith(e))) return true;
+                    if ((DateTime.UtcNow - File.GetLastWriteTimeUtc(f)).TotalSeconds < 45) return true;
+                }
+            }
+            catch { }
+        }
+        return false;
+    }
+
+    private DispatcherTimer? _settleTimer;
+    private void ScheduleSettleRescan()
+    {
+        _settleTimer?.Stop();
+        _settleTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(60) };
+        _settleTimer.Tick += (_, _) => { _settleTimer?.Stop(); if (!IsBusy && !ShowDetail) Scan(); };
+        _settleTimer.Start();
+    }
+
+    // ==== Fase A: MusicBrainz-tracklijstvalidatie ====
+    private readonly Dictionary<string, MbReleaseMatch?> _mbCache = new();
+    private CancellationTokenSource? _valCts;
+
+    private void ValidateAlbums(List<StagingAlbumViewModel> albums)
+    {
+        _valCts?.Cancel();
+        _valCts = new CancellationTokenSource();
+        var token = _valCts.Token;
+        var work = albums.Where(a => !a.AlreadyInLibrary && a.Artist.Length > 0 && a.Album.Length > 0).ToList();
+        if (work.Count == 0) return;
+        var nieuw = NieuwFolder;
+        Task.Run(async () =>
+        {
+            var trackNo = new Dictionary<string, int>(StringComparer.Ordinal);
+            try { foreach (var r in _lib.Index.AllTracks(nieuw)) trackNo[r.Path] = r.TrackNo; } catch { }
+            foreach (var a in work)
+            {
+                if (token.IsCancellationRequested) return;
+                var key = Norm(a.Artist) + "|" + Norm(a.Album);
+                MbReleaseMatch? m;
+                bool cached;
+                lock (_mbCache) cached = _mbCache.TryGetValue(key, out m);
+                if (!cached)
+                {
+                    // fileCount 0: geen bias naar de editie met precies ons aantal tracks — anders maskeer je gaten
+                    try { m = await MusicBrainzClient.MatchReleaseAsync(a.Artist, a.Album, 0); }
+                    catch { m = null; }
+                    lock (_mbCache) _mbCache[key] = m;
+                    try { await Task.Delay(700, token); } catch { return; }   // MB-rate-limit
+                }
+                var album = a; var match = m;
+                Dispatcher.UIThread.Post(() => ApplyValidation(album, match, trackNo));
+            }
+        });
+    }
+
+    private void ApplyValidation(StagingAlbumViewModel a, MbReleaseMatch? m, Dictionary<string, int> trackNo)
+    {
+        if (m == null || m.Tracks.Count == 0)
+            a.SetValidation(false, "no MusicBrainz match — verify by ear", new List<string>());
+        else
+        {
+            var present = new HashSet<int>();
+            int withNo = 0;
+            foreach (var f in a.Files)
+                if (trackNo.TryGetValue(f, out var n) && n > 0) { present.Add(n); withNo++; }
+            if (withNo == 0)
+                a.SetValidation(false, $"MusicBrainz expects {m.Tracks.Count} tracks — can't verify (no track numbers)", new List<string>());
+            else
+            {
+                var missing = m.Tracks.Where(t => t.Position > 0 && !present.Contains(t.Position)).ToList();
+                if (missing.Count == 0)
+                    a.SetValidation(true, $"complete · {m.Tracks.Count}/{m.Tracks.Count} tracks (MusicBrainz)", new List<string>());
+                else if (missing.Count > Math.Max(3, m.Tracks.Count / 2))
+                    a.SetValidation(false, $"MusicBrainz edition has {m.Tracks.Count} tracks, you have {present.Count} — possibly another edition", new List<string>());
+                else
+                {
+                    var names = missing.Take(3).Select(t => $"#{t.Position} '{t.Title}'");
+                    var flag = "missing track " + string.Join(", ", names) + (missing.Count > 3 ? $" +{missing.Count - 3} more" : "");
+                    a.SetValidation(false, $"{m.Tracks.Count - missing.Count}/{m.Tracks.Count} tracks (MusicBrainz)", new List<string> { flag });
+                }
+            }
+        }
+        if (ReferenceEquals(_detailAlbum, a)) RebuildChecks(a);
+    }
+
+    // ==== Fase A: inbound-checklist in de inspecteur ====
+    public ObservableCollection<CheckItem> DetailChecks { get; } = new();
+
+    private void RebuildChecks(StagingAlbumViewModel a)
+    {
+        DetailChecks.Clear();
+        DetailChecks.Add(new CheckItem("tags complete", !a.Flags.Any(f => f.Contains("without tags"))));
+        DetailChecks.Add(new CheckItem("cover art", !a.Flags.Contains("no cover")));
+        DetailChecks.Add(new CheckItem("year & genre", !a.Flags.Contains("missing year/genre")));
+        DetailChecks.Add(new CheckItem("single version", !a.Flags.Contains("duplicate versions")));
+        DetailChecks.Add(new CheckItem("lossless", !a.Flags.Any(f => f.EndsWith(" lossy"))));
+        if (a.HasValidation)
+        {
+            bool? state = null;
+            if (a.ValidationOk) state = true;
+            else if (a.Flags.Any(f => f.StartsWith("missing track"))) state = false;
+            DetailChecks.Add(new CheckItem(a.Validation, state));
+        }
+        else
+            DetailChecks.Add(new CheckItem("completeness check pending (MusicBrainz)…", null));
+    }
+
+    // ==== Fase C: ontvangstbon ====
+    private string _lastReceipt = "";
+    public string LastReceipt { get => _lastReceipt; private set { if (SetField(ref _lastReceipt, value)) OnPropertyChanged(nameof(HasReceipt)); } }
+    public bool HasReceipt => _lastReceipt.Length > 0;
+    private RelayCommand? _dismissReceipt;
+    public RelayCommand DismissReceiptCommand => _dismissReceipt ??= new RelayCommand(() => LastReceipt = "");
+
+    private static string FmtBytes(long b) =>
+        b >= 1L << 30 ? $"{b / (double)(1L << 30):0.0} GB" : b >= 1L << 20 ? $"{b / (double)(1L << 20):0} MB" : $"{b / 1024.0:0} kB";
 
     private void ApplyFilter()
     {
@@ -779,6 +979,13 @@ public class StagingViewModel : ViewModelBase
             foreach (var a in selected) foreach (var d in a.SourceDirs) dirs.Add(d);
             // opruimen: bronmappen die helemaal leeg zijn van audio → naar prullenbak (incl. hoezen/.nfo).
             foreach (var d in dirs) CleanConsumedSourceDir(d, ops);
+            // Putaway-verificatie: staat alles echt op zijn plek?
+            long bytes = 0; int verified = 0;
+            foreach (var op in ops) { try { var fi = new FileInfo(op.To); if (fi.Exists) { verified++; bytes += fi.Length; } } catch { } }
+            int conflicts = ops.Count(o =>
+                System.Text.RegularExpressions.Regex.IsMatch(Path.GetFileNameWithoutExtension(o.To), @" \(\d+\)$")
+                && !System.Text.RegularExpressions.Regex.IsMatch(Path.GetFileNameWithoutExtension(o.From), @" \(\d+\)$"));
+            int failed = plan.Count - moved;
             _undo.Record($"Approve: {selected.Count} album(s) to library", ops);
             _lib.Refresh(NieuwFolder);
             _lib.Refresh(LibraryFolder);
@@ -791,6 +998,10 @@ public class StagingViewModel : ViewModelBase
                 ApproveCommand.RaiseCanExecuteChanged();
                 UpdatePipeline();
                 Status = $"✓ {moved} tracks placed neatly in the library (Cmd+Z = undo).";
+                LastReceipt = failed == 0 && verified == moved
+                    ? $"✓ Received: {selected.Count} album(s) · {verified} tracks · {FmtBytes(bytes)} placed{(conflicts > 0 ? $" · {conflicts} name conflict(s) auto-suffixed" : "")} — Cmd+Z undoes everything"
+                    : $"⚠ Receipt check: {verified}/{plan.Count} tracks verified in place{(failed > 0 ? $", {failed} failed to move" : "")} — inspect the library before continuing";
+                CursorAlbum = Albums.FirstOrDefault();   // doorwerk-modus: cursor meteen op de volgende
             });
         });
     }
@@ -884,4 +1095,19 @@ public class StagingViewModel : ViewModelBase
 
 
     private static string Norm(string? s) => Regex.Replace((s ?? "").ToLowerInvariant(), "[^a-z0-9]", "");
+}
+
+/// <summary>One inbound-checklist chip in the inbox inspector (ok / warn / pending).</summary>
+public sealed class CheckItem
+{
+    public string Text { get; }
+    public bool IsOk { get; }
+    public bool IsWarn { get; }
+
+    public CheckItem(string label, bool? ok)
+    {
+        IsOk = ok == true;
+        IsWarn = ok == false;
+        Text = (ok == true ? "✓  " : ok == false ? "✕  " : "…  ") + label;
+    }
 }

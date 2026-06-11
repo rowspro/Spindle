@@ -396,6 +396,31 @@
         <Style Selector="ListBox#InboxList ListBoxItem:selected Border.card">
             <Setter Property="BorderBrush" Value="{DynamicResource Accent}" />
         </Style>
+
+        <!-- Inbound-checklist chips -->
+        <Style Selector="Border.checkchip">
+            <Setter Property="CornerRadius" Value="9999" />
+            <Setter Property="Padding" Value="10,4" />
+            <Setter Property="Margin" Value="0,0,6,6" />
+            <Setter Property="Background" Value="{DynamicResource SurfaceVariant}" />
+        </Style>
+        <Style Selector="Border.checkchip TextBlock">
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="{DynamicResource TextMuted}" />
+        </Style>
+        <Style Selector="Border.checkchip.ok">
+            <Setter Property="Background" Value="{DynamicResource SuccessBg}" />
+        </Style>
+        <Style Selector="Border.checkchip.ok TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource Success}" />
+        </Style>
+        <Style Selector="Border.checkchip.warn">
+            <Setter Property="Background" Value="{DynamicResource WarnBg}" />
+        </Style>
+        <Style Selector="Border.checkchip.warn TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource WarnFg}" />
+        </Style>
     </Window.Styles>
 
     <Grid ColumnDefinitions="240,*">
@@ -1163,6 +1188,12 @@
                             <TextBlock Classes="body" Margin="0,4,0,0" TextWrapping="Wrap"
                                        Text="What Nicotine+ brought in, per album with attention flags. Fix inline, tick what's good and approve — placed neatly as Artist/Album (Year) in your library after a move preview." />
                             <TextBlock Classes="caption" Margin="0,4,0,0" Text="Keyboard: J/K move · Enter inspect · A select · X delete · Esc back" />
+                            <Border CornerRadius="10" Background="{DynamicResource SuccessBg}" Padding="12,8" Margin="0,10,0,0" IsVisible="{Binding HasReceipt}">
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <TextBlock Text="{Binding LastReceipt}" Foreground="{DynamicResource Success}" FontWeight="SemiBold" FontSize="13" TextWrapping="Wrap" VerticalAlignment="Center" />
+                                    <Button Grid.Column="1" Classes="ghost" Padding="6,2" Content="✕" Command="{Binding DismissReceiptCommand}" />
+                                </Grid>
+                            </Border>
                             <TextBlock Classes="body" FontWeight="SemiBold" Foreground="{DynamicResource Accent}" Margin="0,8,0,0"
                                        Text="{Binding PipelineText}" IsVisible="{Binding PipelineText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
                         </StackPanel>
@@ -1185,8 +1216,8 @@
                             <ListBox.ItemTemplate>
                                 <DataTemplate>
                                     <Border Classes="card" Margin="0,0,0,8" Padding="12">
-                                        <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto,Auto" VerticalAlignment="Center">
-                                            <CheckBox Grid.Column="0" VerticalAlignment="Center" IsChecked="{Binding IsSelected}" />
+                                        <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto,Auto,Auto" VerticalAlignment="Center">
+                                            <CheckBox Grid.Column="0" VerticalAlignment="Center" IsChecked="{Binding IsSelected}" IsEnabled="{Binding CanSelect}" />
                                             <Border Grid.Column="1" Width="56" Height="56" CornerRadius="8" Margin="4,0,0,0" ClipToBounds="True" Background="{DynamicResource SurfaceVariant}">
                                                 <Panel>
                                                     <TextBlock Classes="icon" FontSize="24" Text="&#xE019;" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="{DynamicResource TextMuted}"
@@ -1211,15 +1242,25 @@
                                                             </DataTemplate>
                                                         </ItemsControl.ItemTemplate>
                                                     </ItemsControl>
+                                                    <Border CornerRadius="9999" Padding="9,3" Background="{DynamicResource SuccessBg}" IsVisible="{Binding ValidationOk}">
+                                                        <TextBlock Text="{Binding Validation}" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource Success}" />
+                                                    </Border>
+                                                    <Border CornerRadius="9999" Padding="9,3" Background="{DynamicResource SurfaceVariant}" IsVisible="{Binding ValidationInfo}">
+                                                        <TextBlock Text="{Binding Validation}" FontSize="11" Foreground="{DynamicResource TextMuted}" />
+                                                    </Border>
                                                 </StackPanel>
                                             </StackPanel>
-                                            <Button Grid.Column="3" Classes="ghost" VerticalAlignment="Center" Command="{Binding FixCommand}" IsVisible="{Binding HasFlags}">
+                                            <Button Grid.Column="3" Classes="ghost" VerticalAlignment="Center" Command="{Binding OverrideCommand}" IsVisible="{Binding ShowOverride}"
+                                                    ToolTip.Tip="Critical flags keep this album out of the library. Override consciously if you're sure.">
+                                                <TextBlock Text="Approve anyway" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource WarnFg}" />
+                                            </Button>
+                                            <Button Grid.Column="4" Classes="ghost" VerticalAlignment="Center" Command="{Binding FixCommand}" IsVisible="{Binding HasFlags}">
                                                 <StackPanel Orientation="Horizontal" Spacing="6"><TextBlock Classes="icon" FontSize="16" Text="&#xE892;" /><TextBlock Text="Fix" VerticalAlignment="Center" /></StackPanel>
                                             </Button>
-                                            <Button Grid.Column="4" Classes="primary" Padding="12,5" Margin="6,0,0,0" VerticalAlignment="Center"
+                                            <Button Grid.Column="5" Classes="primary" Padding="12,5" Margin="6,0,0,0" VerticalAlignment="Center"
                                                     Command="{Binding ReplaceCommand}" IsVisible="{Binding CanReplace}" Content="Replace in library"
                                                     ToolTip.Tip="Moves the old library version to the trash and places this (better) version neatly in the library. Undoable with Cmd+Z." />
-                                            <Button Grid.Column="5" Classes="ghost" Padding="8,4" Margin="6,0,0,0" VerticalAlignment="Center"
+                                            <Button Grid.Column="6" Classes="ghost" Padding="8,4" Margin="6,0,0,0" VerticalAlignment="Center"
                                                     Command="{Binding DeleteCommand}"
                                                     ToolTip.Tip="Remove this album from the inbox (to _Verwijderd, reversible).">
                                                 <TextBlock Classes="icon" FontSize="16" Text="&#xE872;" Foreground="{DynamicResource ErrorBrush}" />
@@ -1232,7 +1273,7 @@
                     
 
                     <!-- Map-inspecteur (Fix) -->
-                    <Grid Grid.Row="2" Margin="0,12,0,0" RowDefinitions="Auto,*" IsVisible="{Binding ShowDetail}">
+                    <Grid Grid.Row="2" Margin="0,12,0,0" RowDefinitions="Auto,Auto,*" IsVisible="{Binding ShowDetail}">
                         <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto,Auto,Auto" Margin="0,0,0,12">
                             <Button Grid.Column="0" Classes="ghost" Command="{Binding BackCommand}">
                                 <StackPanel Orientation="Horizontal" Spacing="6"><TextBlock Classes="icon" FontSize="17" Text="&#xE5C4;" /><TextBlock Text="Back" VerticalAlignment="Center" /></StackPanel>
@@ -1248,7 +1289,17 @@
                                 <StackPanel Orientation="Horizontal" Spacing="6"><TextBlock Classes="icon" FontSize="16" Text="&#xE892;" /><TextBlock Text="Edit in Metadata" VerticalAlignment="Center" /></StackPanel>
                             </Button>
                         </Grid>
-                        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                        <ItemsControl Grid.Row="1" ItemsSource="{Binding DetailChecks}" Margin="0,0,0,10">
+                            <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Classes="checkchip" Classes.ok="{Binding IsOk}" Classes.warn="{Binding IsWarn}">
+                                        <TextBlock Text="{Binding Text}" />
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
                             <StackPanel Spacing="12">
                                 <Border Classes="card" IsVisible="{Binding HasDuplicates}">
                                     <StackPanel>
