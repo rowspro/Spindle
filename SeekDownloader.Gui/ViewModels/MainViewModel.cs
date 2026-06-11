@@ -300,9 +300,12 @@ public class MainViewModel : ViewModelBase
         PaletteResults.Clear();
         var q = (PaletteQuery ?? string.Empty).Trim();
         foreach (var s in PaletteSections)
+        {
+            if (s.Idx == 3 && ItunesMode) continue;   // Transfer verbergen in iTunes-modus
             if (q.Length == 0 || s.Name.Contains(q, StringComparison.OrdinalIgnoreCase))
                 PaletteResults.Add(new PaletteItem(s.Name, "Go to " + s.Name, s.Glyph,
                     () => { SelectedTabIndex = s.Idx; ClosePalette(); }));
+        }
         if (q.Length >= 2 && !string.IsNullOrWhiteSpace(MusicLibrary))
         {
             foreach (var a in Lib.Index.Albums(MusicLibrary).Where(x =>
@@ -536,6 +539,7 @@ public class MainViewModel : ViewModelBase
     {
         if (_itunesMode)
         {
+            if (SelectedTabIndex == 3) SelectedTabIndex = 4;   // Transfer is Rockbox-only -> naar Settings
             if (string.IsNullOrWhiteSpace(AlacMirrorFolder) && !string.IsNullOrWhiteSpace(MusicLibrary))
                 AlacMirrorFolder = MusicLibrary.TrimEnd('/', System.IO.Path.DirectorySeparatorChar) + " (ALAC)";
             MirrorStatus = "iTunes mode on — the mirror syncs in the background.";

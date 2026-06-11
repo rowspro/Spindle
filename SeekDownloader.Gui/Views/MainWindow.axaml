@@ -481,7 +481,7 @@
                                 Classes.active="{Binding SelectedTabIndex, Converter={x:Static vm:IntEquals.Instance}, ConverterParameter=2}">
                             <StackPanel Orientation="Horizontal"><TextBlock Classes="icon" FontSize="19" Width="28" Text="&#xE14D;" /><TextBlock Text="Duplicates" VerticalAlignment="Center" /></StackPanel>
                         </Button>
-                        <Button Classes="nav" Tag="3" Click="OnNav"
+                        <Button Classes="nav" Tag="3" Click="OnNav" IsVisible="{Binding RockboxMode}"
                                 Classes.active="{Binding SelectedTabIndex, Converter={x:Static vm:IntEquals.Instance}, ConverterParameter=3}">
                             <StackPanel Orientation="Horizontal"><TextBlock Classes="icon" FontSize="19" Width="28" Text="&#xE32C;" /><TextBlock Text="Transfer" VerticalAlignment="Center" /></StackPanel>
                         </Button>
