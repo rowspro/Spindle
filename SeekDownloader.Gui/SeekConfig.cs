@@ -65,4 +65,5 @@ public class SeekConfig
     public List<string> Wantlist { get; set; } = new();
     public bool ItunesMode { get; set; }
     public string AlacMirrorFolder { get; set; } = string.Empty;
+    public List<string> TransferWanted { get; set; } = new();
 }

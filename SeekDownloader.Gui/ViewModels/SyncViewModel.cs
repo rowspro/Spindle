@@ -271,6 +271,20 @@ public class SyncViewModel : ViewModelBase
 
     // Mark, per album, how many tracks are already on the iPod (checks both the original name and the
     // .m4a name in case it was converted). Runs off the UI thread; results are applied on it.
+    // ---- Transferintentie: overleeft stoppen, ontkoppelen en herstarten ----
+    private HashSet<string> _wanted = new(StringComparer.OrdinalIgnoreCase);
+    private static string WKey(AlbumEntryViewModel a) =>
+        System.Text.RegularExpressions.Regex.Replace((a.Artist + "|" + a.Album).ToLowerInvariant(), "[^a-z0-9|]", "");
+
+    public void LoadWanted(List<string> keys) => _wanted = new HashSet<string>(keys, StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>Huidige selectie als persisteerbare sleutels; zonder scan de bewaarde intentie.</summary>
+    public List<string> WantedSnapshot()
+    {
+        if (_all.Count == 0) return _wanted.ToList();
+        return _all.Where(a => a.Selected).Select(WKey).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+    }
+
     private void MarkIpodPresence()
     {
         var ipod = IpodFolder;
@@ -305,7 +319,7 @@ public class SyncViewModel : ViewModelBase
                 foreach (var kv in map)
                 {
                     kv.Key.OnIpod = kv.Value;
-                    if (ok) kv.Key.Selected = kv.Value > 0;
+                    if (ok) kv.Key.Selected = kv.Value > 0 || _wanted.Contains(WKey(kv.Key));
                 }
                 if (ok)
                 {
@@ -349,6 +363,7 @@ public class SyncViewModel : ViewModelBase
         TransferProgress = 0;
         _cts = new CancellationTokenSource();
         var token = _cts.Token;
+        _wanted = new HashSet<string>(_all.Where(a => a.Selected).Select(WKey), StringComparer.OrdinalIgnoreCase);
         var convert = ConvertToAlac;
         var dop = System.Math.Max(1, (int)Concurrency);
 
@@ -356,6 +371,14 @@ public class SyncViewModel : ViewModelBase
         {
             using var awake = KeepAwake.Start();   // Mac niet laten slapen midden in een transfer
             int copied = 0, skipped = 0, failed = 0, processed = 0, removed = 0;
+            try
+            {
+                var musicRoot = Path.Combine(ipod, "Music");
+                if (Directory.Exists(musicRoot))
+                    foreach (var pf in Directory.EnumerateFiles(musicRoot, "*.part", SearchOption.AllDirectories).ToList())
+                        try { File.Delete(pf); } catch { }
+            }
+            catch { }
             foreach (var a in deletes)
             {
                 if (token.IsCancellationRequested) break;
@@ -403,8 +426,14 @@ public class SyncViewModel : ViewModelBase
                             }
                             else
                             {
-                                File.Copy(job.File, dest);
-                                Interlocked.Increment(ref copied);
+                                var part = dest + ".part";
+                                try
+                                {
+                                    File.Copy(job.File, part, true);
+                                    File.Move(part, dest, true);
+                                    Interlocked.Increment(ref copied);
+                                }
+                                finally { try { if (File.Exists(part)) File.Delete(part); } catch { } }
                             }
                         }
                     }

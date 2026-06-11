@@ -47,6 +47,11 @@ public sealed class AlacMirrorService
         var mirFull = Path.GetFullPath(mirror);
         if ((mirFull + Path.DirectorySeparatorChar).StartsWith(srcFull + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
         { Status?.Invoke("ALAC mirror must live outside the music library."); return; }
+        // Vangrail: als het doel-volume niet gemount is, zou CreateDirectory een map op de
+        // boot-schijf maken (/Volumes/...). Alleen verder als de oudermap echt bestaat.
+        var mirParent = Path.GetDirectoryName(mirFull.TrimEnd(Path.DirectorySeparatorChar));
+        if (mirParent == null || !Directory.Exists(mirParent))
+        { Status?.Invoke("ALAC mirror skipped — target volume/folder isn't available."); return; }
         Directory.CreateDirectory(mirFull);
 
         // 1) werk verzamelen (incrementeel op mtime)
@@ -66,8 +71,13 @@ public sealed class AlacMirrorService
             jobs.Add((f, dst, conv));
         }
 
-        // 2) wezen opruimen (verwijderd uit de bieb → weg uit de spiegel)
+        // 2) wezen opruimen — vangrail: een lege/halfgemounte bron mag nooit de spiegel leegtrekken
         int removed = 0;
+        if (expected.Count == 0)
+        {
+            Status?.Invoke("ALAC mirror skipped — source library looks empty (volume not mounted?).");
+            return;
+        }
         try
         {
             foreach (var f in Directory.EnumerateFiles(mirFull, "*", SearchOption.AllDirectories).ToList())

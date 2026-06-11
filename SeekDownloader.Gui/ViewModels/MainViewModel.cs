@@ -1187,6 +1187,7 @@ public class MainViewModel : ViewModelBase
             Wantlist = Wantlist.WantEntries(),
             ItunesMode = ItunesMode,
             AlacMirrorFolder = AlacMirrorFolder,
+            TransferWanted = Sync.WantedSnapshot(),
             GalaxyAlbumLevel = GalaxyAlbumLevel,
             DarkMode = DarkMode,
             FilenameTemplate = string.IsNullOrWhiteSpace(FilenameTemplate) ? NameTemplate.Default : FilenameTemplate.Trim(),
@@ -1237,6 +1238,7 @@ public class MainViewModel : ViewModelBase
         AppleMusic.LibraryFolder = c.AppleLibrary;
         AutoOrganize = c.AutoOrganize;
         Wantlist.Load(c.Watchlist, c.Wantlist);
+        Sync.LoadWanted(c.TransferWanted);
         _itunesMode = c.ItunesMode;
         _alacMirrorFolder = c.AlacMirrorFolder;
         OnPropertyChanged(nameof(ItunesMode));
