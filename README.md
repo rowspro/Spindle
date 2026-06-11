@@ -1,155 +1,106 @@
-# SeekDownloader
+<p align="center">
+  <img src="docs/icon.png" width="128" alt="Spindle icon">
+</p>
 
-A simple to use, commandline tool, for downloading from the SoulSeek network
+<h1 align="center">Spindle</h1>
 
-When selecting your music library(ies) by using the parameters -m/-M it will only try to download what music you're missing from your library, avoiding duplicate music/downloads, this is the main power of the entire tool, skipping music you already own and only download what you're missing out on.
+<p align="center">Everything on one spindle — a music library manager for macOS.</p>
 
-Take in mind that the downloads will not move into your music library, this is a very complex process.
+---
 
-If want to move the music from Downloads into your Music Library, take a look at my other project, https://github.com/MusicMoveArr/MusicMover
+**Beta software.** I run Spindle against my own library every day, but that's exactly why you shouldn't start that way. Point it at a *copy* of (part of) your collection first and play with it until you trust it. Spindle is careful by design — nothing is ever hard-deleted (removals go to a `_Verwijderd (Spindle)` folder next to your library) and every file operation can be undone with Cmd+Z — but a tool this young has to earn access to twenty years of collecting.
 
-Loving the work I do? buy me a coffee https://buymeacoffee.com/musicmovearr
+## What it is
 
-# Usage example
-```
-dotnet SeekDownloader.dll \
---soulseek-username "John" \
---soulseek-password "Doe" \
---soulseek-listen-port 12345 \
---download-file-path "~/Downloads" \
---music-library "~/Music" \
---search-term "deadmau5"
-```
+Spindle treats a music collection like a warehouse with a receiving dock. Downloads arrive messy: missing tracks, no cover art, three spellings of the same artist, an MP3 rip of an album you already own in FLAC. The whole point of Spindle is that none of that reaches your library folder.
 
-# Description of arguments
-| Longname Argument  | Shortname Argument | Description | Example |
-| ------------- | ------------- | ------------- | ------------- |
-| --download-file-path | -D | Download path to store the downloads. (Required) | -D "~/Downloads" |
-| --soulseek-listen-port | -p | Soulseek listen port (used for portforwarding). (Required) | -p 12345 |
-| --soulseek-username | -u | Soulseek username for login. (Required) | -u "John" |
-| --soulseek-password | -P | Soulseek password for login. (Required) | -P "Doe" |
-| --search-term | -s | Search term used to search for music use the order, Artist - Album - Track. | -s "deadmau5" |
-| --search-file-path | -S | Search term(s) used to search for music use from a file. | -S "./search-songs.txt" |
-| --thread-count | -t | Download threads to use. (Default: 10) | -t 5 |
-| --music-library | -m | Music Library path to use to check for existing local songs. (Required) | -m "~/Music" |
-| --music-libraries | -M | Multiple Music Library path(s) to use to check for existing local songs. | -m ["\~/Music", "~/nfs_share_Music"] |
-| --filter-out-file-names | -F | Filter out names to ignore for downloads, seperated by space in commandline, seperated by ':' in docker/environment variable. | -F jazz live concert classic |
-| --grouped-downloads | -G | Put each search into his own download thread. | -G |
-| --download-singles | -DS | When combined with Grouped Downloads, it will quit downloading the entire group after 1 song finished downloading. | -DS |
-| --search-delimeter | -SD | Search term(s) delimeter is used to take the correct Artist, Album, Track names from your Search Term(s). | -SD |
-| --update-album-name | -UA | Update the Album name's tag by your search term, only updates if Trackname matches as well for +90%. | -UA |
-| --allow-non-tagged-files |  | Allow non-tagged files, original music-files do not contain tags either. | true |
-| --check-tags |  | Check the tags if we downloaded the correct track. | true |
-| --check-tags-delete |  | If the tags do not match the search, delete after download. | true |
-| --output-status |  | Output the overall status and of each thread. | true |
-| --search-file-extensions |  | Search for specific file extensions, seperated by space in commandline, seperated by ':' in docker/environment variable. | wav flac opus |
-| --music-library-match |  | Set the hitrate percentage against your own music library, if it hits it will skip the download. | 50 |
-| --music-library-quick-match |  | Quickly try to find only the missing tracks from the search. | true |
-| --max-file-size |  | Set the max file size to download in Megabytes (MB). | 50 |
-| --in-memory-downloads |  | Store the downloads temporarily in memory, only successful downloads are written to disk. | true |
-| --in-memory-downloads-max-size |  | Store the downloads temporarily in memory only if smaller then X MB else the disk is used as normal. | 100 |
+The workflow:
 
-# How MusicLibrary Filtering works
-When selecting your music library(ies) by -m/-M to filter out downloads/music we already own, we will use the following regex'es on soulseek files
+1. Download with whatever you like (I use Nicotine+) into a "New music" folder.
+2. Spindle's **Inbox** picks everything up automatically and checks each album: tags complete? cover art present? tracklist complete compared to MusicBrainz? already in the library, and in which quality? Problems become flags on the album card.
+3. Albums with serious problems are blocked from approval until you fix them in the built-in inspector, or consciously override.
+4. **Approve** files everything into `Artist/Album (Year)/` with a filename template of your choice, shows you the move plan first, and verifies afterwards that every file actually landed.
+5. From there your iPod gets fed: directly for Rockbox, or through an automatic ALAC mirror folder if you sync a stock iPod with iTunes/Finder.
 
-Besides the regex patterns, it will filter out for example [123ABC] at the end of the filenames which (I think/believe) are youtube video id's
+There are no scan buttons. Spindle keeps a persistent index (SQLite) of your library and watches the folders; everything updates by itself.
 
-These video id's will make the detection fail on what we already own for music
+## Install
 
-Next we will try to match what we already own against the file list we receive from Soulseek, here we're using Fuzzy filename matching, at 50% and above it's a match
-
-For now (maybe change in the future) it will become an option to change the ratio, but I found 50% to work the best because of all the weird filenames everyone uses
-
-For the matching to work it will expect the following filesystem structure, MusicLibrary/ArtistName/
-
-Only the ArtistName folder is critical to prevent reading thousands of files/folders
-
-## Filename Patterns
-| Description  | Pattern |
-| ------------- | ------------- |
-| Artist - Album - Track.ext | ^(.+?)\s-\s(.+?)\s-\s(\d{2}(?:-\d{2})?)\s-\s(?\<track>(.+?))\.(mp3\|flac\|m4a\|opus\|wav\|aiff)$ |
-| TrackNumber-DiscNumber Artist - TrackName.ext (dot is optional) | ^(\d{1,3})-(\d{1,3})[\.]{0,1}(.+?)[\s]{0,}-[\s]{0,}(?\<track>(.+?))\.(mp3\|flac\|m4a\|opus\|wav\|aiff)$ |
-| TrackNumber-DiscNumber TrackName.ext (dot is optional) | ^(\d{1,3})-(\d{1,3})[\.]{0,1}(?\<track>(.+?))\.(mp3\|flac\|m4a\|opus\|wav\|aiff)$ |
-| TrackNumber-Artist-TrackName.ext | ^(\d{1,3})[\s]{0,}-[\s]{0,}(.+?)[\s]{0,}-[\s]{0,}(?\<track>(.+?))\.(mp3\|flac\|m4a\|opus\|wav\|aiff)$ |
-| TrackNumber. Artist - TrackName.ext ('.' or '-') | ^(\d{1,3})[\s]{0,}(.+?)[-\.]{1}[\s]{0,}(?\<track>(.+?))\.(mp3\|flac\|m4a\|opus\|wav\|aiff)$ |
-| TrackNumber. TrackName.ext ('.' or '-') | ^(\d{1,3})[\s]{0,}[-\.]{1}[\s]{0,}(?\<track>(.+?))\.(mp3\|flac\|m4a\|opus\|wav\|aiff)$ |
-| TrackNumber TrackName.ext (without '.' or '-') | ^(\d{1,3})[\s]{1,}(?\<track>(.+?))\.(mp3\|flac\|m4a\|opus\|wav\|aiff)$ |
-| Artist - Track.ext | ^(.+?)[\s]{0,}-[\s]{0,}(?\<track>(.+?))\.(mp3\|flac\|m4a\|opus\|wav\|aiff)$ |
-| TrackName.ext | ^(?\<track>(.+?))\.(mp3\|flac\|m4a\|opus\|wav\|aiff)$ |
-
-# Textfile Search
-When you want to search for a lot of songs use the following format for your goal
-
-For each line in the text file you can use all formats,
-
-And of course specify the file location by using --search-file-path or -S
+**Homebrew** (macOS, recommended):
 
 ```
-Artist
-```
-```
-Artist - Trackname
-```
-```
-Artist - Album - Trackname
+brew install rowspro/spindle/spindle
 ```
 
-# Docker Compose example
-Keep note of the multi-value seperator ":"
+**Direct download:** grab a zip from the [latest release](https://github.com/rowspro/Spindle/releases/latest) — Apple Silicon, Intel, and an experimental Windows build. The macOS builds are signed and notarized, so they open without Gatekeeper warnings.
 
-This process will run every 6 hours based on the quartz cronjob format which includes seconds
-
-Environment variables with a missing "=" are a boolean, no value is needed, you set the "true" without "=true"
+**Build from source:** you need the .NET 8 SDK.
 
 ```
-services:
-  seekdownloader:
-    image: musicmovearr/seekdownloader:latest
-    container_name: SeekDownloader
-    restart: unless-stopped
-    user: "1000:1000"
-    environment:
-      - PUID=1000
-      - PGID=1000
-      - CRON=0 0 */6 ? * *
-      - SEEK_DOWNLOADFILEPATH=/Downloads
-      - SEEK_SOULSEEKLISTENPORT=12345
-      - SEEK_SOULSEEKUSERNAME=username_here
-      - SEEK_SOULSEEKPASSWORD=password_here
-      - SEEK_SEARCHDELIMETER=-
-      - SEEK_MUSICLIBRARY=/music
-      - SEEK_SEARCHTERM=
-      - SEEK_SEARCHFILEPATH=/Downloads/seek.txt
-      - SEEK_THREADCOUNT=10
-      - SEEK_GROUPEDDOWNLOADS=true
-      - SEEK_DOWNLOADSINGLES=true
-      - SEEK_UPDATEALBUMNAME=true
-      - SEEK_MUSICLIBRARIES=/music:/nfs_share/
-      - SEEK_FILTEROUTFILENAMES=live:concert:acoustic
-      - SEEK_CHECKTAGS=true
-      - SEEK_CHECKTAGSDELETE=true
-      - SEEK_OUTPUTSTATUS=false
-      - SEEK_ALLOWNONTAGGEDFILES=false
-      - SEEK_FILEEXTENSIONS=opus:flac:wav
-      - SEEK_MUSICLIBRARY_MATCH=50
-      - SEEK_MUSICLIBRARY_QUICK_MATCH=true
-      - SEEK_MAX_FILE_SIZE=50
-      - SEEK_IN_MEMORY_DOWNLOADS=true
-      - SEEK_IN_MEMORY_DOWNLOADS_MAX_SIZE=100 
-    volumes:
-      - ~/Music:/Music
-      - ~/nfs_share:/nfs_share
-      - ~/Downloads:/Downloads
+git clone https://github.com/rowspro/Spindle.git
+cd Spindle/SeekDownloader.Gui
+./package-macos.sh osx-arm64     # or osx-x64; app appears in dist/
 ```
 
-# Build
-## ArchLinux
-```
-sudo pacman -Syy dotnet-sdk-8.0 git
-git clone https://github.com/MusicMoveArr/SeekDownloader.git
-cd SeekDownloader
-dotnet restore
-dotnet build
-cd SeekDownloader/bin/Debug/net8.0
-dotnet SeekDownloader.dll --help
-```
+For a quick development run, `dotnet run` from the same folder works too.
+
+**First start:** open Settings and set two folders — "New music" (where your downloads land) and "Music library" (your collection — again: a copy, the first week). The index builds itself from there.
+
+## The tools
+
+### Inbox
+
+The review gate described above. Each album card shows its flags: `x lossy`, `x without tags`, `no cover`, `missing year`, `missing genre`, `duplicate versions`, `still receiving` (download not finished yet), and the completeness verdict from MusicBrainz, down to which track is missing ("missing track #7 'Touch'"). If the album already exists in your library, Spindle compares quality both ways: either "better quality there" (one click sweeps all of those to the trash) or "better quality than library — replace?" with a one-click replace.
+
+The inspector behind the Fix button has a checklist of the album's state, an inline tag table, cover paste from the clipboard (applies to the whole album), per-file playback to verify a download by ear, and — when one album arrived from two sources — a version picker that shows both with bitrate and size and keeps the one you choose.
+
+The whole thing drives with the keyboard: J/K to move, Enter to inspect, A to tick, X to delete, Esc to go back.
+
+### Library
+
+Your collection as an album grid with covers, search-as-you-type and filters. Quick edits (artist, album, genre, year) write to all tracks of the album; the album-artist field autocompletes from your own library so spellings stay consistent. Space plays the selected album in the mini player.
+
+### Health and the Library Doctor
+
+A dashboard with a health score, problem counters and a format-mix bar (FLAC/MP3/WAV/ALAC/other). The interesting part is the **Library Doctor**: run a checkup and it finds artist spelling variants (AC/DC vs AC & DC — pick the right one and it retags and moves everything), files that drifted from your naming template, non-canonical genres, and album oddities like mixed quality or track-number gaps. Every fix is a single undo batch.
+
+### Metadata
+
+A tag editor with three modes: a form for one album at a time, a spreadsheet-style table for bulk edits, and filename↔tag converters. Album matching pulls a complete, consistent release (titles, year, genre, cover) from iTunes, Discogs or MusicBrainz. AcoustID fingerprinting identifies untagged files. Artwork works the way Mp3tag users expect: paste from clipboard, apply to the whole album.
+
+### Duplicates
+
+Two passes: a fast one on tags, an optional second one using acoustic fingerprints for files whose tags lie. Best version preselected; rejected copies go to a separate folder, not the void.
+
+### Wantlist
+
+Follow artists and Spindle compares their official discography (MusicBrainz) against your index. Missing albums go on a wantlist with a copy-button for the search term; once an album lands in your library, it ticks itself off.
+
+### iPod: Transfer and iTunes mode
+
+A toggle in Settings picks your world. **Rockbox:** the Transfer tab syncs straight from your library — what's on the iPod is pre-ticked, unticking removes it (iTunes-style sync), with progress, free-space and disconnect protection, and copies staged through RAM so a yanked cable can never leave a half file behind. **iTunes / stock iPod:** Spindle maintains an ALAC mirror of your library in the background — FLAC becomes iPod-ready ALAC (with Artist set to Album artist so sorting behaves), MP3/AAC copied as-is, removed albums cleaned up. You point iTunes/Finder at the mirror and never convert anything by hand.
+
+### Galaxy
+
+Your collection as a 3D point map: genres form clusters, newer music sits closer to the core, and opening the tab makes the whole thing fly out from the center. Click a point to jump to that album. Mostly useless, completely necessary.
+
+## The small stuff
+
+- Cmd+F opens a command palette (jump to any screen or album).
+- Cmd+Z undoes the last file/tag batch; the clock icon in the top bar opens an activity register of everything Spindle did this session.
+- A mini player lives at the bottom; space is play/pause almost everywhere.
+- During transfers and mirror syncs the Mac is kept awake (`caffeinate`).
+- If your library lives on an external SSD: Spindle notices when the volume unmounts, says so instead of showing an empty library, and recovers by itself when it returns.
+- Settings warns you in red if your inbox and library folders overlap.
+- Dark mode, obviously.
+- Crashes (rare, knock wood) leave a readable log in `~/Library/Application Support/SeekDownloader/crash.log` — include it in bug reports.
+
+## Windows
+
+The Windows build starts and works for library management, tagging and the inbox. The built-in player and ALAC conversion rely on macOS system tools (`afplay`, `afconvert`) and don't work there yet.
+
+## Heritage and license
+
+This repo started life as a GUI for [MusicMoveArr's SeekDownloader](https://github.com/MusicMoveArr/SeekDownloader), a Soulseek command-line downloader — which is why the project folder is still called `SeekDownloader.Gui`, and why this README used to describe a CLI tool. The project has since pivoted completely: downloading was removed (dedicated clients do it better) and Spindle became a pure library manager. Credit to MusicMoveArr for the original foundation.
+
+License: GPLv3.
