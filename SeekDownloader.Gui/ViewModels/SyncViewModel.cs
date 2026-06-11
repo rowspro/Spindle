@@ -452,11 +452,15 @@ public class SyncViewModel : ViewModelBase
                             if (doConvert)
                             {
                                 var part = dest + ".part";
+                                var staged = Path.Combine(Path.GetTempPath(), "spindle-" + Guid.NewGuid().ToString("N") + Path.GetExtension(job.File));
                                 try
                                 {
-                                    if (AudioConvert.Encode(job.File, part, true, token, out var encErr) && File.Exists(part))
+                                    // Bron eerst naar lokale tijdelijke opslag (via RAM): de conversie leest
+                                    // daarna niets meer van de SSD, dus ontkoppelen kan haar niet raken.
+                                    File.WriteAllBytes(staged, File.ReadAllBytes(job.File));
+                                    if (AudioConvert.Encode(staged, part, true, token, out var encErr) && File.Exists(part))
                                     {
-                                        AudioConvert.CopyTags(job.File, part, artistFromAlbumArtist: true);
+                                        AudioConvert.CopyTags(staged, part, artistFromAlbumArtist: true);
                                         File.Move(part, dest, true);
                                         Interlocked.Increment(ref copied);
                                     }
@@ -466,14 +470,26 @@ public class SyncViewModel : ViewModelBase
                                         if (!token.IsCancellationRequested) AddFailure(job.File, encErr ?? "no output file");
                                     }
                                 }
-                                finally { try { if (File.Exists(part)) File.Delete(part); } catch { } }
+                                finally
+                                {
+                                    try { if (File.Exists(part)) File.Delete(part); } catch { }
+                                    try { if (File.Exists(staged)) File.Delete(staged); } catch { }
+                                }
                             }
                             else
                             {
                                 var part = dest + ".part";
                                 try
                                 {
-                                    File.Copy(job.File, part, true);
+                                    // Eerst volledig in RAM lezen: valt de SSD weg, dan faalt het lezen
+                                    // vóór er ook maar één byte naar de iPod is geschreven.
+                                    if (new FileInfo(job.File).Length <= 256L << 20)
+                                    {
+                                        var bytes = File.ReadAllBytes(job.File);
+                                        File.WriteAllBytes(part, bytes);
+                                    }
+                                    else
+                                        File.Copy(job.File, part, true);   // extreem groot bestand: stream
                                     File.Move(part, dest, true);
                                     Interlocked.Increment(ref copied);
                                 }
