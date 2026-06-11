@@ -251,8 +251,31 @@ public class StagingViewModel : ViewModelBase
                 rows.Add(new StagingFileViewModel(f, Path.GetFileName(f), fmt, meta, issues, DeleteDetailFile, PlayDetailFile));
                 _detailTitles[rows[^1]] = title;
             }
+            var versions = new List<(double LosslessFrac, int AvgBr, StagingVersionViewModel Vm)>();
+            if (album.SourceDirs.Count > 1)
+            {
+                foreach (var d in album.SourceDirs)
+                {
+                    var inDir = files.Where(f => string.Equals(Path.GetDirectoryName(f), d, StringComparison.OrdinalIgnoreCase)).ToList();
+                    if (inDir.Count == 0) continue;
+                    long sz = 0;
+                    foreach (var f in inDir) { try { sz += new FileInfo(f).Length; } catch { } }
+                    var rsIn = inDir.Where(map.ContainsKey).Select(f => map[f]).ToList();
+                    var fmts = string.Join("/", inDir.Select(f => Path.GetExtension(f).TrimStart('.').ToUpperInvariant()).Distinct());
+                    int avg = rsIn.Count > 0 ? (int)rsIn.Average(r => (double)r.Bitrate) : 0;
+                    double lfr = rsIn.Count > 0 ? rsIn.Count(r => r.Lossless) / (double)rsIn.Count : 0;
+                    var stats = $"{inDir.Count} tracks · {fmts}" + (avg > 0 ? $" · ~{avg} kbps" : "") + $" · {FmtBytes(sz)}";
+                    versions.Add((lfr, avg, new StagingVersionViewModel(d, stats, KeepOnly)));
+                }
+                versions = versions.OrderByDescending(v => v.LosslessFrac).ThenByDescending(v => v.AvgBr).ToList();
+                if (versions.Count > 0) versions[0].Vm.IsBest = true;
+            }
+
             Dispatcher.UIThread.Post(() =>
             {
+                DetailVersions.Clear();
+                foreach (var v in versions) DetailVersions.Add(v.Vm);
+                OnPropertyChanged(nameof(HasVersions));
                 DetailFiles.Clear();
                 foreach (var r in rows.OrderBy(r => r.FileName, StringComparer.OrdinalIgnoreCase)) DetailFiles.Add(r);
                 RebuildDuplicates();
@@ -799,6 +822,52 @@ public class StagingViewModel : ViewModelBase
     // ==== Fase A: inbound-checklist in de inspecteur ====
     public ObservableCollection<CheckItem> DetailChecks { get; } = new();
 
+    // ==== Fase D: beste-versie-kiezer (meerdere bronmappen voor één album) ====
+    public ObservableCollection<StagingVersionViewModel> DetailVersions { get; } = new();
+    public bool HasVersions => DetailVersions.Count > 1;
+
+    private void KeepOnly(StagingVersionViewModel keep)
+    {
+        var album = _detailAlbum;
+        if (album == null || IsBusy) return;
+        var others = album.Files.Where(f => !string.Equals(Path.GetDirectoryName(f), keep.FullDir, StringComparison.OrdinalIgnoreCase)).ToList();
+        if (others.Count == 0) { Status = "This is already the only version."; return; }
+        var nieuw = NieuwFolder;
+        IsBusy = true;
+        Status = $"Keeping '{keep.DirName}' — moving {others.Count} files to the trash…";
+        Task.Run(() =>
+        {
+            string trash;
+            try
+            {
+                var parent = Path.GetDirectoryName(Path.GetFullPath(nieuw).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
+                trash = parent != null ? Path.Combine(parent, "_Verwijderd (Spindle)") : Path.Combine(nieuw, "_Verwijderd");
+            }
+            catch { trash = Path.Combine(nieuw, "_Verwijderd"); }
+            var ops = new List<UndoJournal.MoveOp>();
+            int moved = 0;
+            foreach (var f in others)
+            {
+                try { var dest = MoveInto(f, trash); ops.Add(new UndoJournal.MoveOp(f, dest)); moved++; } catch { }
+            }
+            foreach (var d in others.Select(Path.GetDirectoryName).Where(d => d != null).Distinct(StringComparer.OrdinalIgnoreCase))
+                CleanConsumedSourceDir(d!, ops);
+            _undo.Record($"Kept best version: {album.Title}", ops);
+            _lib.Refresh(nieuw);
+            Dispatcher.UIThread.Post(() =>
+            {
+                if (album.Files is List<string> lf) lf.RemoveAll(others.Contains);
+                foreach (var f in others) FixGrid.RemoveByPath(f);
+                album.SourceDirs.RemoveAll(d => !string.Equals(d, keep.FullDir, StringComparison.OrdinalIgnoreCase));
+                IsBusy = false;
+                Status = $"\u2713 Kept '{keep.DirName}' — {moved} files to the trash (Cmd+Z = undo).";
+                RefreshAlbumStats(album);
+                OpenDetail(album);   // detail opnieuw opbouwen uit de verse stand
+            });
+        });
+    }
+
+
     private void RebuildChecks(StagingAlbumViewModel a)
     {
         DetailChecks.Clear();
@@ -1109,5 +1178,23 @@ public sealed class CheckItem
         IsOk = ok == true;
         IsWarn = ok == false;
         Text = (ok == true ? "✓  " : ok == false ? "✕  " : "…  ") + label;
+    }
+}
+
+/// <summary>One received version (source folder) of an album in the inbox inspector.</summary>
+public sealed class StagingVersionViewModel
+{
+    public string FullDir { get; }
+    public string DirName { get; }
+    public string Stats { get; }
+    public bool IsBest { get; set; }
+    public RelayCommand KeepCommand { get; }
+
+    public StagingVersionViewModel(string dir, string stats, Action<StagingVersionViewModel> onKeep)
+    {
+        FullDir = dir;
+        DirName = Path.GetFileName(dir.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
+        Stats = stats;
+        KeepCommand = new RelayCommand(() => onKeep(this));
     }
 }

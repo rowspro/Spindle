@@ -60,6 +60,8 @@ public partial class MainWindow : Window
             return;
         }
 
+        if (Vm.IsHistoryOpen && e.Key == Key.Escape) { Vm.CloseHistory(); e.Handled = true; return; }
+
         if (Vm.IsPaletteOpen)
         {
             switch (e.Key)
@@ -254,6 +256,12 @@ public partial class MainWindow : Window
             grid.Children.Add(b);
         }
     }
+
+    // ---- Activity register ----
+    private void OnOpenHistory(object? sender, RoutedEventArgs e) => Vm?.OpenHistory();
+    private void OnCloseHistory(object? sender, RoutedEventArgs e) => Vm?.CloseHistory();
+    private void OnHistoryBackdrop(object? sender, PointerPressedEventArgs e) => Vm?.CloseHistory();
+    private void OnUndoTop(object? sender, RoutedEventArgs e) => Vm?.UndoTop();
 
     // ---- Wantlist ----
     private void OnFollowKeyDown(object? sender, KeyEventArgs e)

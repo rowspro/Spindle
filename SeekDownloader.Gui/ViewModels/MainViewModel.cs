@@ -266,6 +266,30 @@ public class MainViewModel : ViewModelBase
     private PaletteItem? _selectedPaletteItem;
     public PaletteItem? SelectedPaletteItem { get => _selectedPaletteItem; set => SetField(ref _selectedPaletteItem, value); }
 
+    // ---- Activity register (top bar) ----
+    public ObservableCollection<HistoryRow> HistoryItems { get; } = new();
+    private bool _isHistoryOpen;
+    public bool IsHistoryOpen { get => _isHistoryOpen; set => SetField(ref _isHistoryOpen, value); }
+    public bool HistoryEmpty => HistoryItems.Count == 0;
+
+    public void OpenHistory()
+    {
+        HistoryItems.Clear();
+        var h = Undo.History();
+        for (int i = 0; i < h.Count; i++)
+        {
+            var parts = new List<string>();
+            if (h[i].Moves > 0) parts.Add($"{h[i].Moves} file move(s)");
+            if (h[i].Tags > 0) parts.Add($"{h[i].Tags} tag snapshot(s)");
+            HistoryItems.Add(new HistoryRow(h[i].Label, string.Join(" · ", parts), i == 0));
+        }
+        OnPropertyChanged(nameof(HistoryEmpty));
+        IsHistoryOpen = true;
+    }
+
+    public void CloseHistory() => IsHistoryOpen = false;
+    public void UndoTop() { UndoLast(); OpenHistory(); }
+
     public void OpenPalette() { PaletteQuery = string.Empty; RebuildPalette(); IsPaletteOpen = true; }
     public void ClosePalette() => IsPaletteOpen = false;
 
@@ -1185,3 +1209,5 @@ public class MainViewModel : ViewModelBase
         Lib.Configure(MusicLibrary, DownloadFilePath);
     }
 }
+
+public sealed record HistoryRow(string Label, string Detail, bool IsTop);

@@ -508,6 +508,9 @@
                     <TextBlock Grid.Column="0" VerticalAlignment="Center" Text="{Binding CurrentSection}"
                                FontSize="19" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}" />
                     <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Spacing="16">
+                        <Button Classes="ghost" Padding="8,4" Click="OnOpenHistory" ToolTip.Tip="Activity register — every file move and tag batch of this session, undo from the top.">
+                            <TextBlock Classes="icon" FontSize="18" Text="&#xE889;" />
+                        </Button>
                         <Button Classes="ghost" Padding="8,4" Click="OnToggleTheme" ToolTip.Tip="Light/dark theme">
                             <TextBlock Classes="icon" FontSize="18" Text="{Binding ThemeIcon}" />
                         </Button>
@@ -1301,6 +1304,28 @@
                         </ItemsControl>
                         <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
                             <StackPanel Spacing="12">
+                                <Border Classes="card" Padding="14" IsVisible="{Binding HasVersions}">
+                                    <StackPanel>
+                                        <TextBlock Classes="title" FontSize="13.5" Text="Multiple versions received — keep the best" />
+                                        <TextBlock Classes="caption" Margin="0,2,0,8" Text="Pick one; the other folders move to the trash in one undoable batch." />
+                                        <ItemsControl ItemsSource="{Binding DetailVersions}">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Grid ColumnDefinitions="*,Auto,Auto" Margin="0,3,0,3">
+                                                        <StackPanel VerticalAlignment="Center">
+                                                            <TextBlock Text="{Binding DirName}" FontWeight="SemiBold" FontSize="13" Foreground="{DynamicResource TextPrimary}" TextTrimming="CharacterEllipsis" />
+                                                            <TextBlock Classes="caption" Text="{Binding Stats}" />
+                                                        </StackPanel>
+                                                        <Border Grid.Column="1" CornerRadius="9999" Padding="9,3" Margin="8,0" Background="{DynamicResource SuccessBg}" IsVisible="{Binding IsBest}" VerticalAlignment="Center">
+                                                            <TextBlock Text="best quality" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource Success}" />
+                                                        </Border>
+                                                        <Button Grid.Column="2" Classes="primary" Padding="12,5" VerticalAlignment="Center" Content="Keep this one" Command="{Binding KeepCommand}" />
+                                                    </Grid>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </StackPanel>
+                                </Border>
                                 <Border Classes="card" IsVisible="{Binding HasDuplicates}">
                                     <StackPanel>
                                         <TextBlock Classes="title" Text="Duplicates in this folder" />
@@ -1741,6 +1766,40 @@
                                         </StackPanel>
                                     </Grid>
                                 </Button>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <!-- Activity register -->
+        <Grid Grid.Column="0" Grid.ColumnSpan="2" ZIndex="100" IsVisible="{Binding IsHistoryOpen}">
+            <Border Background="#33000000" PointerPressed="OnHistoryBackdrop" />
+            <Border VerticalAlignment="Top" HorizontalAlignment="Center" Width="600" Margin="0,90,0,0"
+                    Background="{DynamicResource Card}" BorderBrush="{DynamicResource CardBorder}" BorderThickness="1"
+                    CornerRadius="14" Padding="16" BoxShadow="0 20 50 0 #44000000">
+                <StackPanel>
+                    <Grid ColumnDefinitions="*,Auto">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <TextBlock Classes="icon" FontSize="20" Text="&#xE889;" Foreground="{DynamicResource TextMuted}" VerticalAlignment="Center" />
+                            <TextBlock Classes="title" Text="Activity register" VerticalAlignment="Center" />
+                        </StackPanel>
+                        <Button Grid.Column="1" Classes="ghost" Padding="6,2" Content="✕" Click="OnCloseHistory" />
+                    </Grid>
+                    <TextBlock Classes="caption" Margin="0,4,0,10" TextWrapping="Wrap"
+                               Text="Every inbound movement and tag batch of this session, newest first. Undo peels them off from the top (Cmd+Z does the same)." />
+                    <TextBlock Classes="caption" Text="No recorded activity yet this session." IsVisible="{Binding HistoryEmpty}" />
+                    <ListBox MaxHeight="380" ItemsSource="{Binding HistoryItems}" Background="Transparent" BorderThickness="0">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <Grid ColumnDefinitions="*,Auto" Margin="2,3">
+                                    <StackPanel VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding Label}" FontWeight="SemiBold" FontSize="13" Foreground="{DynamicResource TextPrimary}" />
+                                        <TextBlock Classes="caption" Text="{Binding Detail}" />
+                                    </StackPanel>
+                                    <Button Grid.Column="1" Classes="ghost" Padding="10,4" Content="Undo" Click="OnUndoTop" IsVisible="{Binding IsTop}" VerticalAlignment="Center" />
+                                </Grid>
                             </DataTemplate>
                         </ListBox.ItemTemplate>
                     </ListBox>

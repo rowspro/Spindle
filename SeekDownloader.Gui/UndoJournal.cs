@@ -43,6 +43,18 @@ public sealed class UndoJournal
         }
     }
 
+    /// <summary>Snapshot of recorded batches, newest first (for the activity register).</summary>
+    public List<(string Label, int Moves, int Tags)> History()
+    {
+        lock (_lock)
+        {
+            var list = new List<(string Label, int Moves, int Tags)>();
+            for (int i = _batches.Count - 1; i >= 0; i--)
+                list.Add((_batches[i].Label, _batches[i].Moves.Count, _batches[i].Tags.Count));
+            return list;
+        }
+    }
+
     public string? LastLabel { get { lock (_lock) return _batches.Count > 0 ? _batches[^1].Label : null; } }
 
     /// <summary>Undo the most recent batch. Returns (restored, total, label); total 0 = nothing to undo.</summary>
