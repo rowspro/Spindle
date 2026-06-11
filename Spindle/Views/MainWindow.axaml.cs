@@ -20,7 +20,7 @@ public partial class MainWindow : Window
         // Tunnel so the window sees arrow keys before buttons/tabs consume them for focus navigation.
         AddHandler(KeyDownEvent, OnWindowKeyDown, Avalonia.Interactivity.RoutingStrategies.Tunnel, handledEventsToo: true);
         // Remember tool folders (and other settings) across launches.
-        Closing += (_, _) => Vm?.SaveSettings();
+        Closing += (_, _) => { Vm?.Player.Stop(); Vm?.SaveSettings(); };
         // Fase 5: pas het opgeslagen thema toe en volg de toggle.
         DataContextChanged += (_, _) => { HookTheme(); WireArtistBoxes(); WireFormatBar(); };
         HookTheme();

@@ -21,7 +21,8 @@ public sealed class PlayerViewModel : ViewModelBase
 
     private List<PlayerItem> _queue = new();
     private int _idx = -1;
-    private Process? _proc;
+    private Process? _proc;            // de sh-wrapper (Exited = einde nummer)
+    private volatile int _afplayPid;   // het echte afplay-proces (pauze/stop)
     private bool _paused;
     private readonly Stopwatch _sw = new();
     private readonly DispatcherTimer _tick;
@@ -67,11 +68,21 @@ public sealed class PlayerViewModel : ViewModelBase
         _paused = false;
         try
         {
-            var psi = new ProcessStartInfo("afplay") { UseShellExecute = false };
+            // afplay via een sh-watchdog: sterft Spindle (ook bij force quit), dan sterft afplay
+            // binnen 2s mee. sh echoot de afplay-pid zodat pauze/stop het juiste proces raken.
+            var psi = new ProcessStartInfo("/bin/sh") { UseShellExecute = false, RedirectStandardOutput = true };
+            psi.ArgumentList.Add("-c");
+            psi.ArgumentList.Add(
+                "afplay \"$0\" & A=$!; echo $A; " +
+                "(while /bin/kill -0 " + Environment.ProcessId + " 2>/dev/null && /bin/kill -0 $A 2>/dev/null; do /bin/sleep 2; done; /bin/kill -9 $A 2>/dev/null) & " +
+                "wait $A");
             psi.ArgumentList.Add(_queue[_idx].Path);
             var proc = Process.Start(psi);
             if (proc == null) { Stop(); return; }
             _proc = proc;
+            _afplayPid = 0;
+            var stdout = proc.StandardOutput;
+            Task.Run(() => { try { if (int.TryParse(stdout.ReadLine(), out var ap)) _afplayPid = ap; } catch { } });
             proc.EnableRaisingEvents = true;
             proc.Exited += (_, _) => Dispatcher.UIThread.Post(() => OnExited(proc));
             _sw.Restart();
@@ -96,10 +107,10 @@ public sealed class PlayerViewModel : ViewModelBase
 
     public void PlayPause()
     {
-        if (!HasTrack || _proc == null || _proc.HasExited) return;
+        if (!HasTrack || _proc == null || _proc.HasExited || _afplayPid == 0) return;
         try
         {
-            Process.Start("/bin/kill", new[] { _paused ? "-CONT" : "-STOP", _proc.Id.ToString() });
+            Process.Start("/bin/kill", new[] { _paused ? "-CONT" : "-STOP", _afplayPid.ToString() });
             _paused = !_paused;
             if (_paused) { _sw.Stop(); _tick.Stop(); }
             else { _sw.Start(); _tick.Start(); }
@@ -126,14 +137,13 @@ public sealed class PlayerViewModel : ViewModelBase
     private void KillProc()
     {
         var p = _proc;
-        _proc = null;   // eerst loskoppelen, dan pas killen — zo kan de Exited-handler nooit meer matchen
+        var ap = _afplayPid;
+        _proc = null;       // eerst loskoppelen, dan pas killen — zo kan de Exited-handler nooit meer matchen
+        _afplayPid = 0;
         try
         {
-            if (p != null && !p.HasExited)
-            {
-                if (_paused) Process.Start("/bin/kill", new[] { "-CONT", p.Id.ToString() });
-                p.Kill();
-            }
+            if (ap != 0) Process.Start("/bin/kill", new[] { "-9", ap.ToString() });   // -9 werkt ook op gepauzeerd
+            if (p != null && !p.HasExited) p.Kill();
         }
         catch { }
     }
