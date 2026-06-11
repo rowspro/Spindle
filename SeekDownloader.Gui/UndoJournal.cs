@@ -27,6 +27,13 @@ public sealed class UndoJournal
         Push((label, new List<MoveOp>(), before));
     }
 
+    /// <summary>One batch with both moves and tag snapshots — Cmd+Z restores everything at once.</summary>
+    public void RecordBatch(string label, List<MoveOp> moves, List<TagOp> tags)
+    {
+        if (moves.Count == 0 && tags.Count == 0) return;
+        Push((label, moves, tags));
+    }
+
     private void Push((string, List<MoveOp>, List<TagOp>) batch)
     {
         lock (_lock)

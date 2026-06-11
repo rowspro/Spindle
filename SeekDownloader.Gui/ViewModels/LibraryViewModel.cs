@@ -90,7 +90,7 @@ public class LibraryViewModel : ViewModelBase
     private readonly LibraryService _lib;
     private readonly UndoJournal _undo;
 
-    public LibraryViewModel(Action<List<string>> onDownload, Action<IReadOnlyList<string>, string> onEdit, LibraryService lib, UndoJournal undo)
+    public LibraryViewModel(Action<List<string>> onDownload, Action<IReadOnlyList<string>, string> onEdit, LibraryService lib, UndoJournal undo, Func<string>? template = null)
     {
         _onDownload = onDownload;
         _onEdit = onEdit;
@@ -111,7 +111,18 @@ public class LibraryViewModel : ViewModelBase
         ShowUpgradesCommand = new RelayCommand(ShowUpgrades);
         ShowLossyCommand = new RelayCommand(ShowLossy);
         CloseDetailCommand = new RelayCommand(() => DetailKind = string.Empty);
+        Doctor = new DoctorViewModel(lib, undo, () => LibraryFolder,
+            template ?? (() => "{artist} - {album} - {track} {title}"), onEdit);
+        OpenDoctorCommand = new RelayCommand(() =>
+        {
+            DetailTitle = "Library Doctor";
+            DetailKind = "doctor";
+            if (!Doctor.HasRun) Doctor.RunCommand.Execute(null);
+        });
     }
+
+    public DoctorViewModel Doctor { get; }
+    public RelayCommand OpenDoctorCommand { get; }
 
     // ---- Detail drill-down (clicking a stat box) ----
     public ObservableCollection<string> DetailFiles { get; } = new();
@@ -131,6 +142,7 @@ public class LibraryViewModel : ViewModelBase
                 OnPropertyChanged(nameof(ShowFilesPanel));
                 OnPropertyChanged(nameof(ShowAlbumsPanel));
                 OnPropertyChanged(nameof(ShowListPanel));
+                OnPropertyChanged(nameof(ShowDoctorPanel));
             }
         }
     }
@@ -139,6 +151,7 @@ public class LibraryViewModel : ViewModelBase
     public bool ShowFilesPanel => _detailKind == "files";
     public bool ShowAlbumsPanel => _detailKind == "albums";
     public bool ShowListPanel => _detailKind == "list";
+    public bool ShowDoctorPanel => _detailKind == "doctor";
 
     private string _detailTitle = string.Empty;
     public string DetailTitle { get => _detailTitle; private set => SetField(ref _detailTitle, value); }

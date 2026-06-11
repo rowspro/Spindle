@@ -677,6 +677,22 @@
                             </Grid>
                         </Border>
 
+                        <!-- Library Doctor -->
+                        <Border Classes="card" Padding="20">
+                            <Grid ColumnDefinitions="Auto,*,Auto" VerticalAlignment="Center">
+                                <Border Grid.Column="0" Width="44" Height="44" CornerRadius="12" Background="{DynamicResource SurfaceVariant}">
+                                    <TextBlock Classes="icon" FontSize="24" Text="&#xE3F3;" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="{DynamicResource Accent}" />
+                                </Border>
+                                <StackPanel Grid.Column="1" Margin="14,0,12,0" VerticalAlignment="Center">
+                                    <TextBlock Classes="title" Text="Library Doctor" />
+                                    <TextBlock Classes="caption" TextWrapping="Wrap"
+                                               Text="Finds artist spelling variants (AC/DC vs AC &amp; DC), files that strayed from your naming template, messy genres and album oddities — every fix is one Cmd+Z away from undone." />
+                                </StackPanel>
+                                <Button Grid.Column="2" Classes="primary" Content="Run checkup" VerticalAlignment="Center"
+                                        Command="{Binding OpenDoctorCommand}" />
+                            </Grid>
+                        </Border>
+
                         <UniformGrid Columns="3" VerticalAlignment="Top">
                             <Button Classes="statbtn" Command="{Binding ShowFilesCommand}" ToolTip.Tip="View all files in your library.">
                                 <Grid RowDefinitions="Auto,Auto,Auto">
@@ -820,6 +836,44 @@
                         </Grid>
                         <Border Grid.Row="1" Classes="card" Padding="8">
                             <Grid>
+                                <!-- Library Doctor -->
+                                <Grid IsVisible="{Binding ShowDoctorPanel}" RowDefinitions="Auto,*" DataContext="{Binding Doctor}">
+                                    <Grid Grid.Row="0" ColumnDefinitions="*,Auto,Auto,Auto" Margin="6,4,6,10">
+                                        <TextBlock Grid.Column="0" Classes="body" Text="{Binding Summary}" VerticalAlignment="Center" TextWrapping="Wrap" />
+                                        <Button Grid.Column="1" Classes="ghost" Content="Fix all locations" Margin="8,0,0,0" Command="{Binding FixAllLocationsCommand}"
+                                                ToolTip.Tip="Move every misplaced file to where the template says, in one undoable batch." />
+                                        <Button Grid.Column="2" Classes="ghost" Content="Fix all genres" Margin="6,0,0,0" Command="{Binding FixAllGenresCommand}"
+                                                ToolTip.Tip="Retag every non-canonical genre in one undoable batch." />
+                                        <Button Grid.Column="3" Classes="primary" Content="Re-run checkup" Margin="6,0,0,0" Command="{Binding RunCommand}" />
+                                    </Grid>
+                                    <ListBox Grid.Row="1" ItemsSource="{Binding Findings}" Background="Transparent" BorderThickness="0">
+                                        <ListBox.ItemTemplate>
+                                            <DataTemplate>
+                                                <Border Classes="card" Margin="0,0,0,8" Padding="14,10">
+                                                    <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto" VerticalAlignment="Center">
+                                                        <Border Grid.Column="0" CornerRadius="9999" Padding="9,3" Background="{DynamicResource WarnBg}" VerticalAlignment="Center">
+                                                            <TextBlock Text="{Binding Category}" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource WarnFg}" />
+                                                        </Border>
+                                                        <StackPanel Grid.Column="1" Margin="12,0,8,0" VerticalAlignment="Center">
+                                                            <TextBlock Text="{Binding Title}" Classes="title" FontSize="13.5" TextTrimming="CharacterEllipsis" />
+                                                            <TextBlock Text="{Binding Sub}" Classes="caption" TextWrapping="Wrap" />
+                                                        </StackPanel>
+                                                        <ComboBox Grid.Column="2" MinWidth="170" Margin="0,0,8,0" VerticalAlignment="Center"
+                                                                  ItemsSource="{Binding Spellings}" SelectedItem="{Binding SelectedSpelling}" IsVisible="{Binding HasSpellings}"
+                                                                  ToolTip.Tip="Pick the spelling every track in this cluster should use." />
+                                                        <Button Grid.Column="3" Classes="primary" Padding="12,5" VerticalAlignment="Center"
+                                                                Command="{Binding FixCommand}" Content="{Binding FixLabel}" IsVisible="{Binding HasFix}" />
+                                                        <Button Grid.Column="4" Classes="ghost" Margin="6,0,0,0" VerticalAlignment="Center"
+                                                                Command="{Binding EditCommand}" IsVisible="{Binding HasEdit}">
+                                                            <StackPanel Orientation="Horizontal" Spacing="6"><TextBlock Classes="icon" FontSize="16" Text="&#xE892;" /><TextBlock Text="Edit in Metadata" VerticalAlignment="Center" /></StackPanel>
+                                                        </Button>
+                                                    </Grid>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ListBox.ItemTemplate>
+                                    </ListBox>
+                                </Grid>
+
                                 <!-- Bestanden -->
                                 <ListBox IsVisible="{Binding ShowFilesPanel}" ItemsSource="{Binding DetailFiles}" Background="Transparent" BorderThickness="0">
                                     <ListBox.ItemTemplate>
