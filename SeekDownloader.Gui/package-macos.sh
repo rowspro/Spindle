@@ -60,7 +60,7 @@ IDENTITY="$(security find-identity -v -p codesigning 2>/dev/null | grep -o '"Dev
 if [ -n "$IDENTITY" ]; then
     echo ">> Signing with: $IDENTITY (hardened runtime)…"
     # eerst alle losse Mach-O's (dylibs + helpers), daarna de bundle zelf
-    find "$APP/Contents/MacOS" -type f \( -name "*.dylib" -o -perm -111 \) -print0 | while IFS= read -r -d '' f; do
+    find "$APP/Contents/MacOS" -type f -print0 | while IFS= read -r -d '' f; do
         codesign --force --timestamp --options runtime --entitlements "$ENTITLEMENTS" --sign "$IDENTITY" "$f" >/dev/null 2>&1 || true
     done
     codesign --force --timestamp --options runtime --entitlements "$ENTITLEMENTS" --sign "$IDENTITY" "$APP"
