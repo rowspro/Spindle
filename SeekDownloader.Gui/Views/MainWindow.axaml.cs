@@ -71,6 +71,27 @@ public partial class MainWindow : Window
             }
         }
 
+        // Inbox: J/K = cursor, Enter = inspecteur, A = vinkje, X = verwijderen, Esc = terug.
+        if (Vm.SelectedTabIndex == 5 && e.Source is not TextBox && !Vm.IsPaletteOpen)
+        {
+            var st = Vm.Staging;
+            if (st.ShowDetail)
+            {
+                if (e.Key == Key.Escape) { st.BackCommand.Execute(null); e.Handled = true; return; }
+            }
+            else
+            {
+                switch (e.Key)
+                {
+                    case Key.J: st.CursorMove(1); ScrollInboxCursor(); e.Handled = true; return;
+                    case Key.K: st.CursorMove(-1); ScrollInboxCursor(); e.Handled = true; return;
+                    case Key.Enter: st.CursorFix(); e.Handled = true; return;
+                    case Key.A: st.CursorToggle(); e.Handled = true; return;
+                    case Key.X: st.CursorDelete(); e.Handled = true; return;
+                }
+            }
+        }
+
         if (Vm.SelectedTabIndex != 0) return; // Metadata tab
         if (e.Source is TextBox) return;
         if (e.Key == Key.Left)
@@ -206,6 +227,12 @@ public partial class MainWindow : Window
     {
         var path = await PickFolderAsync("Kies de iPod-map");
         if (path != null && Vm != null) Vm.Sync.IpodFolder = path;
+    }
+
+    private void ScrollInboxCursor()
+    {
+        if (this.FindControl<ListBox>("InboxList") is { } lb && lb.SelectedItem != null)
+            lb.ScrollIntoView(lb.SelectedItem);
     }
 
     // ---- Album-artist autocomplete (consistent capitalization) ----

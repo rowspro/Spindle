@@ -376,6 +376,26 @@
         <Style Selector="TabControl /template/ ItemsPresenter#PART_ItemsPresenter">
             <Setter Property="IsVisible" Value="False" />
         </Style>
+
+        <!-- Inbox: toetsenbord-cursor -->
+        <Style Selector="ListBox#InboxList ListBoxItem">
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Margin" Value="0" />
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+        <Style Selector="ListBox#InboxList ListBoxItem:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+        <Style Selector="ListBox#InboxList ListBoxItem:selected /template/ ContentPresenter">
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+        <Style Selector="ListBox#InboxList ListBoxItem Border.card">
+            <Setter Property="BorderThickness" Value="2" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+        </Style>
+        <Style Selector="ListBox#InboxList ListBoxItem:selected Border.card">
+            <Setter Property="BorderBrush" Value="{DynamicResource Accent}" />
+        </Style>
     </Window.Styles>
 
     <Grid ColumnDefinitions="240,*">
@@ -402,7 +422,10 @@
                         <TextBlock Classes="navGroup" Text="WORKFLOW" />
                         <Button Classes="nav" Tag="5" Click="OnNav"
                                 Classes.active="{Binding SelectedTabIndex, Converter={x:Static vm:IntEquals.Instance}, ConverterParameter=5}">
-                            <StackPanel Orientation="Horizontal"><TextBlock Classes="icon" FontSize="19" Width="28" Text="&#xE168;" /><TextBlock Text="Inbox" VerticalAlignment="Center" /></StackPanel>
+                            <StackPanel Orientation="Horizontal"><TextBlock Classes="icon" FontSize="19" Width="28" Text="&#xE168;" /><TextBlock Text="Inbox" VerticalAlignment="Center" />
+                                <Border CornerRadius="9999" Background="{DynamicResource PrimaryBtn}" Padding="7,1" Margin="8,0,0,0" VerticalAlignment="Center" IsVisible="{Binding Staging.HasPending}">
+                                    <TextBlock Text="{Binding Staging.PendingCount}" FontSize="11" FontWeight="SemiBold" Foreground="White" />
+                                </Border></StackPanel>
                         </Button>
 
                         <TextBlock Classes="navGroup" Text="LIBRARY" />
@@ -1067,6 +1090,7 @@
                             <TextBlock Classes="h2" Text="Inbox — review &amp; approve" />
                             <TextBlock Classes="body" Margin="0,4,0,0" TextWrapping="Wrap"
                                        Text="What Nicotine+ brought in, per album with attention flags. Fix inline, tick what's good and approve — placed neatly as Artist/Album (Year) in your library after a move preview." />
+                            <TextBlock Classes="caption" Margin="0,4,0,0" Text="Keyboard: J/K move · Enter inspect · A select · X delete · Esc back" />
                             <TextBlock Classes="body" FontWeight="SemiBold" Foreground="{DynamicResource Accent}" Margin="0,8,0,0"
                                        Text="{Binding PipelineText}" IsVisible="{Binding PipelineText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
                         </StackPanel>
@@ -1083,9 +1107,10 @@
                         <Button Grid.Column="4" Classes="ghost" Content="None" Margin="6,0,0,0" Command="{Binding SelectNoneCommand}" />
                     </Grid>
 
-                    <ScrollViewer Grid.Row="2" Margin="0,12,0,0" VerticalScrollBarVisibility="Auto" IsVisible="{Binding ShowAlbumList}">
-                        <ItemsControl ItemsSource="{Binding Albums}">
-                            <ItemsControl.ItemTemplate>
+                                            <ListBox Grid.Row="2" Name="InboxList" Margin="0,12,0,0" IsVisible="{Binding ShowAlbumList}"
+                             ItemsSource="{Binding Albums}" SelectedItem="{Binding CursorAlbum}"
+                             Background="Transparent" BorderThickness="0" Padding="0">
+                            <ListBox.ItemTemplate>
                                 <DataTemplate>
                                     <Border Classes="card" Margin="0,0,0,8" Padding="12">
                                         <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto,Auto" VerticalAlignment="Center">
@@ -1130,9 +1155,9 @@
                                         </Grid>
                                     </Border>
                                 </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                    </ScrollViewer>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    
 
                     <!-- Map-inspecteur (Fix) -->
                     <Grid Grid.Row="2" Margin="0,12,0,0" RowDefinitions="Auto,*" IsVisible="{Binding ShowDetail}">

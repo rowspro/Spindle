@@ -330,7 +330,7 @@ public class StagingViewModel : ViewModelBase
             Dispatcher.UIThread.Post(() =>
             {
                 _all.Remove(album);
-                Albums.Remove(album);
+                RemoveAlbumFromList(album);
                 IsBusy = false;
                 ApproveCommand.RaiseCanExecuteChanged();
                 Summary = $"{_all.Count} albums · {_all.Sum(a => a.Files.Count)} tracks · {_all.Count(a => !a.IsClean)} need attention";
@@ -418,7 +418,7 @@ public class StagingViewModel : ViewModelBase
             Dispatcher.UIThread.Post(() =>
             {
                 _all.Remove(album);
-                Albums.Remove(album);
+                RemoveAlbumFromList(album);
                 IsBusy = false;
                 ApproveCommand.RaiseCanExecuteChanged();
                 Summary = $"{_all.Count} albums · {_all.Sum(a => a.Files.Count)} tracks · {_all.Count(a => !a.IsClean)} need attention";
@@ -484,6 +484,35 @@ public class StagingViewModel : ViewModelBase
     public string Summary { get => _summary; private set => SetField(ref _summary, value); }
 
     public ObservableCollection<StagingAlbumViewModel> Albums { get; } = new();
+
+    // ---- Toetsenbord-cursor (J/K/Enter/A/X in de inbox-lijst) ----
+    private StagingAlbumViewModel? _cursorAlbum;
+    public StagingAlbumViewModel? CursorAlbum { get => _cursorAlbum; set => SetField(ref _cursorAlbum, value); }
+
+    public int PendingCount => _all.Count;
+    public bool HasPending => _all.Count > 0;
+    private void RaisePending() { OnPropertyChanged(nameof(PendingCount)); OnPropertyChanged(nameof(HasPending)); }
+
+    public void CursorMove(int delta)
+    {
+        if (Albums.Count == 0) return;
+        int i = _cursorAlbum != null ? Albums.IndexOf(_cursorAlbum) : -1;
+        CursorAlbum = Albums[Math.Clamp(i + delta, 0, Albums.Count - 1)];
+    }
+
+    public void CursorFix() => CursorAlbum?.FixCommand.Execute(null);
+    public void CursorToggle() { if (CursorAlbum is { } a) a.IsSelected = !a.IsSelected; }
+    public void CursorDelete() => CursorAlbum?.DeleteCommand.Execute(null);
+
+    /// <summary>Remove a card and keep the keyboard cursor on a sensible neighbour.</summary>
+    private void RemoveAlbumFromList(StagingAlbumViewModel album)
+    {
+        int i = Albums.IndexOf(album);
+        Albums.Remove(album);
+        if (ReferenceEquals(_cursorAlbum, album))
+            CursorAlbum = Albums.Count > 0 ? Albums[Math.Clamp(i, 0, Albums.Count - 1)] : null;
+        RaisePending();
+    }
 
     private string _pipelineText = "";
     public string PipelineText { get => _pipelineText; private set => SetField(ref _pipelineText, value); }
@@ -605,6 +634,8 @@ public class StagingViewModel : ViewModelBase
         foreach (var a in _all)
             if (!ShowOnlyIssues || !a.IsClean)
                 Albums.Add(a);
+        if (_cursorAlbum != null && !Albums.Contains(_cursorAlbum)) CursorAlbum = null;
+        RaisePending();
     }
 
     private void UpdatePipeline()
@@ -754,7 +785,7 @@ public class StagingViewModel : ViewModelBase
 
             Dispatcher.UIThread.Post(() =>
             {
-                foreach (var a in selected) { _all.Remove(a); Albums.Remove(a); }
+                foreach (var a in selected) { _all.Remove(a); RemoveAlbumFromList(a); }
                 PlanItems.Clear();
                 IsBusy = false;
                 ApproveCommand.RaiseCanExecuteChanged();
