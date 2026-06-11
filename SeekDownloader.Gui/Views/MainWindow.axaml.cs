@@ -151,27 +151,13 @@ public partial class MainWindow : Window
         if (path != null && Vm != null) Vm.MusicLibrary = path;
     }
 
-    private async void OnBrowseSearchFile(object? sender, RoutedEventArgs e)
+    private async void OnBrowseAlacMirror(object? sender, RoutedEventArgs e)
     {
-        var path = await PickFileAsync("Kies een zoekbestand");
-        if (path != null && Vm != null) Vm.SearchFilePath = path;
+        var path = await PickFolderAsync("Choose the ALAC mirror folder (outside your library)");
+        if (path != null && Vm != null) Vm.AlacMirrorFolder = path;
     }
 
-    private async void OnBrowseArchiveFile(object? sender, RoutedEventArgs e)
-    {
-        // Save picker so you can create a NEW archive file (the open picker only allows existing files).
-        var file = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
-        {
-            Title = "Kies of maak een archiefbestand",
-            SuggestedFileName = "spindle-archief.txt",
-            DefaultExtension = "txt",
-            FileTypeChoices = new[] { new FilePickerFileType("Tekstbestand") { Patterns = new[] { "*.txt" } } }
-        });
-        var path = file?.TryGetLocalPath();
-        if (path != null && Vm != null) Vm.DownloadArchiveFilePath = path;
-    }
-
-    private async System.Threading.Tasks.Task<string?> PickFolderAsync(string title)
+    private async Task<string?> PickFolderAsync(string title)
     {
         var folders = await StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
         {
@@ -181,7 +167,7 @@ public partial class MainWindow : Window
         return folders.Count > 0 ? folders[0].TryGetLocalPath() : null;
     }
 
-    private async System.Threading.Tasks.Task<string?> PickFileAsync(string title)
+    private async Task<string?> PickFileAsync(string title)
     {
         var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
         {
@@ -189,12 +175,6 @@ public partial class MainWindow : Window
             AllowMultiple = false
         });
         return files.Count > 0 ? files[0].TryGetLocalPath() : null;
-    }
-
-    private async void OnBrowseAlacMirror(object? sender, RoutedEventArgs e)
-    {
-        var path = await PickFolderAsync("Choose the ALAC mirror folder (outside your library)");
-        if (path != null && Vm != null) Vm.AlacMirrorFolder = path;
     }
 
     // ---- Metadata editor tab ----
@@ -208,13 +188,6 @@ public partial class MainWindow : Window
     {
         var path = await PickFolderAsync("Kies een map (album) om door te lopen");
         if (path != null && Vm != null) Vm.Meta.LoadFolder(path);
-    }
-
-    // ---- Apple Music tab ----
-    private async void OnBrowseAppleLibrary(object? sender, RoutedEventArgs e)
-    {
-        var path = await PickFolderAsync("Kies je gedownloade-muziek-map");
-        if (path != null && Vm != null) Vm.AppleMusic.LibraryFolder = path;
     }
 
     // ---- Duplicates tab ----

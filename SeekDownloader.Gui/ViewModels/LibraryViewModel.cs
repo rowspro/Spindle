@@ -80,7 +80,6 @@ public class LibraryViewModel : ViewModelBase
         public string Query => $"{Artist} - {Name}";
     }
 
-    private readonly Action<List<string>> _onDownload;
     private readonly Action<IReadOnlyList<string>, string> _onEdit;
     private readonly List<Album> _albums = new();
     private List<string> _noTagFiles = new();
@@ -90,9 +89,8 @@ public class LibraryViewModel : ViewModelBase
     private readonly LibraryService _lib;
     private readonly UndoJournal _undo;
 
-    public LibraryViewModel(Action<List<string>> onDownload, Action<IReadOnlyList<string>, string> onEdit, LibraryService lib, UndoJournal undo, Func<string>? template = null, Action? openLibrary = null)
+    public LibraryViewModel(Action<IReadOnlyList<string>, string> onEdit, LibraryService lib, UndoJournal undo, Func<string>? template = null, Action? openLibrary = null)
     {
-        _onDownload = onDownload;
         _onEdit = onEdit;
         _lib = lib;
         _undo = undo;
@@ -182,7 +180,7 @@ public class LibraryViewModel : ViewModelBase
         {
             var q = a.Query; var name = a.Name;
             DetailAlbums.Add(new HealthAlbumViewModel($"{a.Artist} — {a.Name}", $"{a.Files.Count} tracks · fully lossy",
-                () => { Status = $"'{name}' queued for FLAC upgrade…"; _onDownload(new List<string> { q }); }));
+                () => Status = $"'{name}': put it on your Wantlist and grab a FLAC version with your download client."));
         }
         DetailTitle = $"FLAC upgrades possible ({DetailAlbums.Count})";
         DetailKind = "list";
@@ -195,7 +193,7 @@ public class LibraryViewModel : ViewModelBase
         {
             var q = a.Query; var name = a.Name;
             DetailAlbums.Add(new HealthAlbumViewModel($"{a.Artist} — {a.Name}", $"{a.LossyCount} lossy file(s)",
-                () => { Status = $"Searching '{name}' again in FLAC…"; _onDownload(new List<string> { q }); }));
+                () => Status = $"'{name}': put it on your Wantlist and grab a FLAC version with your download client."));
         }
         DetailTitle = $"Lossy files ({LossyFileCount})";
         DetailKind = "list";
@@ -450,10 +448,10 @@ public class LibraryViewModel : ViewModelBase
 
     private void FindUpgrades()
     {
-        var queries = _albums.Where(a => a.AllLossy).Select(a => a.Query).Distinct().ToList();
-        if (queries.Count == 0) { Status = "No fully-lossy albums found."; return; }
-        Status = $"{queries.Count} albums queued for download (FLAC preference via album mode)…";
-        _onDownload(queries);
+        var n = _albums.Count(a => a.AllLossy);
+        Status = n == 0
+            ? "No fully-lossy albums found."
+            : $"{n} fully-lossy album(s) — add them to your Wantlist and re-download in FLAC.";
     }
 
     private static string Norm(string? s) => Regex.Replace((s ?? "").ToLowerInvariant(), "[^a-z0-9]", "");

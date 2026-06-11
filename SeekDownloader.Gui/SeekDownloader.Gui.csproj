@@ -37,15 +37,5 @@
     </ItemGroup>
 
     <!-- Reuse the existing core logic by linking the source files; the CLI project stays untouched. -->
-    <ItemGroup>
-        <Compile Include="..\SeekDownloader\Services\DownloadService.cs" Link="Core\DownloadService.cs" />
-        <Compile Include="..\SeekDownloader\Services\FileSeekService.cs" Link="Core\FileSeekService.cs" />
-        <Compile Include="..\SeekDownloader\Models\SearchTermModel.cs" Link="Core\SearchTermModel.cs" />
-        <Compile Include="..\SeekDownloader\Enums\SearchTermType.cs" Link="Core\SearchTermType.cs" />
-        <Compile Include="..\SeekDownloader\Helpers\FuzzyHelper.cs" Link="Core\FuzzyHelper.cs" />
-        <Compile Include="..\SeekDownloader\SearchResult.cs" Link="Core\SearchResult.cs" />
-        <Compile Include="..\SeekDownloader\SearchGroup.cs" Link="Core\SearchGroup.cs" />
-        <Compile Include="..\SeekDownloader\DownloadProgress.cs" Link="Core\DownloadProgress.cs" />
-    </ItemGroup>
 
 </Project>
