@@ -165,7 +165,7 @@ public sealed class WantlistViewModel : ViewModelBase
             return;
         }
         var fa = MakeArtist(name);
-        Artists.Add(fa);
+        Artists.Insert(0, fa);   // nieuwste bovenaan
         FollowName = "";
         OnPropertyChanged(nameof(HasArtists));
         RefreshAllCommand.RaiseCanExecuteChanged();
@@ -205,7 +205,7 @@ public sealed class WantlistViewModel : ViewModelBase
         }
         else
         {
-            Wanted.Add(MakeWant(row.Artist, row.Title, row.Year));
+            Wanted.Add(MakeWant(row.Artist, row.Title, row.Year));   // achteraan: oudste wens blijft bovenaan
             row.Wanted = true;
             Status = $"On the wantlist: {row.Artist} — {row.Title}. Copy the search and paste it into Nicotine+.";
         }
