@@ -350,7 +350,8 @@ public class StagingViewModel : ViewModelBase
             int lossy = rows.Count(r => !r.Lossless);
             int unt = rows.Count(r => r.MissingTags);
             int noCover = rows.Count(r => !r.HasCover);
-            int missingYg = rows.Count(r => r.Year <= 0 || string.IsNullOrWhiteSpace(r.Genre));
+            int missingYear = rows.Count(r => r.Year <= 0);
+            int missingGenre = rows.Count(r => string.IsNullOrWhiteSpace(r.Genre));
             var trackNos = new HashSet<int>();
             var dirSet = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             bool dup = false;
@@ -365,7 +366,8 @@ public class StagingViewModel : ViewModelBase
             if (lossy > 0) flags.Add($"{lossy} lossy");
             if (unt > 0) flags.Add($"{unt} without tags");
             if (noCover > 0) flags.Add("no cover");
-            if (missingYg > 0) flags.Add("missing year/genre");
+            if (missingYear > 0) flags.Add("missing year");
+            if (missingGenre > 0) flags.Add("missing genre");
             if (dup) flags.Add("duplicate versions");
             bool clean = flags.Count == 0;
             if (album.AlreadyInLibrary) flags.Add("already in library");
@@ -641,7 +643,7 @@ public class StagingViewModel : ViewModelBase
             var files = _lib.Index.AllTracks(nieuw);
 
             var groups = new Dictionary<string, (string Artist, string Album, string Year, List<string> Files,
-                int Lossy, int Untagged, int NoCover, int MissingYg, HashSet<string> Dirs, HashSet<int> Tracks, bool DupTrack, string Cover, long BrSum)>();
+                int Lossy, int Untagged, int NoCover, int MissingYear, int MissingGenre, HashSet<string> Dirs, HashSet<int> Tracks, bool DupTrack, string Cover, long BrSum)>();
 
             foreach (var r in files)
             {
@@ -649,7 +651,7 @@ public class StagingViewModel : ViewModelBase
                 var artist = !string.IsNullOrWhiteSpace(r.AlbumArtist) ? r.AlbumArtist : r.Artist;
                 var key = Norm(artist) + "|" + Norm(r.Album);
                 if (!groups.TryGetValue(key, out var g))
-                    g = (artist, r.Album, r.Year > 0 ? r.Year.ToString() : "", new List<string>(), 0, 0, 0, 0, new HashSet<string>(), new HashSet<int>(), false, "", 0L);
+                    g = (artist, r.Album, r.Year > 0 ? r.Year.ToString() : "", new List<string>(), 0, 0, 0, 0, 0, new HashSet<string>(), new HashSet<int>(), false, "", 0L);
 
                 g.Files.Add(r.Path);
                 var dir = Path.GetDirectoryName(r.Path);
@@ -658,7 +660,8 @@ public class StagingViewModel : ViewModelBase
                 if (r.MissingTags) g.Untagged++;
                 if (!r.HasCover) g.NoCover++;
                 else if (g.Cover.Length == 0) g.Cover = r.Path;
-                if (r.Year <= 0 || string.IsNullOrWhiteSpace(r.Genre)) g.MissingYg++;
+                if (r.Year <= 0) g.MissingYear++;
+                if (string.IsNullOrWhiteSpace(r.Genre)) g.MissingGenre++;
                 if (r.TrackNo > 0) { if (!g.Tracks.Add(r.TrackNo)) g.DupTrack = true; }
                 if (string.IsNullOrEmpty(g.Year) && r.Year > 0) g.Year = r.Year.ToString();
                 g.BrSum += r.Bitrate;
@@ -684,9 +687,10 @@ public class StagingViewModel : ViewModelBase
                 if (g.Lossy > 0) flags.Add($"{g.Lossy} lossy");
                 if (g.Untagged > 0) flags.Add($"{g.Untagged} without tags");
                 if (g.NoCover > 0) flags.Add("no cover");
-                if (g.MissingYg > 0) flags.Add("missing year/genre");
+                if (g.MissingYear > 0) flags.Add("missing year");
+                if (g.MissingGenre > 0) flags.Add("missing genre");
                 if (dup) flags.Add("duplicate versions");
-                bool clean = g.Lossy == 0 && g.Untagged == 0 && g.NoCover == 0 && g.MissingYg == 0 && !dup;
+                bool clean = g.Lossy == 0 && g.Untagged == 0 && g.NoCover == 0 && g.MissingYear == 0 && g.MissingGenre == 0 && !dup;
                 if (already) flags.Add(inboxBetter ? "better quality than library — replace?" : "already in library — better quality there");
                 var sub = $"{g.Files.Count} tracks" + (string.IsNullOrEmpty(g.Year) ? "" : $"  ·  {g.Year}");
                 var vm = new StagingAlbumViewModel(g.Artist, g.Album, g.Year, g.Files, g.Dirs.ToList(),
@@ -874,7 +878,8 @@ public class StagingViewModel : ViewModelBase
         DetailChecks.Clear();
         DetailChecks.Add(new CheckItem("tags complete", !a.Flags.Any(f => f.Contains("without tags"))));
         DetailChecks.Add(new CheckItem("cover art", !a.Flags.Contains("no cover")));
-        DetailChecks.Add(new CheckItem("year & genre", !a.Flags.Contains("missing year/genre")));
+        DetailChecks.Add(new CheckItem("year", !a.Flags.Contains("missing year")));
+        DetailChecks.Add(new CheckItem("genre", !a.Flags.Contains("missing genre")));
         DetailChecks.Add(new CheckItem("single version", !a.Flags.Contains("duplicate versions")));
         DetailChecks.Add(new CheckItem("lossless", !a.Flags.Any(f => f.EndsWith(" lossy"))));
         if (a.HasValidation)
