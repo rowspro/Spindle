@@ -354,6 +354,7 @@ public class SyncViewModel : ViewModelBase
 
         Task.Run(() =>
         {
+            using var awake = KeepAwake.Start();   // Mac niet laten slapen midden in een transfer
             int copied = 0, skipped = 0, failed = 0, processed = 0, removed = 0;
             foreach (var a in deletes)
             {

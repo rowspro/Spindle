@@ -90,6 +90,7 @@ public sealed class AlacMirrorService
             return;
         }
 
+        using var awake = KeepAwake.Start();   // eerste volledige sync kan lang duren
         int done = 0, converted = 0, copied = 0, failed = 0;
         Status?.Invoke($"ALAC mirror: 0/{jobs.Count}…");
         var po = new ParallelOptions { MaxDegreeOfParallelism = 3, CancellationToken = token };
