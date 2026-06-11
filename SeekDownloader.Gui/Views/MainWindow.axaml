@@ -1227,12 +1227,19 @@
                         </Button>
                     </Grid>
 
-                    <Grid Grid.Row="1" ColumnDefinitions="*,Auto,Auto,Auto,Auto" Margin="0,12,0,0" IsVisible="{Binding ShowAlbumList}">
+                    <Grid Grid.Row="1" ColumnDefinitions="*,Auto,Auto,Auto,Auto,Auto" Margin="0,12,0,0" IsVisible="{Binding ShowAlbumList}">
                         <TextBlock Grid.Column="0" VerticalAlignment="Center" Classes="caption" Text="{Binding Summary}" />
                         <CheckBox Grid.Column="1" Margin="0,0,12,0" Content="Only issues" IsChecked="{Binding ShowOnlyIssues}" />
                         <Button Grid.Column="2" Classes="ghost" Content="Clean" Command="{Binding SelectCleanCommand}" ToolTip.Tip="Select all clean albums that aren't in the library yet." />
                         <Button Grid.Column="3" Classes="ghost" Content="All" Margin="6,0,0,0" Command="{Binding SelectAllCommand}" />
                         <Button Grid.Column="4" Classes="ghost" Content="None" Margin="6,0,0,0" Command="{Binding SelectNoneCommand}" />
+                        <Button Grid.Column="5" Classes="ghost" Margin="12,0,0,0" Command="{Binding DeleteRedundantCommand}"
+                                ToolTip.Tip="Move every album flagged 'already in library — better quality there' to the trash in one undoable batch.">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <TextBlock Classes="icon" FontSize="16" Text="&#xE872;" Foreground="{DynamicResource ErrorBrush}" />
+                                <TextBlock Text="Clear redundant" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
                     </Grid>
 
                                             <ListBox Grid.Row="2" Name="InboxList" Margin="0,12,0,0" IsVisible="{Binding ShowAlbumList}"

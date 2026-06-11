@@ -183,6 +183,7 @@ public class StagingViewModel : ViewModelBase
         SelectAllCommand = new RelayCommand(() => SetSelection(_ => true));
         SelectNoneCommand = new RelayCommand(() => SetSelection(_ => false));
         SelectCleanCommand = new RelayCommand(() => SetSelection(a => a.IsClean && !a.AlreadyInLibrary));
+        DeleteRedundantCommand = new RelayCommand(DeleteRedundant, () => !IsBusy);
         ConfirmPlanCommand = new RelayCommand(ExecutePlan, () => PlanItems.Count > 0 && !IsBusy);
         CancelPlanCommand = new RelayCommand(() => ShowPlan = false);
         BackCommand = new RelayCommand(() => ShowDetail = false);
@@ -885,6 +886,52 @@ public class StagingViewModel : ViewModelBase
         }
         else
             DetailChecks.Add(new CheckItem("completeness check pending (MusicBrainz)…", null));
+    }
+
+    // ==== Overbodige inbox-albums (bieb heeft al een betere versie) in één klap weg ====
+    public RelayCommand DeleteRedundantCommand { get; }
+
+    private void DeleteRedundant()
+    {
+        if (IsBusy) return;
+        var targets = _all.Where(a => a.AlreadyInLibrary && !a.CanReplace).ToList();
+        if (targets.Count == 0) { Status = "No albums flagged 'better quality there' in the inbox."; return; }
+        var nieuw = NieuwFolder;
+        IsBusy = true;
+        Status = $"Removing {targets.Count} redundant album(s) from the inbox…";
+        Task.Run(() =>
+        {
+            string trash;
+            try
+            {
+                var parent = Path.GetDirectoryName(Path.GetFullPath(nieuw).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
+                trash = parent != null ? Path.Combine(parent, "_Verwijderd (Spindle)") : Path.Combine(nieuw, "_Verwijderd");
+            }
+            catch { trash = Path.Combine(nieuw, "_Verwijderd"); }
+            var ops = new List<UndoJournal.MoveOp>();
+            int moved = 0, albums = 0;
+            foreach (var album in targets)
+            {
+                int before = moved;
+                foreach (var f in album.Files.ToList())
+                {
+                    try { var dest = MoveInto(f, trash); ops.Add(new UndoJournal.MoveOp(f, dest)); moved++; } catch { }
+                }
+                if (moved > before) albums++;
+                foreach (var d in album.SourceDirs) CleanConsumedSourceDir(d, ops);
+            }
+            _undo.Record($"Inbox: removed {albums} album(s) already better in library", ops);
+            _lib.Refresh(nieuw);
+            Dispatcher.UIThread.Post(() =>
+            {
+                foreach (var a in targets) { _all.Remove(a); RemoveAlbumFromList(a); }
+                IsBusy = false;
+                ApproveCommand.RaiseCanExecuteChanged();
+                UpdatePipeline();
+                Summary = $"{_all.Count} albums · {_all.Sum(x => x.Files.Count)} tracks · {_all.Count(x => !x.IsClean)} need attention";
+                Status = $"✓ {albums} album(s) ({moved} files) moved to the trash — your library versions are better. Cmd+Z = undo.";
+            });
+        });
     }
 
     // ==== Fase C: ontvangstbon ====
