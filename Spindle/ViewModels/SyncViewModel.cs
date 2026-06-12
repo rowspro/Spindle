@@ -32,6 +32,9 @@ public class SyncViewModel : ViewModelBase
     {
         ScanCommand = new RelayCommand(Scan, () => !IsBusy && !string.IsNullOrWhiteSpace(LibraryFolder));
         AdoptCommand = new RelayCommand(AdoptIpod, () => !IsBusy);
+        CleanupCommand = new RelayCommand(CleanupPreview, () => !IsBusy);
+        ConfirmCleanupCommand = new RelayCommand(CleanupExecute, () => !IsBusy && ShowCleanup);
+        CancelCleanupCommand = new RelayCommand(() => { ShowCleanup = false; _cleanupFiles.Clear(); _cleanupDirs.Clear(); CleanupItems.Clear(); });
         StopCommand = new RelayCommand(() => _cts?.Cancel(), () => IsBusy);
         SelectAllCommand = new RelayCommand(() => { foreach (var n in ArtistTree) foreach (var a in n.Albums) a.Selected = true; });
         SelectNoneCommand = new RelayCommand(() => { foreach (var a in _all) a.Selected = false; });
@@ -156,6 +159,139 @@ public class SyncViewModel : ViewModelBase
 
     public RelayCommand ScanCommand { get; }
     public RelayCommand AdoptCommand { get; }
+    public RelayCommand CleanupCommand { get; }
+    public RelayCommand ConfirmCleanupCommand { get; }
+    public RelayCommand CancelCleanupCommand { get; }
+
+    // ==== Clean up iPod: wezen van hernoemingen opruimen (preview eerst, bron blijft heilig) ====
+    public System.Collections.ObjectModel.ObservableCollection<string> CleanupItems { get; } = new();
+    private bool _showCleanup;
+    public bool ShowCleanup { get => _showCleanup; private set { if (SetField(ref _showCleanup, value)) ConfirmCleanupCommand.RaiseCanExecuteChanged(); } }
+    private string _cleanupSummary = "";
+    public string CleanupSummary { get => _cleanupSummary; private set => SetField(ref _cleanupSummary, value); }
+    private readonly List<string> _cleanupFiles = new();
+    private readonly List<string> _cleanupDirs = new();
+
+    private static string NormName(string s) =>
+        System.Text.RegularExpressions.Regex.Replace(s.ToLowerInvariant(), "[^a-z0-9]", "");
+
+    private void CleanupPreview()
+    {
+        var ipod = IpodFolder;
+        if (string.IsNullOrWhiteSpace(ipod) || !Directory.Exists(ipod)) { Status = "Connect the iPod (and set its folder) first."; return; }
+        if (_all.Count == 0) { Status = "Scan your library first, then run the cleanup."; return; }
+        var music = Path.Combine(ipod, "Music");
+        if (!Directory.Exists(music)) { Status = "No Music folder on this iPod yet — nothing to clean."; return; }
+        IsBusy = true;
+        Status = "Looking for outdated copies on the iPod…";
+        var albums = _all.ToList();
+        Task.Run(() =>
+        {
+            var files = new List<string>();
+            var dirs = new List<string>();
+            var lines = new List<string>();
+            long bytes = 0;
+
+            // A) Verouderde artiestmappen: genormaliseerd gelijk aan een map die bij de
+            //    huidige bieb-spelling hoort, en die canonieke map staat óók op de iPod.
+            var libArtists = albums.Select(a => Clean(a.Artist)).Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(NormName, v => v, StringComparer.Ordinal);
+            try
+            {
+                foreach (var d in Directory.EnumerateDirectories(music))
+                {
+                    var name = Path.GetFileName(d);
+                    if (name.StartsWith(".")) continue;
+                    if (libArtists.Values.Contains(name, StringComparer.OrdinalIgnoreCase)) continue;   // huidige spelling
+                    if (!libArtists.TryGetValue(NormName(name), out var canonical)) continue;            // geen bieb-tegenhanger
+                    if (!Directory.Exists(Path.Combine(music, canonical))) continue;                     // canonieke twin moet bestaan
+                    long sz = 0; int n = 0;
+                    try { foreach (var f in Directory.EnumerateFiles(d, "*", SearchOption.AllDirectories)) { n++; try { sz += new FileInfo(f).Length; } catch { } } } catch { }
+                    dirs.Add(d);
+                    bytes += sz;
+                    lines.Add($"Folder '{name}' — superseded by '{canonical}' ({n} files, {FmtBytes(sz)})");
+                }
+            }
+            catch { }
+
+            // B) Verouderde tracks binnen bekende albummappen: naam komt niet meer voor in het
+            //    huidige album, terwijl er wél minstens één actueel bestand naast staat.
+            foreach (var a in albums)
+            {
+                var dir = Path.Combine(music, Clean(a.Artist), Clean(a.Album));
+                if (!Directory.Exists(dir)) continue;
+                var expected = new HashSet<string>(a.Files.Select(f => Path.GetFileNameWithoutExtension(f)), StringComparer.OrdinalIgnoreCase);
+                List<string> present;
+                try
+                {
+                    present = Directory.EnumerateFiles(dir)
+                        .Where(f => AudioExt.Contains(Path.GetExtension(f).ToLowerInvariant()) && !Path.GetFileName(f).StartsWith("._"))
+                        .ToList();
+                }
+                catch { continue; }
+                var current = present.Where(f => expected.Contains(Path.GetFileNameWithoutExtension(f))).ToList();
+                if (current.Count == 0) continue;   // album enkel onder oude namen → niet leegtrekken
+                var stale = present.Where(f => !expected.Contains(Path.GetFileNameWithoutExtension(f))).ToList();
+                if (stale.Count == 0) continue;
+                foreach (var f in stale) { files.Add(f); try { bytes += new FileInfo(f).Length; } catch { } }
+                lines.Add($"{a.Artist}/{a.Album}: {stale.Count} outdated file(s) next to {current.Count} current");
+            }
+
+            Dispatcher.UIThread.Post(() =>
+            {
+                IsBusy = false;
+                _cleanupFiles.Clear(); _cleanupFiles.AddRange(files);
+                _cleanupDirs.Clear(); _cleanupDirs.AddRange(dirs);
+                CleanupItems.Clear();
+                foreach (var l in lines) CleanupItems.Add(l);
+                if (files.Count == 0 && dirs.Count == 0)
+                {
+                    ShowCleanup = false;
+                    Status = "✓ No outdated copies found — the iPod is clean.";
+                }
+                else
+                {
+                    CleanupSummary = $"{dirs.Count} superseded folder(s) and {files.Count} outdated file(s) — {FmtBytes(bytes)} to free. Your library is untouched; removed albums can always be re-synced.";
+                    ShowCleanup = true;
+                    Status = "Review the cleanup list below, then press Remove.";
+                }
+            });
+        });
+    }
+
+    private void CleanupExecute()
+    {
+        if (IsBusy) return;
+        var files = _cleanupFiles.ToList();
+        var dirs = _cleanupDirs.ToList();
+        var ipod = IpodFolder;
+        IsBusy = true;
+        ShowCleanup = false;
+        Status = "Cleaning up the iPod…";
+        Task.Run(() =>
+        {
+            using var awake = KeepAwake.Start();
+            int nf = 0, nd = 0;
+            foreach (var f in files) { try { File.Delete(f); nf++; } catch { } }
+            foreach (var d in dirs) { try { Directory.Delete(d, true); nd++; } catch { } }
+            // lege albummappen die door de bestand-verwijderingen ontstaan zijn, opruimen
+            try
+            {
+                var music = Path.Combine(ipod, "Music");
+                foreach (var d in Directory.EnumerateDirectories(music, "*", SearchOption.AllDirectories)
+                             .OrderByDescending(x => x.Length).ToList())
+                    try { if (!Directory.EnumerateFileSystemEntries(d).Any()) Directory.Delete(d); } catch { }
+            }
+            catch { }
+            Dispatcher.UIThread.Post(() =>
+            {
+                IsBusy = false;
+                _cleanupFiles.Clear(); _cleanupDirs.Clear(); CleanupItems.Clear();
+                Status = $"✓ Cleanup done — {nf} file(s) and {nd} folder(s) removed from the iPod.";
+                MarkIpodPresence();
+            });
+        });
+    }
 
     // ==== Adopt this iPod: eenmalige tag-index van alles wat er al op staat ====
     // Cache op de iPod zelf (.spindle-adopt.json) zodat herkenning op artiest+titel-tags werkt,
