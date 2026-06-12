@@ -550,7 +550,12 @@
                         <Button Classes="chipbtn" Content="Form" Command="{Binding ModeFormCommand}" Classes.active="{Binding IsFormMode}" />
                         <Button Classes="chipbtn" Content="Table" Margin="6,0,0,0" Command="{Binding ModeTableCommand}" Classes.active="{Binding IsTableMode}" />
                         <Button Classes="chipbtn" Content="Converters" Margin="6,0,0,0" Command="{Binding ModeConvCommand}" Classes.active="{Binding IsConvMode}" />
-                        <TextBlock Classes="caption" Margin="14,0,0,0" VerticalAlignment="Center" Text="{Binding Grid.Status}" />
+                        <TextBlock Classes="caption" Margin="14,0,0,0" VerticalAlignment="Center" Text="{Binding Grid.Status}"
+                                   IsVisible="{Binding !AlbumMatchBlocked}" />
+                        <TextBlock Margin="14,0,0,0" VerticalAlignment="Center" FontSize="12" FontWeight="SemiBold"
+                                   MaxWidth="640" TextTrimming="CharacterEllipsis" Foreground="{DynamicResource WarnFg}"
+                                   Text="{Binding AlbumMatchBlockReason}" ToolTip.Tip="{Binding AlbumMatchBlockReason}"
+                                   IsVisible="{Binding AlbumMatchBlocked}" />
                     </StackPanel>
                     <Panel Grid.Row="2" Margin="0,14,0,0">
                     <Grid ColumnDefinitions="*,Auto" IsVisible="{Binding IsFormMode}">
@@ -601,7 +606,7 @@
                                 <DataGridTextColumn Header="Album artist" Binding="{Binding AlbumArtist, Mode=TwoWay}" Width="150" />
                                 <DataGridTextColumn Header="Album" Binding="{Binding Album, Mode=TwoWay}" Width="170" />
                                 <DataGridTextColumn Header="Genre" Binding="{Binding Genre, Mode=TwoWay}" Width="110" />
-                                <DataGridTextColumn Header="#" Binding="{Binding Track, Mode=TwoWay}" Width="46" />
+                                <DataGridTextColumn Header="#" Binding="{Binding Track, Mode=TwoWay}" Width="46" CustomSortComparer="{x:Static vm:TrackNumberComparer.Instance}" />
                                 <DataGridTextColumn Header="Year" Binding="{Binding Year, Mode=TwoWay}" Width="62" />
                             </DataGrid.Columns>
                         </DataGrid>
@@ -1598,7 +1603,7 @@
                                                 <DataGridTextColumn Header="Artist" Binding="{Binding Artist, Mode=TwoWay}" Width="140" />
                                                 <DataGridTextColumn Header="Album" Binding="{Binding Album, Mode=TwoWay}" Width="150" />
                                                 <DataGridTextColumn Header="Genre" Binding="{Binding Genre, Mode=TwoWay}" Width="100" />
-                                                <DataGridTextColumn Header="#" Binding="{Binding Track, Mode=TwoWay}" Width="42" />
+                                                <DataGridTextColumn Header="#" Binding="{Binding Track, Mode=TwoWay}" Width="42" CustomSortComparer="{x:Static vm:TrackNumberComparer.Instance}" />
                                                 <DataGridTextColumn Header="Year" Binding="{Binding Year, Mode=TwoWay}" Width="56" />
                                             </DataGrid.Columns>
                                         </DataGrid>

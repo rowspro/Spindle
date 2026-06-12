@@ -308,7 +308,7 @@ public class SyncViewModel : ViewModelBase
                         CleanupProgress = 100.0 * snap / albums.Count;
                     });
                 }
-                var dir = Path.Combine(music, Clean(a.Artist), Clean(a.Album));
+                var dir = Path.Combine(music, Clean(a.Artist), AlbumFolder(a.Album));
                 if (!Directory.Exists(dir)) continue;
                 var expected = new HashSet<string>(a.Files.Select(f => Path.GetFileNameWithoutExtension(f)), StringComparer.OrdinalIgnoreCase);
                 List<string> present;
@@ -717,7 +717,7 @@ public class SyncViewModel : ViewModelBase
                 int n = 0;
                 try
                 {
-                    var dir = Path.Combine(ipod, "Music", Clean(a.Artist), Clean(a.Album));
+                    var dir = Path.Combine(ipod, "Music", Clean(a.Artist), AlbumFolder(a.Album));
                     if (Directory.Exists(dir))
                         n = Directory.EnumerateFiles(dir)
                             .Count(f => AudioExt.Contains(Path.GetExtension(f).ToLowerInvariant())
@@ -822,7 +822,7 @@ public class SyncViewModel : ViewModelBase
                 if (!Directory.Exists(ipod)) { deviceGone = true; break; }
                 try
                 {
-                    var dir = Path.Combine(ipod, "Music", Clean(a.Artist), Clean(a.Album));
+                    var dir = Path.Combine(ipod, "Music", Clean(a.Artist), AlbumFolder(a.Album));
                     if (Directory.Exists(dir)) { Directory.Delete(dir, true); removed++; }
                 }
                 catch { }
@@ -837,7 +837,7 @@ public class SyncViewModel : ViewModelBase
             {
                 var ext = Path.GetExtension(job.File).ToLowerInvariant();
                 var doConvert = convert && ConvertExt.Contains(ext);
-                var destDir = Path.Combine(ipod, "Music", Clean(job.Artist), Clean(job.Album));
+                var destDir = Path.Combine(ipod, "Music", Clean(job.Artist), AlbumFolder(job.Album));
                 var name = Path.GetFileName(job.File);
                 var dest = Path.Combine(destDir, doConvert ? Path.ChangeExtension(name, ".m4a") : name);
                 if (!takenDest.Add(dest))
@@ -969,6 +969,9 @@ public class SyncViewModel : ViewModelBase
 
     private void AddFailure(string path, string reason)
         => Dispatcher.UIThread.Post(() => Failures.Add(new FailureViewModel(path, reason)));
+
+    // Album folder name on disk/iPod: singles of an artist all land in one "Singles" folder.
+    private static string AlbumFolder(string album) => Singles.IsSingle(album) ? Singles.Folder : Clean(album);
 
     private static string Clean(string s)
     {

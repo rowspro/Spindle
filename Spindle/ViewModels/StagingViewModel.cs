@@ -468,7 +468,7 @@ public class StagingViewModel : ViewModelBase
             try { foreach (var r in _lib.Index.AllTracks(nieuw)) map[r.Path] = r; } catch { }
             var artistDir = Clean(string.IsNullOrWhiteSpace(album.Artist) ? "Unknown Artist" : album.Artist);
             int.TryParse(album.Year, out var yr);
-            var albumDir = string.IsNullOrWhiteSpace(album.Album) ? "Singles" : Clean(yr > 0 ? $"{album.Album} ({yr})" : album.Album);
+            var albumDir = Singles.IsSingle(album.Album) ? Singles.Folder : Clean(yr > 0 ? $"{album.Album} ({yr})" : album.Album);
             var taken = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             int moved = 0;
             foreach (var f in album.Files.ToList())
@@ -672,7 +672,8 @@ public class StagingViewModel : ViewModelBase
             var albums = new List<StagingAlbumViewModel>();
             foreach (var g in groups.Values.OrderBy(g => g.Artist).ThenBy(g => g.Album))
             {
-                bool dup = g.DupTrack || g.Dirs.Count > 1;
+                // Singles share a bucket (one folder per download, repeated track #s) — that's not a duplicate album.
+                bool dup = !Singles.IsSingle(g.Album) && (g.DupTrack || g.Dirs.Count > 1);
                 var key = Norm(g.Artist) + "|" + Norm(g.Album);
                 bool already = have.Contains(key);
                 bool inboxBetter = false;
@@ -740,7 +741,9 @@ public class StagingViewModel : ViewModelBase
                 {
                     var name = Path.GetFileName(f).ToLowerInvariant();
                     if (PartialExt.Any(e => name.EndsWith(e))) return true;
-                    if ((DateTime.UtcNow - File.GetLastWriteTimeUtc(f)).TotalSeconds < 45) return true;
+                    // A brand-new *empty* file is a download placeholder. A complete file with a recent
+                    // mtime is NOT — Nicotine+ moves finished downloads in, so they always look recent.
+                    try { var fi = new FileInfo(f); if (fi.Length == 0 && (DateTime.UtcNow - fi.LastWriteTimeUtc).TotalSeconds < 45) return true; } catch { }
                 }
             }
             catch { }
@@ -1059,7 +1062,7 @@ public class StagingViewModel : ViewModelBase
         {
             var artistDir = Clean(string.IsNullOrWhiteSpace(album.Artist) ? "Unknown Artist" : album.Artist);
             int.TryParse(album.Year, out var yr);
-            var albumDir = string.IsNullOrWhiteSpace(album.Album) ? "Singles" : Clean(yr > 0 ? $"{album.Album} ({yr})" : album.Album);
+            var albumDir = Singles.IsSingle(album.Album) ? Singles.Folder : Clean(yr > 0 ? $"{album.Album} ({yr})" : album.Album);
             foreach (var f in album.Files)
             {
                 var ext = Path.GetExtension(f);

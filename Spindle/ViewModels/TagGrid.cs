@@ -1,9 +1,22 @@
+using System.Collections;
 using System.Collections.ObjectModel;
 using System.Text.RegularExpressions;
 using Avalonia.Threading;
 using ATL;
 
 namespace Spindle.ViewModels;
+
+/// <summary>Sorts the track-number column numerically (1, 2, …, 10) instead of as text (1, 10, 2, …).</summary>
+public sealed class TrackNumberComparer : IComparer
+{
+    public static readonly TrackNumberComparer Instance = new();
+    public int Compare(object? x, object? y) => Num(x).CompareTo(Num(y));
+    private static int Num(object? o)
+    {
+        var s = o is TagRowViewModel r ? r.Track : o as string;
+        return int.TryParse((s ?? "").Trim(), out var n) ? n : int.MaxValue;
+    }
+}
 
 /// <summary>One editable row in the tag table (fase 2). Original values are kept for dirty-tracking and undo.</summary>
 public sealed class TagRowViewModel : ViewModelBase

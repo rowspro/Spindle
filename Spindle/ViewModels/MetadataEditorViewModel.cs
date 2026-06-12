@@ -17,8 +17,11 @@ public class MetadataEditorViewModel : ViewModelBase
 
     public TagGridViewModel Grid { get; }
 
+    private readonly UndoJournal? _undo;
+
     public MetadataEditorViewModel(LibraryService? lib = null, UndoJournal? undo = null)
     {
+        _undo = undo;
         Grid = new TagGridViewModel(lib, undo);
         ModeFormCommand = new RelayCommand(() => EditorMode = "form");
         ModeTableCommand = new RelayCommand(() => { if (!Grid.HasDirty) Grid.Reload(); EditorMode = "tabel"; });
@@ -28,7 +31,7 @@ public class MetadataEditorViewModel : ViewModelBase
         AutoFillCommand = new RelayCommand(AutoFill, () => HasFile && !IsBusy);
         RemoveArtCommand = new RelayCommand(RemoveArt, () => HasFile && !IsBusy);
         ApplyArtNowCommand = new RelayCommand(ApplyArtNow, () => HasFile && !IsBusy);
-        MatchAlbumCommand = new RelayCommand(MatchAlbum, () => HasFile && !IsBusy);
+        MatchAlbumCommand = new RelayCommand(MatchAlbum, () => HasFile && !IsBusy && AlbumMatchable);
         ApplyAlbumMatchCommand = new RelayCommand(ApplyAlbumMatch, () => SelectedCandidate != null && !IsBusy);
         CancelCandidatesCommand = new RelayCommand(() => ShowCandidates = false);
         _acoustIdKey = Settings.Load().AcoustIdKey ?? string.Empty;
@@ -53,6 +56,65 @@ public class MetadataEditorViewModel : ViewModelBase
     public RelayCommand MatchAlbumCommand { get; }
     public RelayCommand ApplyAlbumMatchCommand { get; }
     public RelayCommand CancelCandidatesCommand { get; }
+
+    // ---- Album-match safety: only allow matching when the loaded set really is ONE album. ----
+    // Stops "apply to the whole album" from homogenizing a heterogeneous bucket (the "Bee Gees" bug).
+    private bool _albumMatchable = true;
+    public bool AlbumMatchable
+    {
+        get => _albumMatchable;
+        private set { if (SetField(ref _albumMatchable, value)) { MatchAlbumCommand.RaiseCanExecuteChanged(); OnPropertyChanged(nameof(AlbumMatchBlocked)); } }
+    }
+    public bool AlbumMatchBlocked => !_albumMatchable;
+
+    private string _albumMatchBlockReason = "";
+    public string AlbumMatchBlockReason { get => _albumMatchBlockReason; private set => SetField(ref _albumMatchBlockReason, value); }
+
+    private static string NormKey(string? s) => System.Text.RegularExpressions.Regex.Replace((s ?? "").ToLowerInvariant(), "[^a-z0-9]", "");
+
+    // Read the loaded files and decide whether they form one coherent, matchable album.
+    private void RecomputeAlbumMatchable()
+    {
+        var files = _allFiles.ToList();
+        Task.Run(() =>
+        {
+            bool ok = true; string reason = "";
+            if (files.Count > 1)
+            {
+                var artists = new HashSet<string>(); var albums = new HashSet<string>();
+                string sampleAlbum = "", sampleTitle = "";
+                foreach (var f in files)
+                {
+                    try
+                    {
+                        var t = new Track(f);
+                        var eff = !string.IsNullOrWhiteSpace(t.AlbumArtist) ? t.AlbumArtist : (t.Artist ?? "");
+                        artists.Add(NormKey(eff)); albums.Add(NormKey(t.Album ?? ""));
+                        if (sampleAlbum.Length == 0 && !string.IsNullOrWhiteSpace(t.Album)) { sampleAlbum = t.Album ?? ""; sampleTitle = t.Title ?? ""; }
+                    }
+                    catch { }
+                }
+                if (albums.Count > 1 || artists.Count > 1)
+                {
+                    ok = false;
+                    reason = $"These {files.Count} tracks aren't one album ({artists.Count} artist(s), {albums.Count} album name(s)). Album match is off so it can't give them all the same identity — fix tracks individually.";
+                }
+                else if (Singles.IsSingle(sampleAlbum, sampleTitle))
+                {
+                    ok = false;
+                    reason = "These look like singles (no real album). Album match is off so they don't all get the same album — fix them one track at a time.";
+                }
+            }
+            Dispatcher.UIThread.Post(() => { AlbumMatchable = ok; AlbumMatchBlockReason = reason; });
+        });
+    }
+
+    private static UndoJournal.TagOp Snapshot(Track t, string path)
+    {
+        int tn = (int?)t.TrackNumber ?? 0, dn = (int?)t.DiscNumber ?? 0, y = (int?)t.Year ?? 0;
+        return new UndoJournal.TagOp(path, t.Title ?? "", t.Artist ?? "", t.AlbumArtist ?? "",
+            t.Album ?? "", t.Genre ?? "", tn > 0 ? tn.ToString() : "", dn > 0 ? dn.ToString() : "", y.ToString());
+    }
 
     private string _path = string.Empty;
     public bool HasFile => !string.IsNullOrEmpty(_path);
@@ -141,6 +203,7 @@ public class MetadataEditorViewModel : ViewModelBase
         Load(path);
         Grid.Load(_allFiles);
         EditorMode = "form";
+        RecomputeAlbumMatchable();
     }
 
     public void LoadFolder(string folder)
@@ -162,6 +225,7 @@ public class MetadataEditorViewModel : ViewModelBase
             Status = $"{_files.Count} tracks loaded. Click Auto-fill to update the whole folder.";
             Grid.Load(_allFiles);
             EditorMode = _files.Count > 1 ? "tabel" : "form";
+            RecomputeAlbumMatchable();
         }
         catch (Exception e)
         {
@@ -190,6 +254,7 @@ public class MetadataEditorViewModel : ViewModelBase
         Status = context ?? $"{_files.Count} tracks loaded.";
         Grid.Load(_allFiles);
         EditorMode = _files.Count > 1 ? "tabel" : "form";
+        RecomputeAlbumMatchable();
     }
 
     private async void MatchAlbum()
@@ -219,6 +284,8 @@ public class MetadataEditorViewModel : ViewModelBase
     {
         var m = SelectedCandidate;
         if (m == null || IsBusy) return;
+        // Failsafe: never blanket-apply one release to a heterogeneous set (the "Bee Gees" bug).
+        if (!AlbumMatchable) { Status = AlbumMatchBlockReason; ShowCandidates = false; return; }
         IsBusy = true;
         Status = $"Applying '{m.Album}' to the album…";
         try
@@ -227,6 +294,7 @@ public class MetadataEditorViewModel : ViewModelBase
             var cover = await AlbumMetadata.DownloadCoverAsync(m.CoverUrl);
             var files = _allFiles.ToList();
             int year = (m.Year.Length >= 4 && int.TryParse(m.Year.Substring(0, 4), out var yy)) ? yy : 0;
+            var before = new List<UndoJournal.TagOp>();
             await Task.Run(() =>
             {
                 foreach (var f in files)
@@ -234,6 +302,7 @@ public class MetadataEditorViewModel : ViewModelBase
                     try
                     {
                         var t = new Track(f);
+                        before.Add(Snapshot(t, f));
                         t.Album = m.Album;
                         if (m.Artist.Length > 0) t.AlbumArtist = m.Artist;
                         if (string.IsNullOrWhiteSpace(t.Artist) && m.Artist.Length > 0) t.Artist = m.Artist;
@@ -248,9 +317,10 @@ public class MetadataEditorViewModel : ViewModelBase
                     catch { }
                 }
             });
+            _undo?.RecordTags($"Album match: {m.Album} → {before.Count} tracks", before);
             ShowCandidates = false;
             Load(_path);
-            Status = $"Album '{m.Album}' applied to {files.Count} tracks (source: {m.Source}).";
+            Status = $"Album '{m.Album}' applied to {files.Count} tracks (source: {m.Source})  ·  Cmd+Z to undo.";
         }
         catch (Exception e) { Status = "Apply failed: " + e.Message; }
         finally { IsBusy = false; }

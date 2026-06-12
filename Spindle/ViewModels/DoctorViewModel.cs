@@ -144,7 +144,7 @@ public sealed class DoctorViewModel : ViewModelBase
                 var albumName = first.Album;
                 int yr = alb.Max(t => t.Year);
                 var artistDir = Clean(string.IsNullOrWhiteSpace(eff) ? "Unknown Artist" : eff);
-                var albumDir = string.IsNullOrWhiteSpace(albumName) ? "Singles" : Clean(yr > 0 ? $"{albumName} ({yr})" : albumName);
+                var albumDir = Singles.IsSingle(albumName) ? Singles.Folder : Clean(yr > 0 ? $"{albumName} ({yr})" : albumName);
                 var moves = new List<UndoJournal.MoveOp>();
                 var taken = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                 foreach (var t in alb)
@@ -238,6 +238,7 @@ public sealed class DoctorViewModel : ViewModelBase
             {
                 var first = alb.First();
                 if (first.Album.Length == 0) continue;
+                if (Singles.IsSingle(first.Album)) continue;   // singles aren't one album — no track-number checks
                 var issues = new List<string>();
                 int lossless = alb.Count(t => t.Lossless);
                 if (lossless > 0 && lossless < alb.Count())
@@ -336,7 +337,7 @@ public sealed class DoctorViewModel : ViewModelBase
                 {
                     var albumName = kv.Value[0].Album;
                     int yr = kv.Value.Max(v => v.Year);
-                    var albumDir = string.IsNullOrWhiteSpace(albumName) ? "Singles" : Clean(yr > 0 ? $"{albumName} ({yr})" : albumName);
+                    var albumDir = Singles.IsSingle(albumName) ? Singles.Folder : Clean(yr > 0 ? $"{albumName} ({yr})" : albumName);
                     foreach (var (path, _, _) in kv.Value)
                     {
                         try
