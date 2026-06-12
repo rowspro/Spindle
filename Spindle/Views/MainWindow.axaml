@@ -1097,6 +1097,16 @@
                     <ProgressBar Height="8" CornerRadius="4" Margin="0,0,0,10" IsVisible="{Binding CleanupBusy}"
                                  IsIndeterminate="{Binding CleanupIndeterminate}" Minimum="0" Maximum="100" Value="{Binding CleanupProgress}"
                                  Background="{DynamicResource SurfaceVariant}" Foreground="{DynamicResource Accent}" />
+                    <Border CornerRadius="12" Background="{DynamicResource SuccessBg}" Padding="16,14" Margin="0,0,0,10" IsVisible="{Binding ShowCleanupClean}">
+                        <Grid ColumnDefinitions="Auto,*,Auto">
+                            <TextBlock Grid.Column="0" Text="✓" FontSize="22" FontWeight="Bold" Foreground="{DynamicResource Success}" VerticalAlignment="Center" />
+                            <StackPanel Grid.Column="1" Margin="12,0,12,0" VerticalAlignment="Center">
+                                <TextBlock Text="This iPod is clean" FontWeight="SemiBold" FontSize="14" Foreground="{DynamicResource Success}" />
+                                <TextBlock Text="{Binding CleanupCleanText}" Classes="caption" TextWrapping="Wrap" />
+                            </StackPanel>
+                            <Button Grid.Column="2" Classes="ghost" Padding="10,4" Content="OK" VerticalAlignment="Center" Command="{Binding CancelCleanupCommand}" />
+                        </Grid>
+                    </Border>
                     <Border Classes="card" Padding="14" Margin="0,0,0,10" IsVisible="{Binding ShowCleanup}">
                         <StackPanel>
                             <TextBlock Classes="title" FontSize="13.5" Text="Outdated copies on the iPod" />

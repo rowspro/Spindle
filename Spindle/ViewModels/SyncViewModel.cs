@@ -37,7 +37,7 @@ public class SyncViewModel : ViewModelBase
         AdoptCommand = new RelayCommand(AdoptIpod, () => !IsBusy);
         CleanupCommand = new RelayCommand(CleanupPreview, () => !IsBusy);
         ConfirmCleanupCommand = new RelayCommand(CleanupExecute, () => !IsBusy && ShowCleanup);
-        CancelCleanupCommand = new RelayCommand(() => { ShowCleanup = false; _cleanupFiles.Clear(); _cleanupDirs.Clear(); CleanupItems.Clear(); });
+        CancelCleanupCommand = new RelayCommand(() => { ShowCleanup = false; ShowCleanupClean = false; _cleanupFiles.Clear(); _cleanupDirs.Clear(); CleanupItems.Clear(); });
         StopCommand = new RelayCommand(() => _cts?.Cancel(), () => IsBusy);
         SelectAllCommand = new RelayCommand(() => { foreach (var n in ArtistTree) foreach (var a in n.Albums) a.Selected = true; });
         SelectNoneCommand = new RelayCommand(() => { foreach (var a in _all) a.Selected = false; });
@@ -170,6 +170,11 @@ public class SyncViewModel : ViewModelBase
     public System.Collections.ObjectModel.ObservableCollection<string> CleanupItems { get; } = new();
     private bool _showCleanup;
     public bool ShowCleanup { get => _showCleanup; private set { if (SetField(ref _showCleanup, value)) ConfirmCleanupCommand.RaiseCanExecuteChanged(); } }
+    private bool _showCleanupClean;
+    public bool ShowCleanupClean { get => _showCleanupClean; private set => SetField(ref _showCleanupClean, value); }
+    private string _cleanupCleanText = "";
+    public string CleanupCleanText { get => _cleanupCleanText; private set => SetField(ref _cleanupCleanText, value); }
+
     private string _cleanupSummary = "";
     public string CleanupSummary { get => _cleanupSummary; private set => SetField(ref _cleanupSummary, value); }
     private bool _cleanupBusy;
@@ -223,6 +228,7 @@ public class SyncViewModel : ViewModelBase
         CleanupBusy = true;
         CleanupIndeterminate = true;
         CleanupProgress = 0;
+        ShowCleanupClean = false;
         Status = "Looking for outdated copies on the iPod… (Stop cancels)";
         var albums = _all.ToList();
         Task.Run(() =>
@@ -312,6 +318,8 @@ public class SyncViewModel : ViewModelBase
                 if (files.Count == 0 && dirs.Count == 0)
                 {
                     ShowCleanup = false;
+                    CleanupCleanText = $"Checked every artist folder and {albums.Count} albums — no outdated copies, no superseded folders. Nothing to do here.";
+                    ShowCleanupClean = true;
                     Status = "✓ No outdated copies found — the iPod is clean.";
                 }
                 else
