@@ -542,7 +542,6 @@
                             <StackPanel Orientation="Horizontal" Spacing="6"><TextBlock Classes="icon" FontSize="17" Text="&#xE019;" /><TextBlock Text="Album match" VerticalAlignment="Center" /></StackPanel>
                         </Button>
                         <Button Grid.Column="3" Classes="ghost" Content="Auto-fill (per track)" Margin="8,0,0,0" Command="{Binding AutoFillCommand}" />
-                        <Button Grid.Column="4" Classes="ghost" Content="Apple format" Margin="8,0,0,0" Command="{Binding ApplyAppleArtistCommand}" />
                         <TextBlock Grid.Column="5" VerticalAlignment="Center" Margin="10,0,0,0" Foreground="{DynamicResource TextSecondary}" FontSize="12" Text="{Binding FileName}" TextTrimming="CharacterEllipsis" />
                         <TextBlock Grid.Column="6" VerticalAlignment="Center" Foreground="{DynamicResource HeaderBlue}" FontSize="13" FontWeight="SemiBold" Text="{Binding Position}" />
                     </Grid>
@@ -587,8 +586,7 @@
                     <Grid RowDefinitions="Auto,*,Auto" IsVisible="{Binding IsTableMode}">
                         <WrapPanel Grid.Row="0">
                             <TextBlock Classes="caption" Text="Actions (all rows, as pending changes):" VerticalAlignment="Center" Margin="0,0,10,0" />
-                            <Button Classes="ghost" Padding="10,5" Content="Apple format" Command="{Binding Grid.ActionAppleCommand}" />
-                            <Button Classes="ghost" Padding="10,5" Content="Normalize genre" Margin="6,0,0,0" Command="{Binding Grid.ActionGenreCommand}" />
+                            <Button Classes="ghost" Padding="10,5" Content="Normalize genre" Command="{Binding Grid.ActionGenreCommand}" />
                             <Button Classes="ghost" Padding="10,5" Content="Trim spaces" Margin="6,0,0,0" Command="{Binding Grid.ActionTrimCommand}" />
                         </WrapPanel>
                         <DataGrid Grid.Row="1" Margin="0,10,0,0" ItemsSource="{Binding Grid.Rows}" AutoGenerateColumns="False"
@@ -1259,24 +1257,12 @@
                             <StackPanel Spacing="6">
                                 <TextBlock Classes="section" Text="DATABASE (MY MUSIC)" />
                                 <TextBlock Classes="caption" TextWrapping="Wrap" Margin="0,0,0,2"
-                                           Text="Preferences the cleanup actions and Inbox approve respect when tidying your local collection." />
+                                           Text="How your own library is parsed and organized. Spindle never imposes Apple formatting on your library — that only happens on the ALAC mirror for the Apple folder (iPod mode)." />
 
                                 <CheckBox Content="Split artists on comma" IsChecked="{Binding SplitArtistOnComma}"
                                           ToolTip.Tip="On: a comma separates artists (Beyoncé, Jay-Z → two). Off: keeps 'Last, First' sortnames (White, Jack) intact." />
-                                <CheckBox Content="Group collaborations under the primary artist" IsChecked="{Binding GroupCollabsUnderPrimaryArtist}"
-                                          ToolTip.Tip="Set Album Artist to the first credited artist so feats/collabs file under one artist." />
-                                <Grid ColumnDefinitions="Auto,*" Margin="0,2,0,2">
-                                    <TextBlock Grid.Column="0" Classes="label" Text="Artist separator" VerticalAlignment="Center" Margin="0,0,10,0" />
-                                    <ComboBox Grid.Column="1" HorizontalAlignment="Left" MinWidth="200"
-                                              ItemsSource="{Binding ArtistJoinOptions}" SelectedItem="{Binding SelectedArtistJoin}"
-                                              ToolTip.Tip="How multi-artist tags are standardized when cleaning: leave as-is, Apple style (A, B &amp; C), or one canonical separator." />
-                                </Grid>
-                                <CheckBox Content="Title-case titles &amp; albums" IsChecked="{Binding TitleCaseTitlesAndAlbums}"
-                                          ToolTip.Tip="Capitalize titles and album names consistently, keeping small words lowercase." />
                                 <CheckBox Content="Keep multiple genres" IsChecked="{Binding KeepMultipleGenres}"
                                           ToolTip.Tip="On: keep every genre (each canonicalized, deduped). Off: reduce a multi-genre tag to its primary genre." />
-                                <CheckBox Content="Auto-clean tags when approving from Inbox" IsChecked="{Binding AutoCleanOnApprove}"
-                                          ToolTip.Tip="Run the cleanup automatically on approve, instead of only via the manual button." />
 
                                 <TextBlock Classes="label" Text="Filename template (Sort &amp; Organize)" Margin="0,8,0,0" />
                                 <TextBox Text="{Binding FilenameTemplate}" Watermark="{}{artist} - {album} - {track} {title}"

@@ -62,19 +62,33 @@ public static class AudioConvert
     // artistFromAlbumArtist: ALAC-uitvoer is voor de iPod — daar wordt Artist gelijkgezet aan
     // AlbumArtist zodat de artiestenlijst niet vol "feat."-varianten komt. De bron blijft intact.
     // flattenArtist: schrijf alleen de primaire artiest weg (collab-strings als "A; B" -> "A").
-    public static void CopyTags(string src, string dst, bool artistFromAlbumArtist = false, bool flattenArtist = false)
+    // appleFormat: pas Apple/iTunes-conventies toe op de KOPIE (titel-hoofdletters, "A, B & C",
+    //   album-artiest = primaire artiest). Alleen voor de ALAC-spiegel; de bron blijft intact.
+    public static void CopyTags(string src, string dst, bool artistFromAlbumArtist = false, bool flattenArtist = false, bool appleFormat = false)
     {
         try
         {
             var s = new ATL.Track(src);
-            var artist = artistFromAlbumArtist && !string.IsNullOrWhiteSpace(s.AlbumArtist) ? s.AlbumArtist : s.Artist;
-            if (flattenArtist) artist = TextFormat.PrimaryArtist(artist ?? "");
+            string title = s.Title, album = s.Album, albumArtist = s.AlbumArtist;
+            string artist;
+            if (appleFormat)
+            {
+                title = TextFormat.Title(s.Title ?? "");
+                album = TextFormat.Title(s.Album ?? "");
+                artist = TextFormat.AppleArtist(s.Artist ?? "");
+                albumArtist = TextFormat.PrimaryArtist(!string.IsNullOrWhiteSpace(s.AlbumArtist) ? s.AlbumArtist : (s.Artist ?? ""));
+            }
+            else
+            {
+                artist = artistFromAlbumArtist && !string.IsNullOrWhiteSpace(s.AlbumArtist) ? s.AlbumArtist : s.Artist;
+                if (flattenArtist) artist = TextFormat.PrimaryArtist(artist ?? "");
+            }
             var d = new ATL.Track(dst)
             {
-                Title = s.Title,
+                Title = title,
                 Artist = artist,
-                AlbumArtist = s.AlbumArtist,
-                Album = s.Album,
+                AlbumArtist = albumArtist,
+                Album = album,
                 Composer = s.Composer,
                 Genre = s.Genre,
                 TrackNumber = s.TrackNumber,
@@ -84,6 +98,25 @@ public static class AudioConvert
             foreach (var pic in s.EmbeddedPictures)
                 d.EmbeddedPictures.Add(pic);
             d.Save();
+        }
+        catch { }
+    }
+
+    // Apply Apple/iTunes conventions in place to an already-copied file (the ALAC-mirror copy-as-is
+    // path for MP3/AAC). No picture handling — the file already carries its own artwork.
+    public static void AppleFormatTags(string path)
+    {
+        try
+        {
+            var t = new ATL.Track(path);
+            var title = TextFormat.Title(t.Title ?? "");
+            var album = TextFormat.Title(t.Album ?? "");
+            var artist = TextFormat.AppleArtist(t.Artist ?? "");
+            var albumArtist = TextFormat.PrimaryArtist(!string.IsNullOrWhiteSpace(t.AlbumArtist) ? t.AlbumArtist : (t.Artist ?? ""));
+            if (title == (t.Title ?? "") && album == (t.Album ?? "") && artist == (t.Artist ?? "") && albumArtist == (t.AlbumArtist ?? ""))
+                return;
+            t.Title = title; t.Album = album; t.Artist = artist; t.AlbumArtist = albumArtist;
+            t.Save();
         }
         catch { }
     }

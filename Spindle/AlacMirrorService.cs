@@ -116,7 +116,8 @@ public sealed class AlacMirrorService
                     {
                         if (AudioConvert.Encode(job.Src, part, true, token, out _) && File.Exists(part))
                         {
-                            AudioConvert.CopyTags(job.Src, part, artistFromAlbumArtist: true);
+                            // The Apple folder gets Apple-format metadata (the library stays untouched).
+                            AudioConvert.CopyTags(job.Src, part, appleFormat: true);
                             if (File.Exists(job.Dst)) File.Delete(job.Dst);
                             File.Move(part, job.Dst);
                             Interlocked.Increment(ref converted);
@@ -128,6 +129,7 @@ public sealed class AlacMirrorService
                         File.Copy(job.Src, part, true);
                         if (File.Exists(job.Dst)) File.Delete(job.Dst);
                         File.Move(part, job.Dst);
+                        AudioConvert.AppleFormatTags(job.Dst);   // MP3/AAC copy → same Apple-format metadata
                         Interlocked.Increment(ref copied);
                     }
                 }

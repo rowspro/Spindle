@@ -25,7 +25,6 @@ public class MetadataEditorViewModel : ViewModelBase
         ModeConvCommand = new RelayCommand(() => { if (!Grid.HasDirty) Grid.Reload(); EditorMode = "conv"; });
         ApproveNextCommand = new RelayCommand(ApproveNext, () => HasFile && !IsBusy);
         BackCommand = new RelayCommand(Back, () => HasPrev && !IsBusy);
-        ApplyAppleArtistCommand = new RelayCommand(ApplyAppleArtist, () => HasFile && !IsBusy);
         AutoFillCommand = new RelayCommand(AutoFill, () => HasFile && !IsBusy);
         RemoveArtCommand = new RelayCommand(RemoveArt, () => HasFile && !IsBusy);
         ApplyArtNowCommand = new RelayCommand(ApplyArtNow, () => HasFile && !IsBusy);
@@ -105,7 +104,6 @@ public class MetadataEditorViewModel : ViewModelBase
 
     public RelayCommand ApproveNextCommand { get; }
     public RelayCommand BackCommand { get; }
-    public RelayCommand ApplyAppleArtistCommand { get; }
     public RelayCommand AutoFillCommand { get; }
     public RelayCommand RemoveArtCommand { get; }
     public RelayCommand ApplyArtNowCommand { get; }
@@ -375,73 +373,6 @@ public class MetadataEditorViewModel : ViewModelBase
         Status = "Album art will be removed on Approve.";
     }
 
-    private void ApplyAppleArtist()
-    {
-        if (IsBusy) return;
-        if (_folderLoaded) BatchAppleFormat();
-        else ApplyAppleFormatCurrent();
-    }
-
-    private void ApplyAppleFormatCurrent()
-    {
-        var (ti, ar, aa, al, ge) = TagCleanup.Apply(Title, Artist, AlbumArtist, Album, Genre);
-        Title = ti; Artist = ar; AlbumArtist = aa; Album = al; Genre = ge;
-        Status = "Apple format applied (per your Personalisations settings).";
-    }
-
-    private void BatchAppleFormat()
-    {
-        IsBusy = true;
-        Status = "Applying Apple format to the folder…";
-        var files = _allFiles.ToList();
-
-        Task.Run(() =>
-        {
-            var review = new List<string>();
-            var notes = new Dictionary<string, string>();
-            int i = 0, changed = 0;
-            foreach (var f in files)
-            {
-                i++;
-                var snap = i;
-                Dispatcher.UIThread.Post(() => Status = $"Apple format {snap}/{files.Count}…");
-                try
-                {
-                    var t = new Track(f);
-                    var a0 = t.Artist ?? ""; var aa0 = t.AlbumArtist ?? ""; var ti0 = t.Title ?? "";
-                    var al0 = t.Album ?? ""; var g0 = t.Genre ?? "";
-                    var (nti, na, naa, nal, ng) = TagCleanup.Apply(ti0, a0, aa0, al0, g0);
-                    if (na != a0 || naa != aa0 || nti != ti0 || nal != al0 || ng != g0)
-                    {
-                        t.Artist = na; t.AlbumArtist = naa; t.Title = nti; t.Album = nal; t.Genre = ng;
-                        t.Save();
-                        review.Add(f); notes[f] = "formatted"; changed++;
-                    }
-                }
-                catch { review.Add(f); notes[f] = "error"; }
-            }
-
-            Dispatcher.UIThread.Post(() =>
-            {
-                IsBusy = false;
-                _reviewNotes.Clear();
-                foreach (var kv in notes) _reviewNotes[kv.Key] = kv.Value;
-                _files = review;
-                _index = 0;
-                if (_files.Count == 0)
-                {
-                    Status = $"Done — nothing to change ({files.Count} tracks were already fine).";
-                    OnPropertyChanged(nameof(Position));
-                    RaiseNav();
-                }
-                else
-                {
-                    Load(_files[0]);
-                    Status = $"{changed} formatted. Step through the {_files.Count} changes and approve.";
-                }
-            });
-        });
-    }
 
     private void AutoFill()
     {
@@ -673,7 +604,6 @@ public class MetadataEditorViewModel : ViewModelBase
     {
         ApproveNextCommand.RaiseCanExecuteChanged();
         BackCommand.RaiseCanExecuteChanged();
-        ApplyAppleArtistCommand.RaiseCanExecuteChanged();
         AutoFillCommand.RaiseCanExecuteChanged();
         RemoveArtCommand.RaiseCanExecuteChanged();
         ApplyArtNowCommand.RaiseCanExecuteChanged();

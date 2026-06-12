@@ -13,17 +13,4 @@ public static class CleanupOptions
     // Keep every genre (each canonicalized, deduped) instead of reducing to the primary one.
     public static bool KeepMultipleGenres { get; set; }
 
-    // Cleanup sets Album Artist to the first credited artist, so collabs/feats group under one artist.
-    public static bool GroupCollabsUnderPrimaryArtist { get; set; } = true;
-
-    // How multi-artist tags are written back (the canonical separator). One of:
-    // "asis" (leave untouched), "apple" ("A, B & C"), "semicolon" ("A; B; C"),
-    // "slash" ("A / B / C"), "comma" ("A, B, C").
-    public static string ArtistJoin { get; set; } = "apple";
-
-    // Apply smart title case to titles and album names.
-    public static bool TitleCaseTitlesAndAlbums { get; set; } = true;
-
-    // Run the cleanup automatically when approving albums from the Inbox.
-    public static bool AutoCleanOnApprove { get; set; }
 }

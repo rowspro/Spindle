@@ -320,58 +320,6 @@ public class MainViewModel : ViewModelBase
         set { if (SetField(ref _keepMultipleGenres, value)) CleanupOptions.KeepMultipleGenres = value; }
     }
 
-    private bool _groupCollabsUnderPrimaryArtist = true;
-    public bool GroupCollabsUnderPrimaryArtist
-    {
-        get => _groupCollabsUnderPrimaryArtist;
-        set { if (SetField(ref _groupCollabsUnderPrimaryArtist, value)) CleanupOptions.GroupCollabsUnderPrimaryArtist = value; }
-    }
-
-    // Canonical multi-artist separator the cleanup standardizes to.
-    public IReadOnlyList<string> ArtistJoinOptions { get; } = new[]
-    {
-        "Leave as-is", "Apple (A, B & C)", "Semicolon (A; B; C)", "Slash (A / B / C)", "Comma (A, B, C)"
-    };
-
-    private static string JoinKey(string? label) => label switch
-    {
-        "Leave as-is" => "asis",
-        "Semicolon (A; B; C)" => "semicolon",
-        "Slash (A / B / C)" => "slash",
-        "Comma (A, B, C)" => "comma",
-        _ => "apple",
-    };
-
-    private static string JoinLabel(string? key) => key switch
-    {
-        "asis" => "Leave as-is",
-        "semicolon" => "Semicolon (A; B; C)",
-        "slash" => "Slash (A / B / C)",
-        "comma" => "Comma (A, B, C)",
-        _ => "Apple (A, B & C)",
-    };
-
-    private string _selectedArtistJoin = "Apple (A, B & C)";
-    public string SelectedArtistJoin
-    {
-        get => _selectedArtistJoin;
-        set { if (SetField(ref _selectedArtistJoin, value)) CleanupOptions.ArtistJoin = JoinKey(value); }
-    }
-
-    private bool _titleCaseTitlesAndAlbums = true;
-    public bool TitleCaseTitlesAndAlbums
-    {
-        get => _titleCaseTitlesAndAlbums;
-        set { if (SetField(ref _titleCaseTitlesAndAlbums, value)) CleanupOptions.TitleCaseTitlesAndAlbums = value; }
-    }
-
-    private bool _autoCleanOnApprove;
-    public bool AutoCleanOnApprove
-    {
-        get => _autoCleanOnApprove;
-        set { if (SetField(ref _autoCleanOnApprove, value)) CleanupOptions.AutoCleanOnApprove = value; }
-    }
-
     // Standard genres list (editable): base set + the user's own. The Doctor retags to these.
     public ObservableCollection<GenrePref> StandardGenres { get; } = new();
     public RelayCommand AddGenreCommand { get; }
@@ -529,10 +477,6 @@ public class MainViewModel : ViewModelBase
         FilenameTemplate = string.IsNullOrWhiteSpace(FilenameTemplate) ? NameTemplate.Default : FilenameTemplate.Trim(),
         SplitArtistOnComma = SplitArtistOnComma,
         KeepMultipleGenres = KeepMultipleGenres,
-        GroupCollabsUnderPrimaryArtist = GroupCollabsUnderPrimaryArtist,
-        ArtistJoinStyle = JoinKey(SelectedArtistJoin),
-        TitleCaseTitlesAndAlbums = TitleCaseTitlesAndAlbums,
-        AutoCleanOnApprove = AutoCleanOnApprove,
         FlattenArtistOnSync = FlattenArtistOnSync,
         ConvertToAlacDefault = ConvertToAlacDefault,
         AutoCreatePlaylists = AutoCreatePlaylists,
@@ -563,10 +507,6 @@ public class MainViewModel : ViewModelBase
         DiscogsToken = c.DiscogsToken ?? string.Empty;
         SplitArtistOnComma = c.SplitArtistOnComma;
         KeepMultipleGenres = c.KeepMultipleGenres;
-        GroupCollabsUnderPrimaryArtist = c.GroupCollabsUnderPrimaryArtist;
-        SelectedArtistJoin = JoinLabel(c.ArtistJoinStyle);
-        TitleCaseTitlesAndAlbums = c.TitleCaseTitlesAndAlbums;
-        AutoCleanOnApprove = c.AutoCleanOnApprove;
         FlattenArtistOnSync = c.FlattenArtistOnSync;
         ConvertToAlacDefault = c.ConvertToAlacDefault;
         AutoCreatePlaylists = c.AutoCreatePlaylists;

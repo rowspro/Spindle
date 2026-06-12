@@ -119,11 +119,6 @@ public sealed class TagGridViewModel : ViewModelBase
         _lib = lib;
         _undo = undo;
         SaveCommand = new RelayCommand(Save, () => HasDirty && !_busy);
-        ActionAppleCommand = new RelayCommand(() => Mutate(r =>
-        {
-            var (ti, ar, aa, al, ge) = TagCleanup.Apply(r.Title, r.Artist, r.AlbumArtist, r.Album, r.Genre);
-            r.Title = ti; r.Artist = ar; r.AlbumArtist = aa; r.Album = al; r.Genre = ge;
-        }));
         ActionGenreCommand = new RelayCommand(() => Mutate(r => r.Genre = GenreFormat.Normalize(r.Genre)));
         ActionTrimCommand = new RelayCommand(() => Mutate(r =>
         {
@@ -135,7 +130,6 @@ public sealed class TagGridViewModel : ViewModelBase
     }
 
     public RelayCommand SaveCommand { get; }
-    public RelayCommand ActionAppleCommand { get; }
     public RelayCommand ActionGenreCommand { get; }
     public RelayCommand ActionTrimCommand { get; }
     public RelayCommand ApplyF2TCommand { get; }

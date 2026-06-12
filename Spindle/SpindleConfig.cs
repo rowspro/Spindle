@@ -17,13 +17,9 @@ public class SpindleConfig
     public bool GalaxyAlbumLevel { get; set; }
     public bool DarkMode { get; set; }
 
-    // Personalisations — Database (My Music): tag-cleanup behavior. See docs/IPOD_BEHAVIOR.md.
+    // Personalisations — Database (My Music). See docs/IPOD_BEHAVIOR.md.
     public bool SplitArtistOnComma { get; set; } = true;            // false keeps "Last, First" sortnames intact
     public bool KeepMultipleGenres { get; set; }                    // true keeps multi-genre tags instead of reducing to one
-    public bool GroupCollabsUnderPrimaryArtist { get; set; } = true; // album artist = first credited artist
-    public string ArtistJoinStyle { get; set; } = "apple";          // canonical multi-artist separator: asis/apple/semicolon/slash/comma
-    public bool TitleCaseTitlesAndAlbums { get; set; } = true;      // smart title case
-    public bool AutoCleanOnApprove { get; set; }                    // clean tags automatically on Inbox approve
 
     // Personalisations — iPod: how music is prepared for the device.
     public bool FlattenArtistOnSync { get; set; }                   // primary artist on the iPod copy (source untouched)

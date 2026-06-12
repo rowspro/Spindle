@@ -119,26 +119,31 @@ Spindle heeft twee helften:
 
 ---
 
-## Tag-opschoon-gedrag (onboarding-kant, opt-in)
+## Apple-format: alleen op de ALAC-spiegel, nooit op de library
 
-Deze helpers bepalen wat er met multi-value tags gebeurt. Ze draaien **alleen** op
-gebruikersactie (knoppen in Metadata-editor / TagGrid), nooit automatisch tijdens onboarding.
+**Principe (zie [SPINDLE_GOALS.md](SPINDLE_GOALS.md), 1 + 4):** de bibliotheek wordt **nooit**
+"apple-geformatteerd" — die houden we exact zoals de gebruiker tagt. Apple/iTunes-conventies
+zijn een vereiste van Apple's ecosysteem, geen verbetering. Daarom past Spindle apple-format
+**uitsluitend** toe op de **ALAC-spiegel** (iTunes-modus), tijdens het schrijven van de kopie:
 
-| Helper | Bestand | Doet | Splitst op |
-|---|---|---|---|
-| `PrimaryArtist` | `TextFormat.cs` | eerste gecrediteerde artiest → Album-artiest | `; / , & feat ft featuring with vs x` |
-| `FormatArtists` | `TextFormat.cs` | standaardiseert naar de gekozen scheider (`CleanupOptions.ArtistJoin`: as-is / `"A, B & C"` / `;` / `/` / `,`), dedupe | idem |
-| `GenreFormat.Normalize` | `GenreFormat.cs` | reduceert multi-genre tot primaire + canoniek | `/ ; , \| \\` |
+| Helper | Bestand | Doet |
+|---|---|---|
+| `AudioConvert.CopyTags(..., appleFormat:true)` | `AudioConvert.cs` | ALAC-conversie: titel/album title-case, `Artist` → `"A, B & C"`, `AlbumArtist` → primaire artiest |
+| `AudioConvert.AppleFormatTags` | `AudioConvert.cs` | idem in-place voor de gekopieerde MP3/AAC in de spiegel |
+| `TextFormat.AppleArtist` / `PrimaryArtist` / `Title` | `TextFormat.cs` | de bouwstenen; splitsen op `; / , & feat ft … x` |
+
+De spiegel draait alleen in iTunes-modus, dus dit is automatisch gegated op die toggle.
+
+**Library-kant (Database-personalisaties)** beperkt zich tot *parsing/ordening*, geen apple-format:
+`SplitArtistOnComma` (hoe artiesten gesplitst worden), `KeepMultipleGenres`, de standaard-genrelijst
+(Doctor-retag) en de bestandsnaam-template. `GenreFormat.Normalize` blijft beschikbaar als losse
+"Normalize genre"-actie en in de Doctor.
 
 ### Bekende beperking — `"Achternaam, Voornaam"`-sorteernamen
-De artiest-split bevat de **komma** als scheidingsteken. Daardoor:
-- `PrimaryArtist("The White Stripes; White, Jack")` → `"The White Stripes"` ✅ correct.
-- `FormatArtists("The White Stripes; White, Jack")` (Apple) → `"The White Stripes, White & Jack"` ❌ —
-  de sorteernaam `"White, Jack"` wordt versnipperd tot twee neppe artiesten.
-
-Een komma kan niet onderscheiden worden tussen een collab (`Beyoncé, Jay-Z`) en een
-sorteernaam (`White, Jack`). Dit is de directe aanleiding om het scheidingsgedrag
-**instelbaar** te maken (zie `SETTINGS`-werk).
+De artiest-split bevat de **komma** als scheidingsteken. Daardoor versnippert de apple-format op
+de spiegel een sorteernaam: `AppleArtist("The White Stripes; White, Jack")` → `"The White Stripes,
+White & Jack"`. `SplitArtistOnComma` uit zetten houdt zulke sorteernamen heel. De bron raakt dit
+sowieso nooit — alleen de spiegel-kopie.
 
 ### Open vragen
 - `;` als enige "echte" multi-artiest-scheider, komma alleen optioneel?

@@ -37,20 +37,15 @@ public static class TextFormat
         return dedup;
     }
 
-    // Standardize a multi-artist credit to the configured canonical separator (CleanupOptions.ArtistJoin).
-    public static string FormatArtists(string artist)
+    // Apple/iTunes credit style ("A, B & C", deduped). Used ONLY for the ALAC mirror — never the
+    // library, which is left exactly as the user tags it (see docs/SPINDLE_GOALS.md).
+    public static string AppleArtist(string artist)
     {
-        if (string.IsNullOrWhiteSpace(artist) || CleanupOptions.ArtistJoin == "asis") return artist;
-        var parts = SplitDedup(artist);
-        if (parts.Count == 0) return artist;
-        if (parts.Count == 1) return parts[0];
-        return CleanupOptions.ArtistJoin switch
-        {
-            "semicolon" => string.Join("; ", parts),
-            "slash" => string.Join(" / ", parts),
-            "comma" => string.Join(", ", parts),
-            _ => string.Join(", ", parts.Take(parts.Count - 1)) + " & " + parts[^1],   // "apple"
-        };
+        if (string.IsNullOrWhiteSpace(artist)) return artist;
+        var dedup = SplitDedup(artist);
+        if (dedup.Count == 0) return artist;
+        if (dedup.Count == 1) return dedup[0];
+        return string.Join(", ", dedup.Take(dedup.Count - 1)) + " & " + dedup[^1];
     }
 
     private static readonly HashSet<string> SmallWords = new(StringComparer.OrdinalIgnoreCase)
