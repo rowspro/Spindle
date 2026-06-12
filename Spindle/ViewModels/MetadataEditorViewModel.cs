@@ -17,6 +17,12 @@ public class MetadataEditorViewModel : ViewModelBase
 
     public TagGridViewModel Grid { get; }
 
+    /// <summary>Album-artist autocomplete suggestions (fed by MainViewModel), bound by the editor view.</summary>
+    public ObservableCollection<string> ArtistSuggestions { get; } = new();
+
+    /// <summary>Show the "Open file/folder" entry buttons (true in the Metadata tab, false when embedded in the Inbox).</summary>
+    public bool ShowSourceButtons { get; init; } = true;
+
     private readonly UndoJournal? _undo;
 
     public MetadataEditorViewModel(LibraryService? lib = null, UndoJournal? undo = null)

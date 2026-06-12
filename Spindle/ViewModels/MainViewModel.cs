@@ -100,7 +100,14 @@ public class MainViewModel : ViewModelBase
         {
             var arts = Lib.Index.AllArtists(MusicLibrary);
             ArtistSuggestions.Clear();
-            foreach (var a in arts) ArtistSuggestions.Add(a);
+            Meta.ArtistSuggestions.Clear();
+            Staging.DetailEditor.ArtistSuggestions.Clear();
+            foreach (var a in arts)
+            {
+                ArtistSuggestions.Add(a);
+                Meta.ArtistSuggestions.Add(a);
+                Staging.DetailEditor.ArtistSuggestions.Add(a);
+            }
         }
         catch { }
     }

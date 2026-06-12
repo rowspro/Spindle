@@ -174,29 +174,6 @@ public partial class MainWindow : Window
         return folders.Count > 0 ? folders[0].TryGetLocalPath() : null;
     }
 
-    private async Task<string?> PickFileAsync(string title)
-    {
-        var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
-        {
-            Title = title,
-            AllowMultiple = false
-        });
-        return files.Count > 0 ? files[0].TryGetLocalPath() : null;
-    }
-
-    // ---- Metadata editor tab ----
-    private async void OnOpenMetaFile(object? sender, RoutedEventArgs e)
-    {
-        var path = await PickFileAsync("Kies een audiobestand");
-        if (path != null && Vm != null) Vm.Meta.Open(path);
-    }
-
-    private async void OnOpenMetaFolder(object? sender, RoutedEventArgs e)
-    {
-        var path = await PickFolderAsync("Kies een map (album) om door te lopen");
-        if (path != null && Vm != null) Vm.Meta.LoadFolder(path);
-    }
-
     // ---- Duplicates tab ----
     private async void OnBrowseDupFolder(object? sender, RoutedEventArgs e)
     {
@@ -274,9 +251,8 @@ public partial class MainWindow : Window
     private void WireArtistBoxes()
     {
         if (Vm == null) return;
-        foreach (var name in new[] { "MetaAlbumArtistBox", "LibArtistBox" })
-            if (this.FindControl<AutoCompleteBox>(name) is { } box)
-                box.ItemsSource = Vm.ArtistSuggestions;
+        if (this.FindControl<AutoCompleteBox>("LibArtistBox") is { } box)
+            box.ItemsSource = Vm.ArtistSuggestions;
     }
 
     /// <summary>Enter = accept the first suggestion; Space = accept only when the match is unique
@@ -335,13 +311,6 @@ public partial class MainWindow : Window
         return null;
     }
 
-    private async void OnPasteMetaArt(object? sender, RoutedEventArgs e)
-    {
-        var data = await ReadClipboardImageAsync();
-        if (data != null) Vm?.Meta.SetArtBytes(data);
-        else Vm?.Meta.Notify("No image on the clipboard.");
-    }
-
     private async void OnInboxCoverChoose(object? sender, RoutedEventArgs e)
     {
         var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
@@ -363,21 +332,6 @@ public partial class MainWindow : Window
         var data = await ReadClipboardImageAsync();
         if (data != null) Vm?.Staging.ApplyCoverToDetailAlbum(data);
         else Vm?.Staging.Notify("No image on the clipboard.");
-    }
-
-    private async void OnLoadMetaArt(object? sender, RoutedEventArgs e)
-    {
-        var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
-        {
-            Title = "Kies een albumhoes",
-            AllowMultiple = false,
-            FileTypeFilter = new[]
-            {
-                new FilePickerFileType("Afbeeldingen") { Patterns = new[] { "*.jpg", "*.jpeg", "*.png" } }
-            }
-        });
-        var p = files.Count > 0 ? files[0].TryGetLocalPath() : null;
-        if (p != null && Vm != null) Vm.Meta.SetArt(p);
     }
 
     private async System.Threading.Tasks.Task<List<string>> PickFilesAsync(string title)

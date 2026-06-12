@@ -168,6 +168,8 @@ public class StagingViewModel : ViewModelBase
     private readonly UndoJournal _undo;
     private readonly Func<string> _template;
     public TagGridViewModel FixGrid { get; }
+    /// <summary>The full metadata editor, embedded inline in the album detail (same component as the Metadata tab).</summary>
+    public MetadataEditorViewModel DetailEditor { get; }
     private readonly List<StagingAlbumViewModel> _all = new();
     private CancellationTokenSource? _cts;
 
@@ -178,6 +180,7 @@ public class StagingViewModel : ViewModelBase
         _undo = undo;
         _template = template;
         FixGrid = new TagGridViewModel(lib, undo);
+        DetailEditor = new MetadataEditorViewModel(lib, undo) { ShowSourceButtons = false };
         ScanCommand = new RelayCommand(Scan, () => !IsBusy && !string.IsNullOrWhiteSpace(NieuwFolder));
         ApproveCommand = new RelayCommand(Approve, () => !IsBusy && _all.Any(a => a.IsSelected));
         SelectAllCommand = new RelayCommand(() => SetSelection(_ => true));
@@ -222,6 +225,7 @@ public class StagingViewModel : ViewModelBase
         EditInMetadataCommand.RaiseCanExecuteChanged();
         var files = album.Files.ToList();
         FixGrid.Load(files);
+        DetailEditor.LoadFiles(files, $"{album.Title} — edit tags & cover");
         Status = "Reading folder…";
         var nieuw = NieuwFolder;
         Task.Run(() =>
