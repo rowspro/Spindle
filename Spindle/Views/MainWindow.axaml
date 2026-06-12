@@ -904,7 +904,9 @@
                                     <ListBox Grid.Row="1" ItemsSource="{Binding Findings}" Background="Transparent" BorderThickness="0">
                                         <ListBox.ItemTemplate>
                                             <DataTemplate>
-                                                <Border Classes="card" Margin="0,0,0,8" Padding="14,10">
+                                                <Border Classes="card" Margin="0,0,0,8" Padding="14,10"
+                                                        DoubleTapped="OnDoctorFindingDoubleTapped" Cursor="Hand"
+                                                        ToolTip.Tip="Double-click to open this album in the Metadata editor and check it before fixing.">
                                                     <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto" VerticalAlignment="Center">
                                                         <Border Grid.Column="0" CornerRadius="9999" Padding="9,3" Background="{DynamicResource WarnBg}" VerticalAlignment="Center">
                                                             <TextBlock Text="{Binding Category}" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource WarnFg}" />
@@ -1310,6 +1312,56 @@
                                           ToolTip.Tip="Delete AppleDouble sidecar files on the iPod after transfer, so Rockbox doesn't index them as phantom duplicate tracks." />
                                 <CheckBox Content="Tag various-artist albums as compilations" IsChecked="{Binding SetCompilationFlag}"
                                           ToolTip.Tip="Set the compilation flag on 'Various Artists' albums so the stock iPod groups them under Compilations." />
+                            </StackPanel>
+                        </Border>
+
+                      </StackPanel>
+                    </ScrollViewer>
+                  </TabItem>
+
+                  <TabItem Header="Shortcuts">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="0,8,0,0">
+                      <StackPanel Spacing="12" Margin="0,0,6,0">
+
+                        <StackPanel Margin="0,0,0,2">
+                            <TextBlock Classes="h2" Text="Keyboard shortcuts" />
+                            <TextBlock Classes="body" Margin="0,4,0,0" Text="A reference of every shortcut. ⌘ is the Command key." />
+                        </StackPanel>
+
+                        <Border Classes="card">
+                            <StackPanel Spacing="7">
+                                <TextBlock Classes="section" Text="GLOBAL" />
+                                <Grid ColumnDefinitions="160,*"><TextBlock Grid.Column="0" FontWeight="SemiBold" Text="⌘F" /><TextBlock Grid.Column="1" Foreground="{DynamicResource TextSecondary}" Text="Open the command palette — jump to any section or album" /></Grid>
+                                <Grid ColumnDefinitions="160,*"><TextBlock Grid.Column="0" FontWeight="SemiBold" Text="⌘Z" /><TextBlock Grid.Column="1" Foreground="{DynamicResource TextSecondary}" Text="Undo the last file move or tag batch (not in text fields)" /></Grid>
+                                <Grid ColumnDefinitions="160,*"><TextBlock Grid.Column="0" FontWeight="SemiBold" Text="Space" /><TextBlock Grid.Column="1" Foreground="{DynamicResource TextSecondary}" Text="Library: preview the selected album · elsewhere: play / pause" /></Grid>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Classes="card">
+                            <StackPanel Spacing="7">
+                                <TextBlock Classes="section" Text="COMMAND PALETTE (⌘F)" />
+                                <Grid ColumnDefinitions="160,*"><TextBlock Grid.Column="0" FontWeight="SemiBold" Text="↑ / ↓" /><TextBlock Grid.Column="1" Foreground="{DynamicResource TextSecondary}" Text="Move the selection" /></Grid>
+                                <Grid ColumnDefinitions="160,*"><TextBlock Grid.Column="0" FontWeight="SemiBold" Text="Enter" /><TextBlock Grid.Column="1" Foreground="{DynamicResource TextSecondary}" Text="Open the selected result" /></Grid>
+                                <Grid ColumnDefinitions="160,*"><TextBlock Grid.Column="0" FontWeight="SemiBold" Text="Esc" /><TextBlock Grid.Column="1" Foreground="{DynamicResource TextSecondary}" Text="Close the palette" /></Grid>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Classes="card">
+                            <StackPanel Spacing="7">
+                                <TextBlock Classes="section" Text="INBOX" />
+                                <Grid ColumnDefinitions="160,*"><TextBlock Grid.Column="0" FontWeight="SemiBold" Text="J / K" /><TextBlock Grid.Column="1" Foreground="{DynamicResource TextSecondary}" Text="Move the cursor down / up" /></Grid>
+                                <Grid ColumnDefinitions="160,*"><TextBlock Grid.Column="0" FontWeight="SemiBold" Text="Enter" /><TextBlock Grid.Column="1" Foreground="{DynamicResource TextSecondary}" Text="Inspect / fix the album under the cursor" /></Grid>
+                                <Grid ColumnDefinitions="160,*"><TextBlock Grid.Column="0" FontWeight="SemiBold" Text="A" /><TextBlock Grid.Column="1" Foreground="{DynamicResource TextSecondary}" Text="Select / deselect for approval" /></Grid>
+                                <Grid ColumnDefinitions="160,*"><TextBlock Grid.Column="0" FontWeight="SemiBold" Text="X" /><TextBlock Grid.Column="1" Foreground="{DynamicResource TextSecondary}" Text="Delete from the inbox" /></Grid>
+                                <Grid ColumnDefinitions="160,*"><TextBlock Grid.Column="0" FontWeight="SemiBold" Text="Esc" /><TextBlock Grid.Column="1" Foreground="{DynamicResource TextSecondary}" Text="Back (from the album detail)" /></Grid>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Classes="card">
+                            <StackPanel Spacing="7">
+                                <TextBlock Classes="section" Text="METADATA" />
+                                <Grid ColumnDefinitions="160,*"><TextBlock Grid.Column="0" FontWeight="SemiBold" Text="←" /><TextBlock Grid.Column="1" Foreground="{DynamicResource TextSecondary}" Text="Previous track" /></Grid>
+                                <Grid ColumnDefinitions="160,*"><TextBlock Grid.Column="0" FontWeight="SemiBold" Text="→" /><TextBlock Grid.Column="1" Foreground="{DynamicResource TextSecondary}" Text="Approve and go to the next track" /></Grid>
                             </StackPanel>
                         </Border>
 

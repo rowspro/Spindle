@@ -270,6 +270,11 @@ public sealed class DoctorViewModel : ViewModelBase
             var order = new Dictionary<string, int> { ["Artists"] = 0, ["Locations"] = 1, ["Genres"] = 2, ["GenreStd"] = 3, ["Albums"] = 4 };
             var sorted = found.OrderBy(f => order[f.Category]).ThenByDescending(f => f.Files.Count).ToList();
 
+            // Every finding is openable in the metadata editor (button + double-click) so you can
+            // inspect and fix the album before applying any move/retag.
+            foreach (var f in sorted)
+                f.EditCommand ??= new RelayCommand(() => _onEdit(f.Files, $"Doctor — {f.Title}: {f.Sub}"));
+
             Dispatcher.UIThread.Post(() =>
             {
                 Findings.Clear();

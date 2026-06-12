@@ -108,6 +108,13 @@ public partial class MainWindow : Window
         }
     }
 
+    // Double-click a Library Doctor finding to open its album in the Metadata editor for inspection.
+    private void OnDoctorFindingDoubleTapped(object? sender, TappedEventArgs e)
+    {
+        if ((sender as Control)?.DataContext is DoctorFinding f)
+            f.EditCommand?.Execute(null);
+    }
+
     private MainViewModel? Vm => DataContext as MainViewModel;
 
     private bool _themeHooked;
