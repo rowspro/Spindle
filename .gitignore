@@ -75,3 +75,7 @@ dist/
 # Local credential/settings store (Soulseek login, AcoustID key) — never commit
 settings.json
 appsettings.local.json
+
+# Lokaal werkdocument — niet publiceren
+feedback.md
+
