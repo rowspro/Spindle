@@ -145,6 +145,7 @@ public sealed class DoctorViewModel : ViewModelBase
                 int yr = alb.Max(t => t.Year);
                 var artistDir = Clean(string.IsNullOrWhiteSpace(eff) ? "Unknown Artist" : eff);
                 var albumDir = Singles.IsSingle(albumName) ? Singles.Folder : Clean(yr > 0 ? $"{albumName} ({yr})" : albumName);
+                bool multiDisc = alb.Max(t => t.Disc) > 1;
                 var moves = new List<UndoJournal.MoveOp>();
                 var taken = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                 foreach (var t in alb)
@@ -152,7 +153,7 @@ public sealed class DoctorViewModel : ViewModelBase
                     var ext = Path.GetExtension(t.Path);
                     string name = !string.IsNullOrWhiteSpace(t.Title)
                         ? NameTemplate.Build(template, string.IsNullOrWhiteSpace(t.Artist) ? eff : t.Artist,
-                            albumName, t.Title, t.TrackNo, t.Year > 0 ? t.Year.ToString() : "", Clean) + ext
+                            albumName, t.Title, t.TrackNo, t.Year > 0 ? t.Year.ToString() : "", Clean, t.Disc, multiDisc) + ext
                         : Path.GetFileName(t.Path);
                     var dest = Path.Combine(root, artistDir, albumDir, name);
                     if (string.Equals(dest, t.Path, StringComparison.OrdinalIgnoreCase)) { taken.Add(dest); continue; }

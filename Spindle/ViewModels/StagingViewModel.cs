@@ -352,12 +352,12 @@ public class StagingViewModel : ViewModelBase
             int noCover = rows.Count(r => !r.HasCover);
             int missingYear = rows.Count(r => r.Year <= 0);
             int missingGenre = rows.Count(r => string.IsNullOrWhiteSpace(r.Genre));
-            var trackNos = new HashSet<int>();
+            var trackNos = new HashSet<(int, int)>();
             var dirSet = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             bool dup = false;
             foreach (var r in rows)
             {
-                if (r.TrackNo > 0 && !trackNos.Add(r.TrackNo)) dup = true;
+                if (r.TrackNo > 0 && !trackNos.Add((r.Disc, r.TrackNo))) dup = true;   // disc-aware
                 var d0 = Path.GetDirectoryName(r.Path);
                 if (d0 != null) dirSet.Add(d0);
             }
@@ -469,6 +469,7 @@ public class StagingViewModel : ViewModelBase
             var artistDir = Clean(string.IsNullOrWhiteSpace(album.Artist) ? "Unknown Artist" : album.Artist);
             int.TryParse(album.Year, out var yr);
             var albumDir = Singles.IsSingle(album.Album) ? Singles.Folder : Clean(yr > 0 ? $"{album.Album} ({yr})" : album.Album);
+            bool multiDisc = album.Files.Select(f => map.TryGetValue(f, out var rr) ? rr.Disc : 0).DefaultIfEmpty(0).Max() > 1;
             var taken = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             int moved = 0;
             foreach (var f in album.Files.ToList())
@@ -478,7 +479,7 @@ public class StagingViewModel : ViewModelBase
                     var ext = Path.GetExtension(f);
                     string name = map.TryGetValue(f, out var r) && !string.IsNullOrWhiteSpace(r.Title)
                         ? NameTemplate.Build(template, string.IsNullOrWhiteSpace(r.Artist) ? album.Artist : r.Artist,
-                            album.Album, r.TrackNo > 0 ? r.Title : r.Title, r.TrackNo, r.Year > 0 ? r.Year.ToString() : "", Clean) + ext
+                            album.Album, r.Title, r.TrackNo, r.Year > 0 ? r.Year.ToString() : "", Clean, r.Disc, multiDisc) + ext
                         : Path.GetFileName(f);
                     var dest = Path.Combine(lib, artistDir, albumDir, name);
                     int n2 = 2;
@@ -643,7 +644,7 @@ public class StagingViewModel : ViewModelBase
             var files = _lib.Index.AllTracks(nieuw);
 
             var groups = new Dictionary<string, (string Artist, string Album, string Year, List<string> Files,
-                int Lossy, int Untagged, int NoCover, int MissingYear, int MissingGenre, HashSet<string> Dirs, HashSet<int> Tracks, bool DupTrack, string Cover, long BrSum)>();
+                int Lossy, int Untagged, int NoCover, int MissingYear, int MissingGenre, HashSet<string> Dirs, HashSet<(int Disc, int Track)> Tracks, bool DupTrack, string Cover, long BrSum)>();
 
             foreach (var r in files)
             {
@@ -651,7 +652,7 @@ public class StagingViewModel : ViewModelBase
                 var artist = !string.IsNullOrWhiteSpace(r.AlbumArtist) ? r.AlbumArtist : r.Artist;
                 var key = Norm(artist) + "|" + Norm(r.Album);
                 if (!groups.TryGetValue(key, out var g))
-                    g = (artist, r.Album, r.Year > 0 ? r.Year.ToString() : "", new List<string>(), 0, 0, 0, 0, 0, new HashSet<string>(), new HashSet<int>(), false, "", 0L);
+                    g = (artist, r.Album, r.Year > 0 ? r.Year.ToString() : "", new List<string>(), 0, 0, 0, 0, 0, new HashSet<string>(), new HashSet<(int, int)>(), false, "", 0L);
 
                 g.Files.Add(r.Path);
                 var dir = Path.GetDirectoryName(r.Path);
@@ -662,7 +663,7 @@ public class StagingViewModel : ViewModelBase
                 else if (g.Cover.Length == 0) g.Cover = r.Path;
                 if (r.Year <= 0) g.MissingYear++;
                 if (string.IsNullOrWhiteSpace(r.Genre)) g.MissingGenre++;
-                if (r.TrackNo > 0) { if (!g.Tracks.Add(r.TrackNo)) g.DupTrack = true; }
+                if (r.TrackNo > 0) { if (!g.Tracks.Add((r.Disc, r.TrackNo))) g.DupTrack = true; }   // disc-aware
                 if (string.IsNullOrEmpty(g.Year) && r.Year > 0) g.Year = r.Year.ToString();
                 g.BrSum += r.Bitrate;
 
@@ -1063,13 +1064,14 @@ public class StagingViewModel : ViewModelBase
             var artistDir = Clean(string.IsNullOrWhiteSpace(album.Artist) ? "Unknown Artist" : album.Artist);
             int.TryParse(album.Year, out var yr);
             var albumDir = Singles.IsSingle(album.Album) ? Singles.Folder : Clean(yr > 0 ? $"{album.Album} ({yr})" : album.Album);
+            bool multiDisc = album.Files.Select(f => map.TryGetValue(f, out var rr) ? rr.Disc : 0).DefaultIfEmpty(0).Max() > 1;
             foreach (var f in album.Files)
             {
                 var ext = Path.GetExtension(f);
                 string name;
                 if (map.TryGetValue(f, out var r) && !string.IsNullOrWhiteSpace(r.Title))
                     name = NameTemplate.Build(template, string.IsNullOrWhiteSpace(r.Artist) ? album.Artist : r.Artist,
-                        album.Album, r.Title, r.TrackNo, r.Year > 0 ? r.Year.ToString() : "", Clean) + ext;
+                        album.Album, r.Title, r.TrackNo, r.Year > 0 ? r.Year.ToString() : "", Clean, r.Disc, multiDisc) + ext;
                 else
                     name = Path.GetFileName(f);
                 var dest = Path.Combine(lib, artistDir, albumDir, name);

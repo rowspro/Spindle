@@ -198,12 +198,29 @@ public sealed class LibraryIndex : IDisposable
         row.Year = Math.Max(0, (int?)t.Year ?? 0);
         row.TrackNo = t.TrackNumber ?? 0;
         row.Disc = t.DiscNumber ?? 0;
+        // Vangnet: bronnen die de disc niet taggen zetten 'm vaak in de album- of mapnaam ("CD2", "Disc 1").
+        if (row.Disc == 0) row.Disc = DiscFromContext(row.Album, path);
         row.Duration = (int?)t.Duration ?? 0;
         row.Bitrate = (int?)t.Bitrate ?? 0;
         row.HasCover = t.EmbeddedPictures.Count > 0;
         var artist = !string.IsNullOrWhiteSpace(row.AlbumArtist) ? row.AlbumArtist : row.Artist;
         row.MissingTags = string.IsNullOrWhiteSpace(row.Title) || string.IsNullOrWhiteSpace(artist);
         return row;
+    }
+
+    private static readonly System.Text.RegularExpressions.Regex DiscRx =
+        new(@"\b(?:cd|dis[ck])\s*\.?\s*(\d{1,2})\b", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+    // Read a disc number from the album name or the file's parent folder ("CD2", "Disc 1").
+    private static int DiscFromContext(string album, string path)
+    {
+        foreach (var s in new[] { album, System.IO.Path.GetFileName(System.IO.Path.GetDirectoryName(path) ?? "") })
+        {
+            if (string.IsNullOrWhiteSpace(s)) continue;
+            var m = DiscRx.Match(s);
+            if (m.Success && int.TryParse(m.Groups[1].Value, out var n) && n is > 0 and < 100) return n;
+        }
+        return 0;
     }
 
     // ---------- queries (fase 1+ bouwt hierop voort) ----------

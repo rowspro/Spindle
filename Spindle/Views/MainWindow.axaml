@@ -1273,8 +1273,8 @@
 
                                 <TextBlock Classes="label" Text="Filename template (Sort &amp; Organize)" Margin="0,8,0,0" />
                                 <TextBox Text="{Binding FilenameTemplate}" Watermark="{}{artist} - {album} - {track} {title}"
-                                         ToolTip.Tip="Tokens: {artist} {album} {title} {track} {year}. Empty tokens collapse cleanly. The folder structure stays Artist / Album (Year)." />
-                                <TextBlock Text="Tokens: {artist} {album} {title} {track} {year}" FontSize="11" Foreground="{DynamicResource TextMuted}" />
+                                         ToolTip.Tip="Tokens: {artist} {album} {title} {track} {disc} {year}. Empty tokens collapse cleanly. On a multi-disc album {track} auto-prefixes the disc (2-05). The folder stays Artist / Album (Year)." />
+                                <TextBlock Text="Tokens: {artist} {album} {title} {track} {disc} {year}" FontSize="11" Foreground="{DynamicResource TextMuted}" />
 
                                 <TextBlock Classes="label" Text="Standard genres" Margin="0,12,0,0" />
                                 <TextBlock Classes="caption" TextWrapping="Wrap"
