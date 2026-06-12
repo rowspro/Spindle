@@ -1133,6 +1133,9 @@ public class StagingViewModel : ViewModelBase
                 }
                 catch { }
             }
+            // Optioneel: tags meteen opschonen volgens de Personalisations-voorkeuren.
+            if (CleanupOptions.AutoCleanOnApprove)
+                foreach (var op in ops) { try { TagCleanup.ApplyToFile(op.To); } catch { } }
             foreach (var a in selected) foreach (var d in a.SourceDirs) dirs.Add(d);
             // opruimen: bronmappen die helemaal leeg zijn van audio → naar prullenbak (incl. hoezen/.nfo).
             foreach (var d in dirs) CleanConsumedSourceDir(d, ops);

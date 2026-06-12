@@ -15,10 +15,7 @@ public static class TextFormat
     private const string ArtistSplitPatternNoComma =
         @"\s*(?:;|/|&|\bfeat\.?\b|\bft\.?\b|\bfeaturing\b|\bwith\b|\bvs\.?\b|\bx\b)\s*";
 
-    // When false, a comma is no longer treated as an artist separator. Set from settings.
-    public static bool SplitArtistOnComma { get; set; } = true;
-
-    private static string Sep => SplitArtistOnComma ? ArtistSplitPattern : ArtistSplitPatternNoComma;
+    private static string Sep => CleanupOptions.SplitArtistOnComma ? ArtistSplitPattern : ArtistSplitPatternNoComma;
 
     // The primary (first) credited artist — used as Album-artiest so collabs land under one artist.
     public static string PrimaryArtist(string artist)

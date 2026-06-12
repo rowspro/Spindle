@@ -304,26 +304,83 @@ public class MainViewModel : ViewModelBase
     }
     public string ThemeIcon => DarkMode ? "\ue518" : "\ue51c";
 
-    // ---- Tag-cleanup settings (see docs/IPOD_BEHAVIOR.md) ----
+    // ---- Personalisations: Database (My Music) ---- (see docs/IPOD_BEHAVIOR.md)
     private bool _splitArtistOnComma = true;
     public bool SplitArtistOnComma
     {
         get => _splitArtistOnComma;
-        set { if (SetField(ref _splitArtistOnComma, value)) TextFormat.SplitArtistOnComma = value; }
+        set { if (SetField(ref _splitArtistOnComma, value)) CleanupOptions.SplitArtistOnComma = value; }
     }
 
     private bool _keepMultipleGenres;
     public bool KeepMultipleGenres
     {
         get => _keepMultipleGenres;
-        set { if (SetField(ref _keepMultipleGenres, value)) GenreFormat.KeepMultiple = value; }
+        set { if (SetField(ref _keepMultipleGenres, value)) CleanupOptions.KeepMultipleGenres = value; }
     }
 
+    private bool _groupCollabsUnderPrimaryArtist = true;
+    public bool GroupCollabsUnderPrimaryArtist
+    {
+        get => _groupCollabsUnderPrimaryArtist;
+        set { if (SetField(ref _groupCollabsUnderPrimaryArtist, value)) CleanupOptions.GroupCollabsUnderPrimaryArtist = value; }
+    }
+
+    private bool _appleStyleArtistNames = true;
+    public bool AppleStyleArtistNames
+    {
+        get => _appleStyleArtistNames;
+        set { if (SetField(ref _appleStyleArtistNames, value)) CleanupOptions.AppleStyleArtistNames = value; }
+    }
+
+    private bool _titleCaseTitlesAndAlbums = true;
+    public bool TitleCaseTitlesAndAlbums
+    {
+        get => _titleCaseTitlesAndAlbums;
+        set { if (SetField(ref _titleCaseTitlesAndAlbums, value)) CleanupOptions.TitleCaseTitlesAndAlbums = value; }
+    }
+
+    private bool _autoCleanOnApprove;
+    public bool AutoCleanOnApprove
+    {
+        get => _autoCleanOnApprove;
+        set { if (SetField(ref _autoCleanOnApprove, value)) CleanupOptions.AutoCleanOnApprove = value; }
+    }
+
+    // ---- Personalisations: iPod ----
     private bool _flattenArtistOnSync;
     public bool FlattenArtistOnSync
     {
         get => _flattenArtistOnSync;
         set { if (SetField(ref _flattenArtistOnSync, value)) Sync.FlattenArtistOnSync = value; }
+    }
+
+    private bool _convertToAlacDefault;
+    public bool ConvertToAlacDefault
+    {
+        get => _convertToAlacDefault;
+        set { if (SetField(ref _convertToAlacDefault, value)) Sync.ConvertToAlac = value; }
+    }
+
+    private bool _autoCreatePlaylists;
+    public bool AutoCreatePlaylists
+    {
+        get => _autoCreatePlaylists;
+        set { if (SetField(ref _autoCreatePlaylists, value)) Sync.AutoCreatePlaylists = value; }
+    }
+
+    private bool _removeDotUnderscoreAfterTransfer = true;
+    public bool RemoveDotUnderscoreAfterTransfer
+    {
+        get => _removeDotUnderscoreAfterTransfer;
+        set { if (SetField(ref _removeDotUnderscoreAfterTransfer, value)) Sync.RemoveDotUnderscoreAfterTransfer = value; }
+    }
+
+    private bool _setCompilationFlag;
+    public bool SetCompilationFlag
+    {
+        get => _setCompilationFlag;
+        set { if (SetField(ref _setCompilationFlag, value)) Sync.SetCompilationFlag = value; }
     }
 
 
@@ -417,7 +474,15 @@ public class MainViewModel : ViewModelBase
         FilenameTemplate = string.IsNullOrWhiteSpace(FilenameTemplate) ? NameTemplate.Default : FilenameTemplate.Trim(),
         SplitArtistOnComma = SplitArtistOnComma,
         KeepMultipleGenres = KeepMultipleGenres,
+        GroupCollabsUnderPrimaryArtist = GroupCollabsUnderPrimaryArtist,
+        AppleStyleArtistNames = AppleStyleArtistNames,
+        TitleCaseTitlesAndAlbums = TitleCaseTitlesAndAlbums,
+        AutoCleanOnApprove = AutoCleanOnApprove,
         FlattenArtistOnSync = FlattenArtistOnSync,
+        ConvertToAlacDefault = ConvertToAlacDefault,
+        AutoCreatePlaylists = AutoCreatePlaylists,
+        RemoveDotUnderscoreAfterTransfer = RemoveDotUnderscoreAfterTransfer,
+        SetCompilationFlag = SetCompilationFlag,
     };
 
     private void LoadFromConfig(SpindleConfig c)
@@ -442,7 +507,15 @@ public class MainViewModel : ViewModelBase
         DiscogsToken = c.DiscogsToken ?? string.Empty;
         SplitArtistOnComma = c.SplitArtistOnComma;
         KeepMultipleGenres = c.KeepMultipleGenres;
+        GroupCollabsUnderPrimaryArtist = c.GroupCollabsUnderPrimaryArtist;
+        AppleStyleArtistNames = c.AppleStyleArtistNames;
+        TitleCaseTitlesAndAlbums = c.TitleCaseTitlesAndAlbums;
+        AutoCleanOnApprove = c.AutoCleanOnApprove;
         FlattenArtistOnSync = c.FlattenArtistOnSync;
+        ConvertToAlacDefault = c.ConvertToAlacDefault;
+        AutoCreatePlaylists = c.AutoCreatePlaylists;
+        RemoveDotUnderscoreAfterTransfer = c.RemoveDotUnderscoreAfterTransfer;
+        SetCompilationFlag = c.SetCompilationFlag;
     }
 
     // Called when the window closes so tool folders (and other settings) survive a restart.

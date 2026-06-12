@@ -121,11 +121,8 @@ public sealed class TagGridViewModel : ViewModelBase
         SaveCommand = new RelayCommand(Save, () => HasDirty && !_busy);
         ActionAppleCommand = new RelayCommand(() => Mutate(r =>
         {
-            r.Title = TextFormat.Title(r.Title);
-            r.Album = TextFormat.Title(r.Album);
-            r.Artist = TextFormat.AppleArtist(r.Artist);
-            r.AlbumArtist = TextFormat.PrimaryArtist(string.IsNullOrWhiteSpace(r.Artist) ? r.AlbumArtist : r.Artist);
-            r.Genre = GenreFormat.Normalize(r.Genre);
+            var (ti, ar, aa, al, ge) = TagCleanup.Apply(r.Title, r.Artist, r.AlbumArtist, r.Album, r.Genre);
+            r.Title = ti; r.Artist = ar; r.AlbumArtist = aa; r.Album = al; r.Genre = ge;
         }));
         ActionGenreCommand = new RelayCommand(() => Mutate(r => r.Genre = GenreFormat.Normalize(r.Genre)));
         ActionTrimCommand = new RelayCommand(() => Mutate(r =>

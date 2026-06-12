@@ -384,13 +384,9 @@ public class MetadataEditorViewModel : ViewModelBase
 
     private void ApplyAppleFormatCurrent()
     {
-        var primary = PrimaryArtist(string.IsNullOrWhiteSpace(Artist) ? AlbumArtist : Artist);
-        Artist = AppleFormat(Artist);
-        AlbumArtist = primary;
-        Title = AppleTitle(Title);
-        Album = AppleTitle(Album);
-        Genre = AppleGenre(Genre);
-        Status = "Apple format applied (album artist = primary artist).";
+        var (ti, ar, aa, al, ge) = TagCleanup.Apply(Title, Artist, AlbumArtist, Album, Genre);
+        Title = ti; Artist = ar; AlbumArtist = aa; Album = al; Genre = ge;
+        Status = "Apple format applied (per your Personalisations settings).";
     }
 
     private void BatchAppleFormat()
@@ -414,8 +410,7 @@ public class MetadataEditorViewModel : ViewModelBase
                     var t = new Track(f);
                     var a0 = t.Artist ?? ""; var aa0 = t.AlbumArtist ?? ""; var ti0 = t.Title ?? "";
                     var al0 = t.Album ?? ""; var g0 = t.Genre ?? "";
-                    var na = AppleFormat(a0); var naa = PrimaryArtist(a0.Length > 0 ? a0 : aa0); var nti = AppleTitle(ti0);
-                    var nal = AppleTitle(al0); var ng = AppleGenre(g0);
+                    var (nti, na, naa, nal, ng) = TagCleanup.Apply(ti0, a0, aa0, al0, g0);
                     if (na != a0 || naa != aa0 || nti != ti0 || nal != al0 || ng != g0)
                     {
                         t.Artist = na; t.AlbumArtist = naa; t.Title = nti; t.Album = nal; t.Genre = ng;
@@ -688,12 +683,6 @@ public class MetadataEditorViewModel : ViewModelBase
         OnPropertyChanged(nameof(HasPrev));
         OnPropertyChanged(nameof(Position));
     }
-
-    // Shared formatting (see TextFormat / GenreFormat) so the editor and the organize pipeline agree.
-    private static string PrimaryArtist(string artist) => TextFormat.PrimaryArtist(artist);
-    private static string AppleFormat(string artist) => TextFormat.AppleArtist(artist);
-    private static string AppleTitle(string s) => TextFormat.Title(s);
-    private static string AppleGenre(string s) => GenreFormat.Normalize(s);
 
     private static Bitmap? BitmapFrom(byte[]? data)
     {

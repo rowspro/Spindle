@@ -17,10 +17,20 @@ public class SpindleConfig
     public bool GalaxyAlbumLevel { get; set; }
     public bool DarkMode { get; set; }
 
-    // Tag-cleanup behavior (see docs/IPOD_BEHAVIOR.md).
-    public bool SplitArtistOnComma { get; set; } = true;   // false keeps "Last, First" sortnames intact
-    public bool KeepMultipleGenres { get; set; }           // true keeps multi-genre tags instead of reducing to one
-    public bool FlattenArtistOnSync { get; set; }          // true writes the primary artist on the iPod copy (source untouched)
+    // Personalisations — Database (My Music): tag-cleanup behavior. See docs/IPOD_BEHAVIOR.md.
+    public bool SplitArtistOnComma { get; set; } = true;            // false keeps "Last, First" sortnames intact
+    public bool KeepMultipleGenres { get; set; }                    // true keeps multi-genre tags instead of reducing to one
+    public bool GroupCollabsUnderPrimaryArtist { get; set; } = true; // album artist = first credited artist
+    public bool AppleStyleArtistNames { get; set; } = true;         // reformat to "A, B & C"
+    public bool TitleCaseTitlesAndAlbums { get; set; } = true;      // smart title case
+    public bool AutoCleanOnApprove { get; set; }                    // clean tags automatically on Inbox approve
+
+    // Personalisations — iPod: how music is prepared for the device.
+    public bool FlattenArtistOnSync { get; set; }                   // primary artist on the iPod copy (source untouched)
+    public bool ConvertToAlacDefault { get; set; }                  // default the Transfer "Convert to ALAC" toggle on
+    public bool AutoCreatePlaylists { get; set; }                   // write a .m3u per album after transfer
+    public bool RemoveDotUnderscoreAfterTransfer { get; set; } = true; // delete macOS ._* junk after transfer
+    public bool SetCompilationFlag { get; set; }                    // tag various-artist albums as compilations
 
     // Filename template for inbox approve (tokens: {artist} {album} {title} {track} {year}).
     public string FilenameTemplate { get; set; } = "{artist} - {album} - {track} {title}";

@@ -105,4 +105,23 @@ public static class AudioConvert
         }
         catch { }
     }
+
+    // Mark an already-copied file as part of a compilation, so the stock iPod groups various-artist
+    // albums under "Compilations". The field name is format-specific (cpil/TCMP/COMPILATION).
+    public static void SetCompilation(string dst)
+    {
+        try
+        {
+            var t = new ATL.Track(dst);
+            var key = Path.GetExtension(dst).ToLowerInvariant() switch
+            {
+                ".m4a" or ".mp4" or ".m4b" or ".aac" => "cpil",
+                ".mp3" => "TCMP",
+                _ => "COMPILATION",   // FLAC/Vorbis/Opus and others
+            };
+            t.AdditionalFields[key] = "1";
+            t.Save();
+        }
+        catch { }
+    }
 }

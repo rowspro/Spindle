@@ -130,6 +130,22 @@ public class SyncViewModel : ViewModelBase
     // "A; B" collab strings. Set from settings; the library is never touched.
     public bool FlattenArtistOnSync { get; set; }
 
+    // After a transfer: write a .m3u per album folder on the iPod.
+    public bool AutoCreatePlaylists { get; set; }
+
+    // After a transfer: delete macOS AppleDouble junk (._*) the copy may have left on the FAT volume.
+    // Default true to match the settings default, so a fresh/old config still cleans up.
+    public bool RemoveDotUnderscoreAfterTransfer { get; set; } = true;
+
+    // Tag various-artist albums as compilations on the iPod copy (stock-firmware grouping).
+    public bool SetCompilationFlag { get; set; }
+
+    private static bool IsVariousArtists(string albumArtist)
+    {
+        var s = NormName(albumArtist ?? "");
+        return s is "various" or "variousartists" or "va" or "variousartist";
+    }
+
     private decimal _concurrency = 4;
     public decimal Concurrency { get => _concurrency; set => SetField(ref _concurrency, value); }
 
@@ -516,22 +532,40 @@ public class SyncViewModel : ViewModelBase
         Task.Run(() =>
         {
             int made = 0;
-            try
-            {
-                foreach (var albumDir in Directory.EnumerateDirectories(music, "*", SearchOption.AllDirectories))
-                {
-                    var tracks = Directory.EnumerateFiles(albumDir)
-                        .Where(f => AudioExt.Contains(Path.GetExtension(f).ToLowerInvariant()))
-                        .OrderBy(f => f, StringComparer.OrdinalIgnoreCase)
-                        .Select(Path.GetFileName).ToList();
-                    if (tracks.Count == 0) continue;
-                    File.WriteAllLines(Path.Combine(albumDir, Path.GetFileName(albumDir) + ".m3u"), tracks!);
-                    made++;
-                }
-            }
-            catch { }
+            try { made = WriteAlbumPlaylists(music); } catch { }
             Dispatcher.UIThread.Post(() => { IsBusy = false; Status = $"{made} album playlists (.m3u) created on the iPod."; });
         });
+    }
+
+    // Write a .m3u in each album folder listing its tracks. Shared by the button and auto-on-transfer.
+    private static int WriteAlbumPlaylists(string music)
+    {
+        int made = 0;
+        foreach (var albumDir in Directory.EnumerateDirectories(music, "*", SearchOption.AllDirectories))
+        {
+            var tracks = Directory.EnumerateFiles(albumDir)
+                .Where(f => AudioExt.Contains(Path.GetExtension(f).ToLowerInvariant()) && !Path.GetFileName(f).StartsWith("._"))
+                .OrderBy(f => f, StringComparer.OrdinalIgnoreCase)
+                .Select(Path.GetFileName).ToList();
+            if (tracks.Count == 0) continue;
+            File.WriteAllLines(Path.Combine(albumDir, Path.GetFileName(albumDir) + ".m3u"), tracks!);
+            made++;
+        }
+        return made;
+    }
+
+    // Delete macOS AppleDouble junk (._*) the copy may have left on the FAT volume — the vangnet
+    // against Rockbox indexing them as phantom duplicate tracks (see docs/IPOD_BEHAVIOR.md).
+    private static int RemoveDotUnderscoreFiles(string root)
+    {
+        int n = 0;
+        try
+        {
+            foreach (var f in Directory.EnumerateFiles(root, "._*", SearchOption.AllDirectories))
+                try { File.Delete(f); n++; } catch { }
+        }
+        catch { }
+        return n;
     }
 
     private void Scan()
@@ -764,6 +798,9 @@ public class SyncViewModel : ViewModelBase
         _wanted = new HashSet<string>(_all.Where(a => a.Selected).Select(WKey), StringComparer.OrdinalIgnoreCase);
         var convert = ConvertToAlac;
         var flatten = FlattenArtistOnSync;
+        var setCompilation = SetCompilationFlag;
+        var makePlaylists = AutoCreatePlaylists;
+        var cleanDotFiles = RemoveDotUnderscoreAfterTransfer;
         var dop = System.Math.Max(1, (int)Concurrency);
 
         Task.Run(() =>
@@ -794,7 +831,7 @@ public class SyncViewModel : ViewModelBase
             // Deterministisch plan: vaste volgorde, unieke doelnamen (geen stille botsingen na Clean())
             // en een vrije-ruimte-check vóór er één byte wordt gekopieerd.
             var takenDest = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            var planned = new List<(string File, string Dest, bool DoConvert)>();
+            var planned = new List<(string File, string Dest, bool DoConvert, bool Compilation)>();
             long need = 0;
             foreach (var job in jobs.OrderBy(j => j.File, StringComparer.OrdinalIgnoreCase))
             {
@@ -810,7 +847,7 @@ public class SyncViewModel : ViewModelBase
                     var ex2 = Path.GetExtension(dest);
                     while (!takenDest.Add(dest = Path.Combine(destDir, bare + $" ({n2++})" + ex2))) { }
                 }
-                planned.Add((job.File, dest, doConvert));
+                planned.Add((job.File, dest, doConvert, setCompilation && IsVariousArtists(job.Artist)));
                 if (!File.Exists(dest))
                     try { var len = new FileInfo(job.File).Length; need += doConvert ? (long)(len * 0.7) : len; } catch { }
             }
@@ -858,6 +895,7 @@ public class SyncViewModel : ViewModelBase
                                     {
                                         AudioConvert.CopyTags(staged, part, artistFromAlbumArtist: true, flattenArtist: flatten);
                                         File.Move(part, dest, true);
+                                        if (job.Compilation) AudioConvert.SetCompilation(dest);
                                         Interlocked.Increment(ref copied);
                                     }
                                     else
@@ -888,6 +926,7 @@ public class SyncViewModel : ViewModelBase
                                         File.Copy(job.File, part, true);   // extreem groot bestand: stream
                                     File.Move(part, dest, true);
                                     if (flatten) AudioConvert.FlattenArtist(dest);
+                                    if (job.Compilation) AudioConvert.SetCompilation(dest);
                                     Interlocked.Increment(ref copied);
                                 }
                                 finally { try { if (File.Exists(part)) File.Delete(part); } catch { } }
@@ -901,6 +940,17 @@ public class SyncViewModel : ViewModelBase
                 });
             }
             catch (OperationCanceledException) { }
+
+            // Post-transfer finishing touches on the iPod (skip if it was unplugged or cancelled).
+            if (!deviceGone && !token.IsCancellationRequested && Directory.Exists(ipod))
+            {
+                var music = Path.Combine(ipod, "Music");
+                if (Directory.Exists(music))
+                {
+                    if (makePlaylists) { try { WriteAlbumPlaylists(music); } catch { } }
+                    if (cleanDotFiles) { try { RemoveDotUnderscoreFiles(music); } catch { } }
+                }
+            }
 
             Dispatcher.UIThread.Post(() =>
             {
