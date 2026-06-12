@@ -12,7 +12,7 @@ public static class TagCleanup
     {
         var nTitle = CleanupOptions.TitleCaseTitlesAndAlbums ? TextFormat.Title(title) : title;
         var nAlbum = CleanupOptions.TitleCaseTitlesAndAlbums ? TextFormat.Title(album) : album;
-        var nArtist = CleanupOptions.AppleStyleArtistNames ? TextFormat.AppleArtist(artist) : artist;
+        var nArtist = TextFormat.FormatArtists(artist);
         var primarySrc = string.IsNullOrWhiteSpace(artist) ? albumArtist : artist;
         var nAlbumArtist = CleanupOptions.GroupCollabsUnderPrimaryArtist ? TextFormat.PrimaryArtist(primarySrc) : albumArtist;
         var nGenre = GenreFormat.Normalize(genre);

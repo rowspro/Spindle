@@ -21,7 +21,7 @@ public class SpindleConfig
     public bool SplitArtistOnComma { get; set; } = true;            // false keeps "Last, First" sortnames intact
     public bool KeepMultipleGenres { get; set; }                    // true keeps multi-genre tags instead of reducing to one
     public bool GroupCollabsUnderPrimaryArtist { get; set; } = true; // album artist = first credited artist
-    public bool AppleStyleArtistNames { get; set; } = true;         // reformat to "A, B & C"
+    public string ArtistJoinStyle { get; set; } = "apple";          // canonical multi-artist separator: asis/apple/semicolon/slash/comma
     public bool TitleCaseTitlesAndAlbums { get; set; } = true;      // smart title case
     public bool AutoCleanOnApprove { get; set; }                    // clean tags automatically on Inbox approve
 

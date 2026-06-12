@@ -327,11 +327,35 @@ public class MainViewModel : ViewModelBase
         set { if (SetField(ref _groupCollabsUnderPrimaryArtist, value)) CleanupOptions.GroupCollabsUnderPrimaryArtist = value; }
     }
 
-    private bool _appleStyleArtistNames = true;
-    public bool AppleStyleArtistNames
+    // Canonical multi-artist separator the cleanup standardizes to.
+    public IReadOnlyList<string> ArtistJoinOptions { get; } = new[]
     {
-        get => _appleStyleArtistNames;
-        set { if (SetField(ref _appleStyleArtistNames, value)) CleanupOptions.AppleStyleArtistNames = value; }
+        "Leave as-is", "Apple (A, B & C)", "Semicolon (A; B; C)", "Slash (A / B / C)", "Comma (A, B, C)"
+    };
+
+    private static string JoinKey(string? label) => label switch
+    {
+        "Leave as-is" => "asis",
+        "Semicolon (A; B; C)" => "semicolon",
+        "Slash (A / B / C)" => "slash",
+        "Comma (A, B, C)" => "comma",
+        _ => "apple",
+    };
+
+    private static string JoinLabel(string? key) => key switch
+    {
+        "asis" => "Leave as-is",
+        "semicolon" => "Semicolon (A; B; C)",
+        "slash" => "Slash (A / B / C)",
+        "comma" => "Comma (A, B, C)",
+        _ => "Apple (A, B & C)",
+    };
+
+    private string _selectedArtistJoin = "Apple (A, B & C)";
+    public string SelectedArtistJoin
+    {
+        get => _selectedArtistJoin;
+        set { if (SetField(ref _selectedArtistJoin, value)) CleanupOptions.ArtistJoin = JoinKey(value); }
     }
 
     private bool _titleCaseTitlesAndAlbums = true;
@@ -506,7 +530,7 @@ public class MainViewModel : ViewModelBase
         SplitArtistOnComma = SplitArtistOnComma,
         KeepMultipleGenres = KeepMultipleGenres,
         GroupCollabsUnderPrimaryArtist = GroupCollabsUnderPrimaryArtist,
-        AppleStyleArtistNames = AppleStyleArtistNames,
+        ArtistJoinStyle = JoinKey(SelectedArtistJoin),
         TitleCaseTitlesAndAlbums = TitleCaseTitlesAndAlbums,
         AutoCleanOnApprove = AutoCleanOnApprove,
         FlattenArtistOnSync = FlattenArtistOnSync,
@@ -540,7 +564,7 @@ public class MainViewModel : ViewModelBase
         SplitArtistOnComma = c.SplitArtistOnComma;
         KeepMultipleGenres = c.KeepMultipleGenres;
         GroupCollabsUnderPrimaryArtist = c.GroupCollabsUnderPrimaryArtist;
-        AppleStyleArtistNames = c.AppleStyleArtistNames;
+        SelectedArtistJoin = JoinLabel(c.ArtistJoinStyle);
         TitleCaseTitlesAndAlbums = c.TitleCaseTitlesAndAlbums;
         AutoCleanOnApprove = c.AutoCleanOnApprove;
         FlattenArtistOnSync = c.FlattenArtistOnSync;

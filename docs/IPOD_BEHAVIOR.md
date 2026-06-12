@@ -127,13 +127,13 @@ gebruikersactie (knoppen in Metadata-editor / TagGrid), nooit automatisch tijden
 | Helper | Bestand | Doet | Splitst op |
 |---|---|---|---|
 | `PrimaryArtist` | `TextFormat.cs` | eerste gecrediteerde artiest → Album-artiest | `; / , & feat ft featuring with vs x` |
-| `AppleArtist` | `TextFormat.cs` | herformatteert naar `"A, B & C"`, dedupe | idem |
+| `FormatArtists` | `TextFormat.cs` | standaardiseert naar de gekozen scheider (`CleanupOptions.ArtistJoin`: as-is / `"A, B & C"` / `;` / `/` / `,`), dedupe | idem |
 | `GenreFormat.Normalize` | `GenreFormat.cs` | reduceert multi-genre tot primaire + canoniek | `/ ; , \| \\` |
 
 ### Bekende beperking — `"Achternaam, Voornaam"`-sorteernamen
 De artiest-split bevat de **komma** als scheidingsteken. Daardoor:
 - `PrimaryArtist("The White Stripes; White, Jack")` → `"The White Stripes"` ✅ correct.
-- `AppleArtist("The White Stripes; White, Jack")` → `"The White Stripes, White & Jack"` ❌ —
+- `FormatArtists("The White Stripes; White, Jack")` (Apple) → `"The White Stripes, White & Jack"` ❌ —
   de sorteernaam `"White, Jack"` wordt versnipperd tot twee neppe artiesten.
 
 Een komma kan niet onderscheiden worden tussen een collab (`Beyoncé, Jay-Z`) en een

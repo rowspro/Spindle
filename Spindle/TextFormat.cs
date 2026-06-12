@@ -26,17 +26,31 @@ public static class TextFormat
         return artist.Trim();
     }
 
-    public static string AppleArtist(string artist)
+    // Split a credit into individual, deduped artists (recognizes ; / , & feat ft … as separators).
+    private static List<string> SplitDedup(string artist)
     {
-        if (string.IsNullOrWhiteSpace(artist)) return artist;
         var parts = Regex.Split(artist, Sep, RegexOptions.IgnoreCase)
             .Select(p => p.Trim()).Where(p => p.Length > 0).ToList();
         var dedup = new List<string>();
         foreach (var p in parts)
             if (!dedup.Any(x => string.Equals(x, p, StringComparison.OrdinalIgnoreCase))) dedup.Add(p);
-        if (dedup.Count == 0) return artist;
-        if (dedup.Count == 1) return dedup[0];
-        return string.Join(", ", dedup.Take(dedup.Count - 1)) + " & " + dedup[^1];
+        return dedup;
+    }
+
+    // Standardize a multi-artist credit to the configured canonical separator (CleanupOptions.ArtistJoin).
+    public static string FormatArtists(string artist)
+    {
+        if (string.IsNullOrWhiteSpace(artist) || CleanupOptions.ArtistJoin == "asis") return artist;
+        var parts = SplitDedup(artist);
+        if (parts.Count == 0) return artist;
+        if (parts.Count == 1) return parts[0];
+        return CleanupOptions.ArtistJoin switch
+        {
+            "semicolon" => string.Join("; ", parts),
+            "slash" => string.Join(" / ", parts),
+            "comma" => string.Join(", ", parts),
+            _ => string.Join(", ", parts.Take(parts.Count - 1)) + " & " + parts[^1],   // "apple"
+        };
     }
 
     private static readonly HashSet<string> SmallWords = new(StringComparer.OrdinalIgnoreCase)

@@ -1265,8 +1265,12 @@
                                           ToolTip.Tip="On: a comma separates artists (Beyoncé, Jay-Z → two). Off: keeps 'Last, First' sortnames (White, Jack) intact." />
                                 <CheckBox Content="Group collaborations under the primary artist" IsChecked="{Binding GroupCollabsUnderPrimaryArtist}"
                                           ToolTip.Tip="Set Album Artist to the first credited artist so feats/collabs file under one artist." />
-                                <CheckBox Content="Apple-style artist names (A, B &amp; C)" IsChecked="{Binding AppleStyleArtistNames}"
-                                          ToolTip.Tip="Reformat multi-artist tags to 'A, B &amp; C' with duplicates removed." />
+                                <Grid ColumnDefinitions="Auto,*" Margin="0,2,0,2">
+                                    <TextBlock Grid.Column="0" Classes="label" Text="Artist separator" VerticalAlignment="Center" Margin="0,0,10,0" />
+                                    <ComboBox Grid.Column="1" HorizontalAlignment="Left" MinWidth="200"
+                                              ItemsSource="{Binding ArtistJoinOptions}" SelectedItem="{Binding SelectedArtistJoin}"
+                                              ToolTip.Tip="How multi-artist tags are standardized when cleaning: leave as-is, Apple style (A, B &amp; C), or one canonical separator." />
+                                </Grid>
                                 <CheckBox Content="Title-case titles &amp; albums" IsChecked="{Binding TitleCaseTitlesAndAlbums}"
                                           ToolTip.Tip="Capitalize titles and album names consistently, keeping small words lowercase." />
                                 <CheckBox Content="Keep multiple genres" IsChecked="{Binding KeepMultipleGenres}"

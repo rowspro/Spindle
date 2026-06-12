@@ -16,8 +16,10 @@ public static class CleanupOptions
     // Cleanup sets Album Artist to the first credited artist, so collabs/feats group under one artist.
     public static bool GroupCollabsUnderPrimaryArtist { get; set; } = true;
 
-    // Reformat multi-artist tags to Apple style ("A, B & C", deduped).
-    public static bool AppleStyleArtistNames { get; set; } = true;
+    // How multi-artist tags are written back (the canonical separator). One of:
+    // "asis" (leave untouched), "apple" ("A, B & C"), "semicolon" ("A; B; C"),
+    // "slash" ("A / B / C"), "comma" ("A, B, C").
+    public static string ArtistJoin { get; set; } = "apple";
 
     // Apply smart title case to titles and album names.
     public static bool TitleCaseTitlesAndAlbums { get; set; } = true;
