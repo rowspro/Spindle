@@ -7,6 +7,7 @@ public class MainViewModel : ViewModelBase
 {
     public MainViewModel()
     {
+        AddGenreCommand = new RelayCommand(AddGenre, () => !string.IsNullOrWhiteSpace(NewGenre));
         PlayerViewModel.Current = Player;
         Meta = new MetadataEditorViewModel(Lib, Undo);
         Sync = new SyncViewModel(Lib);
@@ -347,6 +348,36 @@ public class MainViewModel : ViewModelBase
         set { if (SetField(ref _autoCleanOnApprove, value)) CleanupOptions.AutoCleanOnApprove = value; }
     }
 
+    // Standard genres list (editable): base set + the user's own. The Doctor retags to these.
+    public ObservableCollection<GenrePref> StandardGenres { get; } = new();
+    public RelayCommand AddGenreCommand { get; }
+
+    private string _newGenre = "";
+    public string NewGenre { get => _newGenre; set { if (SetField(ref _newGenre, value)) AddGenreCommand.RaiseCanExecuteChanged(); } }
+
+    private GenrePref MakeGenre(string name) => new(name, p => { StandardGenres.Remove(p); PushGenres(); });
+
+    private void AddGenre()
+    {
+        var g = (NewGenre ?? "").Trim();
+        if (g.Length == 0) return;
+        if (!StandardGenres.Any(x => string.Equals(x.Name, g, StringComparison.OrdinalIgnoreCase)))
+            StandardGenres.Add(MakeGenre(g));
+        NewGenre = "";
+        PushGenres();
+    }
+
+    private void PushGenres() => Genres.Standard = StandardGenres.Select(g => g.Name).ToList();
+
+    private void LoadGenres(List<string> saved)
+    {
+        StandardGenres.Clear();
+        var list = saved != null && saved.Count > 0 ? saved : Genres.Default.ToList();
+        foreach (var g in list.Where(x => !string.IsNullOrWhiteSpace(x)).Distinct(StringComparer.OrdinalIgnoreCase))
+            StandardGenres.Add(MakeGenre(g));
+        PushGenres();
+    }
+
     // ---- Personalisations: iPod ----
     private bool _flattenArtistOnSync;
     public bool FlattenArtistOnSync
@@ -483,6 +514,7 @@ public class MainViewModel : ViewModelBase
         AutoCreatePlaylists = AutoCreatePlaylists,
         RemoveDotUnderscoreAfterTransfer = RemoveDotUnderscoreAfterTransfer,
         SetCompilationFlag = SetCompilationFlag,
+        StandardGenres = StandardGenres.Select(g => g.Name).ToList(),
     };
 
     private void LoadFromConfig(SpindleConfig c)
@@ -516,6 +548,7 @@ public class MainViewModel : ViewModelBase
         AutoCreatePlaylists = c.AutoCreatePlaylists;
         RemoveDotUnderscoreAfterTransfer = c.RemoveDotUnderscoreAfterTransfer;
         SetCompilationFlag = c.SetCompilationFlag;
+        LoadGenres(c.StandardGenres);
     }
 
     // Called when the window closes so tool folders (and other settings) survive a restart.
@@ -527,3 +560,15 @@ public class MainViewModel : ViewModelBase
 }
 
 public sealed record HistoryRow(string Label, string Detail, bool IsTop);
+
+/// <summary>One entry in the editable standard-genres list (name + remove button).</summary>
+public sealed class GenrePref
+{
+    public string Name { get; }
+    public RelayCommand RemoveCommand { get; }
+    public GenrePref(string name, Action<GenrePref> onRemove)
+    {
+        Name = name;
+        RemoveCommand = new RelayCommand(() => onRemove(this));
+    }
+}

@@ -74,7 +74,7 @@ public sealed class FollowedArtistViewModel : ViewModelBase
         int owned = Albums.Count(a => a.Owned);
         Progress = Albums.Count == 0
             ? "No official albums found."
-            : $"{owned} of {Albums.Count} albums in your library";
+            : $"{owned} of {Albums.Count} albums in your library or downloads";
         OwnedPercent = Albums.Count == 0 ? 0 : 100.0 * owned / Albums.Count;
     }
 }
@@ -200,7 +200,7 @@ public sealed class WantlistViewModel : ViewModelBase
             fa.UpdateProgress();
             Status = albums.Count == 0
                 ? $"No official albums found for \"{fa.Name}\" — check the spelling (MusicBrainz)."
-                : $"{fa.Name}: {fa.Albums.Count(a => a.Owned)}/{fa.Albums.Count} albums in your library.";
+                : $"{fa.Name}: {fa.Albums.Count(a => a.Owned)}/{fa.Albums.Count} albums in your library or downloads.";
         });
     }
 
@@ -245,7 +245,7 @@ public sealed class WantlistViewModel : ViewModelBase
             foreach (var w in got) Wanted.Remove(w);
             SyncWantFlags();
             RaiseWanted();
-            Status = "Landed in your library ✓  " + string.Join(" · ", got.Select(w => $"{w.Artist} — {w.Album}"));
+            Status = "Landed ✓ (in your library or downloads)  " + string.Join(" · ", got.Select(w => $"{w.Artist} — {w.Album}"));
         }
     }
 

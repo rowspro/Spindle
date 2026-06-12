@@ -198,6 +198,41 @@ public sealed class DoctorViewModel : ViewModelBase
                 found.Add(f);
             }
 
+            // 3b) Genre-less or non-conforming genres → pick a standard genre and retag.
+            if (Genres.Standard.Count > 0)
+            {
+                DoctorFinding MakeGenreStd(string title, string sub, List<string> files)
+                {
+                    var gf = new DoctorFinding { Category = "GenreStd", Title = title, Sub = sub, Files = files, FixLabel = "Retag" };
+                    foreach (var g in Genres.Standard) gf.Spellings.Add(g);
+                    // No preselect — the user consciously picks a target (Fix guards against empty).
+                    gf.FixCommand = new RelayCommand(() =>
+                    {
+                        if (string.IsNullOrWhiteSpace(gf.SelectedSpelling)) { Summary = "Pick a genre first."; return; }
+                        gf.GenreCanonical = gf.SelectedSpelling!;
+                        FixGenre(gf);
+                    });
+                    return gf;
+                }
+
+                // Non-standard genres that don't already canonicalize to a standard (those are check 3).
+                foreach (var g in tracks.Where(t => t.Genre.Length > 0
+                                && !Genres.IsStandard(t.Genre)
+                                && !Genres.IsStandard(GenreFormat.Normalize(t.Genre)))
+                            .GroupBy(t => t.Genre, StringComparer.Ordinal))
+                    found.Add(MakeGenreStd($"{g.Key}  →  ?", $"{g.Count()} tracks · non-standard genre",
+                        g.Select(t => t.Path).ToList()));
+
+                // Genre-less tracks, grouped per album so you assign one genre at a time.
+                foreach (var alb in tracks.Where(t => string.IsNullOrWhiteSpace(t.Genre))
+                            .GroupBy(t => (A: Eff(t).ToLowerInvariant(), B: t.Album.ToLowerInvariant())))
+                {
+                    var first = alb.First();
+                    var title = (Eff(first).Length > 0 ? Eff(first) + " — " : "") + (first.Album.Length > 0 ? first.Album : "(no album)");
+                    found.Add(MakeGenreStd(title, $"{alb.Count()} tracks · no genre", alb.Select(t => t.Path).ToList()));
+                }
+            }
+
             // 4) Album oddities (informational → Metadata)
             foreach (var alb in tracks.GroupBy(t => (A: Eff(t).ToLowerInvariant(), B: t.Album.ToLowerInvariant())))
             {
@@ -232,7 +267,7 @@ public sealed class DoctorViewModel : ViewModelBase
                 found.Add(f);
             }
 
-            var order = new Dictionary<string, int> { ["Artists"] = 0, ["Locations"] = 1, ["Genres"] = 2, ["Albums"] = 3 };
+            var order = new Dictionary<string, int> { ["Artists"] = 0, ["Locations"] = 1, ["Genres"] = 2, ["GenreStd"] = 3, ["Albums"] = 4 };
             var sorted = found.OrderBy(f => order[f.Category]).ThenByDescending(f => f.Files.Count).ToList();
 
             Dispatcher.UIThread.Post(() =>
@@ -242,10 +277,11 @@ public sealed class DoctorViewModel : ViewModelBase
                 int na = sorted.Count(f => f.Category == "Artists");
                 int nl = sorted.Count(f => f.Category == "Locations");
                 int ng = sorted.Count(f => f.Category == "Genres");
+                int ngs = sorted.Count(f => f.Category == "GenreStd");
                 int nal = sorted.Count(f => f.Category == "Albums");
                 Summary = sorted.Count == 0
                     ? $"Checkup done — {tracks.Count:N0} tracks examined, nothing to fix. Your library is in great shape."
-                    : $"{sorted.Count} findings — {na} artist spellings · {nl} misplaced albums · {ng} genre variants · {nal} album oddities";
+                    : $"{sorted.Count} findings — {na} artist spellings · {nl} misplaced albums · {ng} genre variants · {ngs} non-standard/missing genres · {nal} album oddities";
                 IsBusy = false;
             });
         });

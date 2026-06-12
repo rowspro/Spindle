@@ -1278,6 +1278,29 @@
                                 <TextBox Text="{Binding FilenameTemplate}" Watermark="{}{artist} - {album} - {track} {title}"
                                          ToolTip.Tip="Tokens: {artist} {album} {title} {track} {year}. Empty tokens collapse cleanly. The folder structure stays Artist / Album (Year)." />
                                 <TextBlock Text="Tokens: {artist} {album} {title} {track} {year}" FontSize="11" Foreground="{DynamicResource TextMuted}" />
+
+                                <TextBlock Classes="label" Text="Standard genres" Margin="0,12,0,0" />
+                                <TextBlock Classes="caption" TextWrapping="Wrap"
+                                           Text="The base list (Apple Music genres) plus your own. The Library Doctor flags genre-less or non-conforming tracks and lets you retag them to one of these." />
+                                <ItemsControl x:CompileBindings="False" ItemsSource="{Binding StandardGenres}" Margin="0,6,0,0">
+                                    <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Background="{DynamicResource Surface}" BorderBrush="{DynamicResource CardBorder}" BorderThickness="1"
+                                                    CornerRadius="6" Padding="8,3" Margin="0,0,6,6">
+                                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                                    <TextBlock Text="{Binding Name}" VerticalAlignment="Center" />
+                                                    <Button Classes="ghost" Padding="2,0" Content="✕" Command="{Binding RemoveCommand}"
+                                                            ToolTip.Tip="Remove from the standard list" />
+                                                </StackPanel>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                                <Grid ColumnDefinitions="*,Auto" Margin="0,2,0,0">
+                                    <TextBox Grid.Column="0" Text="{Binding NewGenre}" Watermark="Add a genre…" />
+                                    <Button Grid.Column="1" Classes="ghost" Content="Add" Margin="6,0,0,0" Command="{Binding AddGenreCommand}" />
+                                </Grid>
                             </StackPanel>
                         </Border>
 

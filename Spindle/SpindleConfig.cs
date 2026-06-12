@@ -46,4 +46,7 @@ public class SpindleConfig
 
     // Duplicate sets the user marked as "not a duplicate" (normalized artist+title keys).
     public List<string> DuplicateIgnores { get; set; } = new();
+
+    // Standard genres (empty = the built-in default set). The Doctor retags to these.
+    public List<string> StandardGenres { get; set; } = new();
 }
