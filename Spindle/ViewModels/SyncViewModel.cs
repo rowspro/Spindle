@@ -172,6 +172,31 @@ public class SyncViewModel : ViewModelBase
     private readonly List<string> _cleanupFiles = new();
     private readonly List<string> _cleanupDirs = new();
 
+    private static readonly string[] IpodSystemDirs = { ".rockbox", "ipod_control", ".spotlight-v100", ".trashes", ".fseventsd", "system volume information" };
+
+    /// <summary>Audio op de iPod, mét overslaan van systeemmappen — die bevatten duizenden
+    /// niet-muziekbestandjes en maakten elke scan over USB onnodig traag.</summary>
+    private static IEnumerable<string> EnumerateIpodAudio(string ipod)
+    {
+        IEnumerable<string> tops;
+        try { tops = Directory.EnumerateDirectories(ipod).ToList(); } catch { yield break; }
+        foreach (var top in tops)
+        {
+            var name = Path.GetFileName(top).ToLowerInvariant();
+            if (IpodSystemDirs.Contains(name)) continue;
+            IEnumerable<string> files;
+            try { files = Directory.EnumerateFiles(top, "*.*", SearchOption.AllDirectories); } catch { continue; }
+            foreach (var f in files)
+                if (AudioExt.Contains(Path.GetExtension(f).ToLowerInvariant()) && !Path.GetFileName(f).StartsWith("._"))
+                    yield return f;
+        }
+        IEnumerable<string> rootFiles;
+        try { rootFiles = Directory.EnumerateFiles(ipod); } catch { yield break; }
+        foreach (var f in rootFiles)
+            if (AudioExt.Contains(Path.GetExtension(f).ToLowerInvariant()) && !Path.GetFileName(f).StartsWith("._"))
+                yield return f;
+    }
+
     private static string NormName(string s) =>
         System.Text.RegularExpressions.Regex.Replace(s.ToLowerInvariant(), "[^a-z0-9]", "");
 
@@ -216,8 +241,14 @@ public class SyncViewModel : ViewModelBase
 
             // B) Verouderde tracks binnen bekende albummappen: naam komt niet meer voor in het
             //    huidige album, terwijl er wél minstens één actueel bestand naast staat.
+            int checkedAlbums = 0;
             foreach (var a in albums)
             {
+                if (++checkedAlbums % 40 == 0)
+                {
+                    var snap = checkedAlbums;
+                    Dispatcher.UIThread.Post(() => Status = $"Looking for outdated copies… {snap}/{albums.Count} albums checked");
+                }
                 var dir = Path.Combine(music, Clean(a.Artist), Clean(a.Album));
                 if (!Directory.Exists(dir)) continue;
                 var expected = new HashSet<string>(a.Files.Select(f => Path.GetFileNameWithoutExtension(f)), StringComparer.OrdinalIgnoreCase);
@@ -271,16 +302,41 @@ public class SyncViewModel : ViewModelBase
         Task.Run(() =>
         {
             using var awake = KeepAwake.Start();
-            int nf = 0, nd = 0;
-            foreach (var f in files) { try { File.Delete(f); nf++; } catch { } }
-            foreach (var d in dirs) { try { Directory.Delete(d, true); nd++; } catch { } }
-            // lege albummappen die door de bestand-verwijderingen ontstaan zijn, opruimen
+            int nf = 0, nd = 0, total = files.Count + dirs.Count;
+            foreach (var f in files)
+            {
+                try { File.Delete(f); nf++; } catch { }
+                if (nf % 20 == 0)
+                {
+                    var snap = nf;
+                    Dispatcher.UIThread.Post(() => Status = $"Cleaning up… {snap}/{total} removed (FAT over USB is slow, hang in there)");
+                }
+            }
+            foreach (var d in dirs)
+            {
+                try { Directory.Delete(d, true); nd++; } catch { }
+                var snap2 = nf + nd;
+                Dispatcher.UIThread.Post(() => Status = $"Cleaning up… {snap2}/{total} removed");
+            }
+            // Alleen de mappen opruimen die we echt hebben aangeraakt (ouders van verwijderde
+            // bestanden) — geen volledige boom-scan over USB.
             try
             {
-                var music = Path.Combine(ipod, "Music");
-                foreach (var d in Directory.EnumerateDirectories(music, "*", SearchOption.AllDirectories)
-                             .OrderByDescending(x => x.Length).ToList())
-                    try { if (!Directory.EnumerateFileSystemEntries(d).Any()) Directory.Delete(d); } catch { }
+                var music = Path.GetFullPath(Path.Combine(ipod, "Music"));
+                foreach (var start in files.Select(Path.GetDirectoryName).Where(x => x != null)
+                             .Distinct(StringComparer.OrdinalIgnoreCase).ToList())
+                {
+                    var d = start!;
+                    while (!string.IsNullOrEmpty(d)
+                           && Path.GetFullPath(d).StartsWith(music, StringComparison.OrdinalIgnoreCase)
+                           && !string.Equals(Path.GetFullPath(d), music, StringComparison.OrdinalIgnoreCase)
+                           && Directory.Exists(d)
+                           && !Directory.EnumerateFileSystemEntries(d).Any())
+                    {
+                        try { Directory.Delete(d); } catch { break; }
+                        d = Path.GetDirectoryName(d) ?? "";
+                    }
+                }
             }
             catch { }
             Dispatcher.UIThread.Post(() =>
@@ -330,12 +386,7 @@ public class SyncViewModel : ViewModelBase
             using var awake = KeepAwake.Start();
             var keys = new HashSet<string>(StringComparer.Ordinal);
             List<string> files;
-            try
-            {
-                files = Directory.EnumerateFiles(ipod, "*.*", SearchOption.AllDirectories)
-                    .Where(f => AudioExt.Contains(Path.GetExtension(f).ToLowerInvariant()) && !Path.GetFileName(f).StartsWith("._"))
-                    .ToList();
-            }
+            try { files = EnumerateIpodAudio(ipod).ToList(); }
             catch { files = new List<string>(); }
             int done = 0;
             foreach (var f in files)
@@ -522,9 +573,8 @@ public class SyncViewModel : ViewModelBase
             {
                 try
                 {
-                    foreach (var f in Directory.EnumerateFiles(ipod, "*.*", SearchOption.AllDirectories))
-                        if (AudioExt.Contains(Path.GetExtension(f).ToLowerInvariant()) && !Path.GetFileName(f).StartsWith("._"))
-                            onIpod.Add(Path.GetFileNameWithoutExtension(f));
+                    foreach (var f in EnumerateIpodAudio(ipod))
+                        onIpod.Add(Path.GetFileNameWithoutExtension(f));
                 }
                 catch { }
             }
