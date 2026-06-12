@@ -61,12 +61,14 @@ public static class AudioConvert
 
     // artistFromAlbumArtist: ALAC-uitvoer is voor de iPod — daar wordt Artist gelijkgezet aan
     // AlbumArtist zodat de artiestenlijst niet vol "feat."-varianten komt. De bron blijft intact.
-    public static void CopyTags(string src, string dst, bool artistFromAlbumArtist = false)
+    // flattenArtist: schrijf alleen de primaire artiest weg (collab-strings als "A; B" -> "A").
+    public static void CopyTags(string src, string dst, bool artistFromAlbumArtist = false, bool flattenArtist = false)
     {
         try
         {
             var s = new ATL.Track(src);
             var artist = artistFromAlbumArtist && !string.IsNullOrWhiteSpace(s.AlbumArtist) ? s.AlbumArtist : s.Artist;
+            if (flattenArtist) artist = TextFormat.PrimaryArtist(artist ?? "");
             var d = new ATL.Track(dst)
             {
                 Title = s.Title,
@@ -82,6 +84,24 @@ public static class AudioConvert
             foreach (var pic in s.EmbeddedPictures)
                 d.EmbeddedPictures.Add(pic);
             d.Save();
+        }
+        catch { }
+    }
+
+    // Rewrite only the Artist tag of an already-copied file to its primary artist (for the raw
+    // copy path, where no tags are otherwise touched). The source is never read or changed.
+    public static void FlattenArtist(string dst)
+    {
+        try
+        {
+            var t = new ATL.Track(dst);
+            var artist = !string.IsNullOrWhiteSpace(t.Artist) ? t.Artist : t.AlbumArtist;
+            var primary = TextFormat.PrimaryArtist(artist ?? "");
+            if (!string.IsNullOrEmpty(primary) && !string.Equals(primary, t.Artist, StringComparison.Ordinal))
+            {
+                t.Artist = primary;
+                t.Save();
+            }
         }
         catch { }
     }

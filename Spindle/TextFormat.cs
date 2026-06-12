@@ -11,11 +11,20 @@ public static class TextFormat
     public const string ArtistSplitPattern =
         @"\s*(?:;|/|,|&|\bfeat\.?\b|\bft\.?\b|\bfeaturing\b|\bwith\b|\bvs\.?\b|\bx\b)\s*";
 
+    // Same, minus the comma — so "Last, First" sortnames survive when comma-splitting is off.
+    private const string ArtistSplitPatternNoComma =
+        @"\s*(?:;|/|&|\bfeat\.?\b|\bft\.?\b|\bfeaturing\b|\bwith\b|\bvs\.?\b|\bx\b)\s*";
+
+    // When false, a comma is no longer treated as an artist separator. Set from settings.
+    public static bool SplitArtistOnComma { get; set; } = true;
+
+    private static string Sep => SplitArtistOnComma ? ArtistSplitPattern : ArtistSplitPatternNoComma;
+
     // The primary (first) credited artist — used as Album-artiest so collabs land under one artist.
     public static string PrimaryArtist(string artist)
     {
         if (string.IsNullOrWhiteSpace(artist)) return artist;
-        foreach (var p in Regex.Split(artist, ArtistSplitPattern, RegexOptions.IgnoreCase))
+        foreach (var p in Regex.Split(artist, Sep, RegexOptions.IgnoreCase))
             if (p.Trim().Length > 0) return p.Trim();
         return artist.Trim();
     }
@@ -23,7 +32,7 @@ public static class TextFormat
     public static string AppleArtist(string artist)
     {
         if (string.IsNullOrWhiteSpace(artist)) return artist;
-        var parts = Regex.Split(artist, ArtistSplitPattern, RegexOptions.IgnoreCase)
+        var parts = Regex.Split(artist, Sep, RegexOptions.IgnoreCase)
             .Select(p => p.Trim()).Where(p => p.Length > 0).ToList();
         var dedup = new List<string>();
         foreach (var p in parts)

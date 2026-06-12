@@ -17,6 +17,11 @@ public class SpindleConfig
     public bool GalaxyAlbumLevel { get; set; }
     public bool DarkMode { get; set; }
 
+    // Tag-cleanup behavior (see docs/IPOD_BEHAVIOR.md).
+    public bool SplitArtistOnComma { get; set; } = true;   // false keeps "Last, First" sortnames intact
+    public bool KeepMultipleGenres { get; set; }           // true keeps multi-genre tags instead of reducing to one
+    public bool FlattenArtistOnSync { get; set; }          // true writes the primary artist on the iPod copy (source untouched)
+
     // Filename template for inbox approve (tokens: {artist} {album} {title} {track} {year}).
     public string FilenameTemplate { get; set; } = "{artist} - {album} - {track} {title}";
 

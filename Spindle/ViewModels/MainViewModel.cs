@@ -304,6 +304,28 @@ public class MainViewModel : ViewModelBase
     }
     public string ThemeIcon => DarkMode ? "\ue518" : "\ue51c";
 
+    // ---- Tag-cleanup settings (see docs/IPOD_BEHAVIOR.md) ----
+    private bool _splitArtistOnComma = true;
+    public bool SplitArtistOnComma
+    {
+        get => _splitArtistOnComma;
+        set { if (SetField(ref _splitArtistOnComma, value)) TextFormat.SplitArtistOnComma = value; }
+    }
+
+    private bool _keepMultipleGenres;
+    public bool KeepMultipleGenres
+    {
+        get => _keepMultipleGenres;
+        set { if (SetField(ref _keepMultipleGenres, value)) GenreFormat.KeepMultiple = value; }
+    }
+
+    private bool _flattenArtistOnSync;
+    public bool FlattenArtistOnSync
+    {
+        get => _flattenArtistOnSync;
+        set { if (SetField(ref _flattenArtistOnSync, value)) Sync.FlattenArtistOnSync = value; }
+    }
+
 
     private int _selectedTabIndex = 5; // open op de Inbox (review-gate)
     public int SelectedTabIndex
@@ -393,6 +415,9 @@ public class MainViewModel : ViewModelBase
         GalaxyAlbumLevel = GalaxyAlbumLevel,
         DarkMode = DarkMode,
         FilenameTemplate = string.IsNullOrWhiteSpace(FilenameTemplate) ? NameTemplate.Default : FilenameTemplate.Trim(),
+        SplitArtistOnComma = SplitArtistOnComma,
+        KeepMultipleGenres = KeepMultipleGenres,
+        FlattenArtistOnSync = FlattenArtistOnSync,
     };
 
     private void LoadFromConfig(SpindleConfig c)
@@ -415,6 +440,9 @@ public class MainViewModel : ViewModelBase
         DarkMode = c.DarkMode;
         FilenameTemplate = string.IsNullOrWhiteSpace(c.FilenameTemplate) ? NameTemplate.Default : c.FilenameTemplate;
         DiscogsToken = c.DiscogsToken ?? string.Empty;
+        SplitArtistOnComma = c.SplitArtistOnComma;
+        KeepMultipleGenres = c.KeepMultipleGenres;
+        FlattenArtistOnSync = c.FlattenArtistOnSync;
     }
 
     // Called when the window closes so tool folders (and other settings) survive a restart.

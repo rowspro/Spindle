@@ -126,6 +126,10 @@ public class SyncViewModel : ViewModelBase
     private bool _convertToAlac;
     public bool ConvertToAlac { get => _convertToAlac; set => SetField(ref _convertToAlac, value); }
 
+    // Write only the primary artist on the iPod copy so Rockbox's artist list doesn't fill up with
+    // "A; B" collab strings. Set from settings; the library is never touched.
+    public bool FlattenArtistOnSync { get; set; }
+
     private decimal _concurrency = 4;
     public decimal Concurrency { get => _concurrency; set => SetField(ref _concurrency, value); }
 
@@ -759,6 +763,7 @@ public class SyncViewModel : ViewModelBase
         var token = _cts.Token;
         _wanted = new HashSet<string>(_all.Where(a => a.Selected).Select(WKey), StringComparer.OrdinalIgnoreCase);
         var convert = ConvertToAlac;
+        var flatten = FlattenArtistOnSync;
         var dop = System.Math.Max(1, (int)Concurrency);
 
         Task.Run(() =>
@@ -851,7 +856,7 @@ public class SyncViewModel : ViewModelBase
                                     File.WriteAllBytes(staged, File.ReadAllBytes(job.File));
                                     if (AudioConvert.Encode(staged, part, true, token, out var encErr) && File.Exists(part))
                                     {
-                                        AudioConvert.CopyTags(staged, part, artistFromAlbumArtist: true);
+                                        AudioConvert.CopyTags(staged, part, artistFromAlbumArtist: true, flattenArtist: flatten);
                                         File.Move(part, dest, true);
                                         Interlocked.Increment(ref copied);
                                     }
@@ -882,6 +887,7 @@ public class SyncViewModel : ViewModelBase
                                     else
                                         File.Copy(job.File, part, true);   // extreem groot bestand: stream
                                     File.Move(part, dest, true);
+                                    if (flatten) AudioConvert.FlattenArtist(dest);
                                     Interlocked.Increment(ref copied);
                                 }
                                 finally { try { if (File.Exists(part)) File.Delete(part); } catch { } }

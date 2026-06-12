@@ -11,13 +11,28 @@ public static class GenreFormat
 {
     private static readonly char[] Separators = { '/', ';', ',', '|', '\\' };
 
+    // When true, keep every genre (each canonicalized, deduped) instead of reducing to the primary one.
+    public static bool KeepMultiple { get; set; }
+
     public static string Normalize(string? s)
     {
         if (string.IsNullOrWhiteSpace(s)) return s ?? string.Empty;
 
+        var tokens = s.Split(Separators, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+        if (KeepMultiple)
+        {
+            var canon = new List<string>();
+            foreach (var tk in tokens)
+            {
+                var c = Canonical(tk);
+                if (!canon.Any(x => string.Equals(x, c, StringComparison.OrdinalIgnoreCase))) canon.Add(c);
+            }
+            return canon.Count == 0 ? Canonical(s.Trim()) : string.Join(", ", canon);
+        }
+
         // Take the primary genre when several are jammed together with a separator.
-        var first = s.Split(Separators, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-            .FirstOrDefault();
+        var first = tokens.FirstOrDefault();
         var token = string.IsNullOrWhiteSpace(first) ? s.Trim() : first;
 
         return Canonical(token);

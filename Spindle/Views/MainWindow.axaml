@@ -1192,6 +1192,18 @@
                         </Border>
 
                         <Border Classes="card">
+                            <StackPanel Spacing="6">
+                                <TextBlock Classes="section" Text="TAG CLEANUP" />
+                                <CheckBox Content="Split artists on comma" IsChecked="{Binding SplitArtistOnComma}"
+                                          ToolTip.Tip="On: a comma separates artists (Beyoncé, Jay-Z → two). Off: keeps 'Last, First' sortnames (White, Jack) intact. Affects the Apple-format / primary-artist actions." />
+                                <CheckBox Content="Keep multiple genres" IsChecked="{Binding KeepMultipleGenres}"
+                                          ToolTip.Tip="On: keep every genre (each canonicalized, deduped). Off: reduce a multi-genre tag to its primary genre." />
+                                <CheckBox Content="Flatten artist on iPod sync" IsChecked="{Binding FlattenArtistOnSync}"
+                                          ToolTip.Tip="Write only the primary artist on the copy transferred to the iPod, so Rockbox's artist list doesn't fill up with 'A; B' collab strings. Your library is never changed." />
+                            </StackPanel>
+                        </Border>
+
+                        <Border Classes="card">
                             <StackPanel>
                                 <TextBlock Classes="title" Text="IPOD MODE" />
                                 <ToggleSwitch Margin="0,8,0,0" IsChecked="{Binding ItunesMode}" OnContent="iTunes / stock iPod" OffContent="Rockbox" />
