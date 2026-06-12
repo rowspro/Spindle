@@ -231,6 +231,8 @@ public class SyncViewModel : ViewModelBase
             {
                 Dispatcher.UIThread.Post(() => { IsBusy = false; CleanupBusy = false; Status = "Cleanup scan stopped."; });
             }
+            try
+            {
             var files = new List<string>();
             var dirs = new List<string>();
             var lines = new List<string>();
@@ -238,8 +240,12 @@ public class SyncViewModel : ViewModelBase
 
             // A) Verouderde artiestmappen: genormaliseerd gelijk aan een map die bij de
             //    huidige bieb-spelling hoort, en die canonieke map staat óók op de iPod.
-            var libArtists = albums.Select(a => Clean(a.Artist)).Distinct(StringComparer.OrdinalIgnoreCase)
-                .ToDictionary(NormName, v => v, StringComparer.Ordinal);
+            // LET OP: twee bieb-spellingen kunnen op dezelfde norm-sleutel uitkomen
+            // ("Basswell & Onlynumbers" vs "Basswell;Onlynumbers") — daarom TryAdd, geen ToDictionary.
+            var currentDirs = new HashSet<string>(albums.Select(a => Clean(a.Artist)), StringComparer.OrdinalIgnoreCase);
+            var libArtists = new Dictionary<string, string>(StringComparer.Ordinal);
+            foreach (var nm in currentDirs)
+                libArtists.TryAdd(NormName(nm), nm);
             try
             {
                 foreach (var d in Directory.EnumerateDirectories(music))
@@ -247,7 +253,7 @@ public class SyncViewModel : ViewModelBase
                     if (token.IsCancellationRequested) { Bail(); return; }
                     var name = Path.GetFileName(d);
                     if (name.StartsWith(".")) continue;
-                    if (libArtists.Values.Contains(name, StringComparer.OrdinalIgnoreCase)) continue;   // huidige spelling
+                    if (currentDirs.Contains(name)) continue;   // hoort bij een huidige bieb-spelling
                     if (!libArtists.TryGetValue(NormName(name), out var canonical)) continue;            // geen bieb-tegenhanger
                     if (!Directory.Exists(Path.Combine(music, canonical))) continue;                     // canonieke twin moet bestaan
                     Dispatcher.UIThread.Post(() => Status = $"Counting superseded folder '{name}'…");
@@ -315,6 +321,11 @@ public class SyncViewModel : ViewModelBase
                     Status = "Review the cleanup list below, then press Remove.";
                 }
             });
+            }
+            catch (Exception ex)
+            {
+                Dispatcher.UIThread.Post(() => { IsBusy = false; CleanupBusy = false; Status = "Cleanup scan failed: " + ex.Message; });
+            }
         });
     }
 
@@ -334,6 +345,8 @@ public class SyncViewModel : ViewModelBase
         Status = "Cleaning up the iPod…";
         Task.Run(() =>
         {
+            try
+            {
             using var awake = KeepAwake.Start();
             int nf = 0, nd = 0, total = files.Count + dirs.Count;
             foreach (var f in files)
@@ -392,6 +405,11 @@ public class SyncViewModel : ViewModelBase
                     : $"✓ Cleanup done — {nf} file(s) and {nd} folder(s) removed from the iPod.";
                 MarkIpodPresence();
             });
+            }
+            catch (Exception ex)
+            {
+                Dispatcher.UIThread.Post(() => { IsBusy = false; CleanupBusy = false; Status = "Cleanup failed: " + ex.Message; });
+            }
         });
     }
 
