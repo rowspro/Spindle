@@ -336,12 +336,20 @@ public class MainViewModel : ViewModelBase
 
     private GenrePref MakeGenre(string name) => new(name, p => { StandardGenres.Remove(p); PushGenres(); });
 
+    // Keep the list alphabetical so both Personalisations and the Doctor's genre dropdown stay tidy.
+    private void InsertGenreSorted(string name)
+    {
+        int i = 0;
+        while (i < StandardGenres.Count && string.Compare(StandardGenres[i].Name, name, StringComparison.OrdinalIgnoreCase) < 0) i++;
+        StandardGenres.Insert(i, MakeGenre(name));
+    }
+
     private void AddGenre()
     {
         var g = (NewGenre ?? "").Trim();
         if (g.Length == 0) return;
         if (!StandardGenres.Any(x => string.Equals(x.Name, g, StringComparison.OrdinalIgnoreCase)))
-            StandardGenres.Add(MakeGenre(g));
+            InsertGenreSorted(g);
         NewGenre = "";
         PushGenres();
     }
@@ -352,7 +360,9 @@ public class MainViewModel : ViewModelBase
     {
         StandardGenres.Clear();
         var list = saved != null && saved.Count > 0 ? saved : Genres.Default.ToList();
-        foreach (var g in list.Where(x => !string.IsNullOrWhiteSpace(x)).Distinct(StringComparer.OrdinalIgnoreCase))
+        foreach (var g in list.Where(x => !string.IsNullOrWhiteSpace(x))
+                              .Distinct(StringComparer.OrdinalIgnoreCase)
+                              .OrderBy(x => x, StringComparer.OrdinalIgnoreCase))
             StandardGenres.Add(MakeGenre(g));
         PushGenres();
     }
