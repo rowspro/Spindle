@@ -88,11 +88,12 @@ public sealed class WantlistViewModel : ViewModelBase
 {
     private readonly LibraryService _lib;
     private readonly Func<string> _root;
+    private readonly Func<string> _inbox;
     private bool _autoFetched;
 
-    public WantlistViewModel(LibraryService lib, Func<string> root)
+    public WantlistViewModel(LibraryService lib, Func<string> root, Func<string> inbox)
     {
-        _lib = lib; _root = root;
+        _lib = lib; _root = root; _inbox = inbox;
         FollowCommand = new RelayCommand(Follow, () => !string.IsNullOrWhiteSpace(FollowName));
         RefreshAllCommand = new RelayCommand(() => _ = RefreshAllAsync(), () => Artists.Count > 0 && !IsBusy);
     }
@@ -121,11 +122,20 @@ public sealed class WantlistViewModel : ViewModelBase
         System.Text.RegularExpressions.Regex.Replace((s ?? "").ToLowerInvariant(), "[^a-z0-9]", "");
     private static string Key(string artist, string album) => Norm(artist) + "|" + Norm(album);
 
+    // "Have it" = already in the library OR already sitting in the downloads/inbox folder, so a
+    // wanted album ticks off the moment it's downloaded — no need to approve it first.
     private HashSet<string> BuildOwned()
     {
         var set = new HashSet<string>();
-        try { foreach (var a in _lib.Index.Albums(_root())) set.Add(Key(a.AlbumArtist, a.Album)); } catch { }
+        AddAlbums(set, _root());
+        AddAlbums(set, _inbox());
         return set;
+    }
+
+    private void AddAlbums(HashSet<string> set, string root)
+    {
+        if (string.IsNullOrWhiteSpace(root)) return;
+        try { foreach (var a in _lib.Index.Albums(root)) set.Add(Key(a.AlbumArtist, a.Album)); } catch { }
     }
 
     // ---- persistentie (SpindleConfig.Watchlist + SpindleConfig.Wantlist) ----

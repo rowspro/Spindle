@@ -32,7 +32,7 @@ public class MainViewModel : ViewModelBase
             getAlbumLevel: () => GalaxyAlbumLevel,
             setAlbumLevel: v => GalaxyAlbumLevel = v);
 
-        Wantlist = new WantlistViewModel(Lib, () => MusicLibrary);
+        Wantlist = new WantlistViewModel(Lib, () => MusicLibrary, () => DownloadFilePath);
         _mirror.Status += msg => Avalonia.Threading.Dispatcher.UIThread.Post(() => MirrorStatus = msg);
 
         LoadFromConfig(Settings.Load());
