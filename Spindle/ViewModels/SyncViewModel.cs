@@ -313,7 +313,22 @@ public class SyncViewModel : ViewModelBase
             foreach (var a in snapshot)
             {
                 if (!ok) { map[a] = -1; continue; }
-                map[a] = a.Files.Count(f => onIpod.Contains(Path.GetFileNameWithoutExtension(f)));
+                // Eerst de canonieke transfer-bestemming checken (Music/Artiest/Album): die komt uit
+                // de TAGS en overleeft dus bestandshernoemingen in de bieb (doctor/template).
+                int n = 0;
+                try
+                {
+                    var dir = Path.Combine(ipod, "Music", Clean(a.Artist), Clean(a.Album));
+                    if (Directory.Exists(dir))
+                        n = Directory.EnumerateFiles(dir)
+                            .Count(f => AudioExt.Contains(Path.GetExtension(f).ToLowerInvariant())
+                                        && !Path.GetFileName(f).StartsWith("._"));
+                }
+                catch { }
+                // Fallback: naam-matching over de hele iPod (vindt ook handmatig gekopieerde mappen).
+                if (n == 0)
+                    n = a.Files.Count(f => onIpod.Contains(Path.GetFileNameWithoutExtension(f)));
+                map[a] = n;
             }
 
             Dispatcher.UIThread.Post(() =>
