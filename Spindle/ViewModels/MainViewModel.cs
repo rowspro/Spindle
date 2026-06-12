@@ -9,6 +9,7 @@ public class MainViewModel : ViewModelBase
     {
         PlayerViewModel.Current = Player;
         Meta = new MetadataEditorViewModel(Lib, Undo);
+        Sync = new SyncViewModel(Lib);
 
         Library = new LibraryViewModel(
             onEdit: (files, status) =>
@@ -333,7 +334,7 @@ public class MainViewModel : ViewModelBase
     // ---- Tools ----
     public MetadataEditorViewModel Meta { get; }
     public DuplicatesViewModel Duplicates { get; } = new();
-    public SyncViewModel Sync { get; } = new();
+    public SyncViewModel Sync { get; }
     public LibraryViewModel Library { get; }
     public StagingViewModel Staging { get; }
     public BrowserViewModel Browser { get; }

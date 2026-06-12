@@ -28,8 +28,11 @@ public class SyncViewModel : ViewModelBase
     private readonly List<AlbumEntryViewModel> _all = new();
     private CancellationTokenSource? _cts;
 
-    public SyncViewModel()
+    private readonly LibraryService? _libSvc;
+
+    public SyncViewModel(LibraryService? lib = null)
     {
+        _libSvc = lib;
         ScanCommand = new RelayCommand(Scan, () => !IsBusy && !string.IsNullOrWhiteSpace(LibraryFolder));
         AdoptCommand = new RelayCommand(AdoptIpod, () => !IsBusy);
         CleanupCommand = new RelayCommand(CleanupPreview, () => !IsBusy);
@@ -513,36 +516,56 @@ public class SyncViewModel : ViewModelBase
 
         Task.Run(() =>
         {
-            List<string> files;
-            try
-            {
-                files = Directory.EnumerateFiles(lib, "*.*", SearchOption.AllDirectories)
-                    .Where(f => AudioExt.Contains(Path.GetExtension(f).ToLowerInvariant()) && !Path.GetFileName(f).StartsWith("._"))
-                    .ToList();
-            }
-            catch (Exception e) { Dispatcher.UIThread.Post(() => { IsBusy = false; Status = "Couldn't read library: " + e.Message; }); return; }
-
-            // Tag reading is the slow part -> read across all cores, then group in-memory.
+            // Snelle route: alles staat al in de persistente index — geen ATL-pass over de hele bieb.
             int scanned = 0;
             var bag = new ConcurrentBag<(string Artist, string Album, string Genre, string Year, string File)>();
-            try
+            bool fromIndex = false;
+            if (_libSvc != null)
             {
-                Parallel.ForEach(files, new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount, CancellationToken = token }, f =>
+                try
                 {
-                    try
+                    _libSvc.Refresh(lib, token);   // incrementeel: alleen gewijzigde bestanden
+                    foreach (var r in _libSvc.Index.AllTracks(lib))
                     {
-                        var t = new Track(f);
-                        var artist = !string.IsNullOrWhiteSpace(t.AlbumArtist) ? t.AlbumArtist : (t.Artist ?? "");
-                        var album = t.Album ?? "";
-                        if (!(string.IsNullOrWhiteSpace(artist) && string.IsNullOrWhiteSpace(album)))
-                            bag.Add((artist, album, (t.Genre ?? "").Trim(), t.Year > 0 ? t.Year.ToString() : "", f));
+                        var artist = !string.IsNullOrWhiteSpace(r.AlbumArtist) ? r.AlbumArtist : r.Artist;
+                        if (string.IsNullOrWhiteSpace(artist) && string.IsNullOrWhiteSpace(r.Album)) continue;
+                        bag.Add((artist, r.Album, (r.Genre ?? "").Trim(), r.Year > 0 ? r.Year.ToString() : "", r.Path));
+                        scanned++;
                     }
-                    catch { }
-                    var s = Interlocked.Increment(ref scanned);
-                    if (s % 100 == 0) Dispatcher.UIThread.Post(() => Status = $"Scanning... {s} files");
-                });
+                    fromIndex = scanned > 0;
+                }
+                catch { }
             }
-            catch (OperationCanceledException) { }
+            if (!fromIndex)
+            {
+                // Vangnet (eerste start zonder index): de oude ATL-pass over alle bestanden.
+                List<string> files;
+                try
+                {
+                    files = Directory.EnumerateFiles(lib, "*.*", SearchOption.AllDirectories)
+                        .Where(f => AudioExt.Contains(Path.GetExtension(f).ToLowerInvariant()) && !Path.GetFileName(f).StartsWith("._"))
+                        .ToList();
+                }
+                catch (Exception e) { Dispatcher.UIThread.Post(() => { IsBusy = false; Status = "Couldn't read library: " + e.Message; }); return; }
+                try
+                {
+                    Parallel.ForEach(files, new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount, CancellationToken = token }, f =>
+                    {
+                        try
+                        {
+                            var t = new Track(f);
+                            var artist = !string.IsNullOrWhiteSpace(t.AlbumArtist) ? t.AlbumArtist : (t.Artist ?? "");
+                            var album = t.Album ?? "";
+                            if (!(string.IsNullOrWhiteSpace(artist) && string.IsNullOrWhiteSpace(album)))
+                                bag.Add((artist, album, (t.Genre ?? "").Trim(), t.Year > 0 ? t.Year.ToString() : "", f));
+                        }
+                        catch { }
+                        var s = Interlocked.Increment(ref scanned);
+                        if (s % 100 == 0) Dispatcher.UIThread.Post(() => Status = $"Scanning... {s} files");
+                    });
+                }
+                catch (OperationCanceledException) { }
+            }
 
             var groups = new Dictionary<string, (string Artist, string Album, Dictionary<string, int> Genres, string Year, List<string> Files)>();
             foreach (var rec in bag)
