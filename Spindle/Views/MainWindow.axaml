@@ -376,6 +376,14 @@
         <Style Selector="TabControl /template/ ItemsPresenter#PART_ItemsPresenter">
             <Setter Property="IsVisible" Value="False" />
         </Style>
+        <!-- ...except real sub-tabs (e.g. Settings → General / Personalisations), which keep their strip. -->
+        <Style Selector="TabControl.subtabs /template/ ItemsPresenter#PART_ItemsPresenter">
+            <Setter Property="IsVisible" Value="True" />
+        </Style>
+        <Style Selector="TabControl.subtabs TabItem">
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="Padding" Value="4,0,16,8" />
+        </Style>
 
         <!-- Inbox: toetsenbord-cursor -->
         <Style Selector="ListBox#InboxList ListBoxItem">
@@ -1163,7 +1171,7 @@
 
             <!-- ============ TAB: INSTELLINGEN ============ -->
             <TabItem Header="Settings">
-                <TabControl Background="Transparent" Margin="0,8,0,0">
+                <TabControl Classes="subtabs" Background="Transparent" Margin="0,8,0,0">
                   <TabItem Header="General">
                     <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="0,8,0,0">
                       <StackPanel Spacing="12" Margin="0,0,6,0">
