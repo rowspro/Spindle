@@ -169,6 +169,13 @@ public class SyncViewModel : ViewModelBase
     public bool ShowCleanup { get => _showCleanup; private set { if (SetField(ref _showCleanup, value)) ConfirmCleanupCommand.RaiseCanExecuteChanged(); } }
     private string _cleanupSummary = "";
     public string CleanupSummary { get => _cleanupSummary; private set => SetField(ref _cleanupSummary, value); }
+    private bool _cleanupBusy;
+    public bool CleanupBusy { get => _cleanupBusy; private set => SetField(ref _cleanupBusy, value); }
+    private bool _cleanupIndeterminate;
+    public bool CleanupIndeterminate { get => _cleanupIndeterminate; private set => SetField(ref _cleanupIndeterminate, value); }
+    private double _cleanupProgress;
+    public double CleanupProgress { get => _cleanupProgress; private set => SetField(ref _cleanupProgress, value); }
+
     private readonly List<string> _cleanupFiles = new();
     private readonly List<string> _cleanupDirs = new();
 
@@ -208,10 +215,19 @@ public class SyncViewModel : ViewModelBase
         var music = Path.Combine(ipod, "Music");
         if (!Directory.Exists(music)) { Status = "No Music folder on this iPod yet — nothing to clean."; return; }
         IsBusy = true;
-        Status = "Looking for outdated copies on the iPod…";
+        _cts = new CancellationTokenSource();
+        var token = _cts.Token;
+        CleanupBusy = true;
+        CleanupIndeterminate = true;
+        CleanupProgress = 0;
+        Status = "Looking for outdated copies on the iPod… (Stop cancels)";
         var albums = _all.ToList();
         Task.Run(() =>
         {
+            void Bail()
+            {
+                Dispatcher.UIThread.Post(() => { IsBusy = false; CleanupBusy = false; Status = "Cleanup scan stopped."; });
+            }
             var files = new List<string>();
             var dirs = new List<string>();
             var lines = new List<string>();
@@ -225,16 +241,18 @@ public class SyncViewModel : ViewModelBase
             {
                 foreach (var d in Directory.EnumerateDirectories(music))
                 {
+                    if (token.IsCancellationRequested) { Bail(); return; }
                     var name = Path.GetFileName(d);
                     if (name.StartsWith(".")) continue;
                     if (libArtists.Values.Contains(name, StringComparer.OrdinalIgnoreCase)) continue;   // huidige spelling
                     if (!libArtists.TryGetValue(NormName(name), out var canonical)) continue;            // geen bieb-tegenhanger
                     if (!Directory.Exists(Path.Combine(music, canonical))) continue;                     // canonieke twin moet bestaan
-                    long sz = 0; int n = 0;
-                    try { foreach (var f in Directory.EnumerateFiles(d, "*", SearchOption.AllDirectories)) { n++; try { sz += new FileInfo(f).Length; } catch { } } } catch { }
+                    Dispatcher.UIThread.Post(() => Status = $"Counting superseded folder '{name}'…");
+                    // alleen tellen — géén size-stat per bestand (dat waren duizenden USB-roundtrips)
+                    int n = 0;
+                    try { n = Directory.EnumerateFiles(d, "*", SearchOption.AllDirectories).Count(f => !Path.GetFileName(f).StartsWith("._")); } catch { }
                     dirs.Add(d);
-                    bytes += sz;
-                    lines.Add($"Folder '{name}' — superseded by '{canonical}' ({n} files, {FmtBytes(sz)})");
+                    lines.Add($"Folder '{name}' — superseded by '{canonical}' ({n} files)");
                 }
             }
             catch { }
@@ -242,12 +260,18 @@ public class SyncViewModel : ViewModelBase
             // B) Verouderde tracks binnen bekende albummappen: naam komt niet meer voor in het
             //    huidige album, terwijl er wél minstens één actueel bestand naast staat.
             int checkedAlbums = 0;
+            Dispatcher.UIThread.Post(() => CleanupIndeterminate = false);
             foreach (var a in albums)
             {
-                if (++checkedAlbums % 40 == 0)
+                if (token.IsCancellationRequested) { Bail(); return; }
+                if (++checkedAlbums % 10 == 0)
                 {
                     var snap = checkedAlbums;
-                    Dispatcher.UIThread.Post(() => Status = $"Looking for outdated copies… {snap}/{albums.Count} albums checked");
+                    Dispatcher.UIThread.Post(() =>
+                    {
+                        Status = $"Looking for outdated copies… {snap}/{albums.Count} albums checked";
+                        CleanupProgress = 100.0 * snap / albums.Count;
+                    });
                 }
                 var dir = Path.Combine(music, Clean(a.Artist), Clean(a.Album));
                 if (!Directory.Exists(dir)) continue;
@@ -271,6 +295,7 @@ public class SyncViewModel : ViewModelBase
             Dispatcher.UIThread.Post(() =>
             {
                 IsBusy = false;
+                CleanupBusy = false;
                 _cleanupFiles.Clear(); _cleanupFiles.AddRange(files);
                 _cleanupDirs.Clear(); _cleanupDirs.AddRange(dirs);
                 CleanupItems.Clear();
@@ -282,7 +307,7 @@ public class SyncViewModel : ViewModelBase
                 }
                 else
                 {
-                    CleanupSummary = $"{dirs.Count} superseded folder(s) and {files.Count} outdated file(s) — {FmtBytes(bytes)} to free. Your library is untouched; removed albums can always be re-synced.";
+                    CleanupSummary = $"{dirs.Count} superseded folder(s) and {files.Count} outdated file(s) — at least {FmtBytes(bytes)} to free. Your library is untouched; removed albums can always be re-synced.";
                     ShowCleanup = true;
                     Status = "Review the cleanup list below, then press Remove.";
                 }
@@ -298,6 +323,11 @@ public class SyncViewModel : ViewModelBase
         var ipod = IpodFolder;
         IsBusy = true;
         ShowCleanup = false;
+        _cts = new CancellationTokenSource();
+        var token = _cts.Token;
+        CleanupBusy = true;
+        CleanupIndeterminate = false;
+        CleanupProgress = 0;
         Status = "Cleaning up the iPod…";
         Task.Run(() =>
         {
@@ -305,18 +335,28 @@ public class SyncViewModel : ViewModelBase
             int nf = 0, nd = 0, total = files.Count + dirs.Count;
             foreach (var f in files)
             {
+                if (token.IsCancellationRequested) break;
                 try { File.Delete(f); nf++; } catch { }
-                if (nf % 20 == 0)
+                if (nf % 10 == 0)
                 {
                     var snap = nf;
-                    Dispatcher.UIThread.Post(() => Status = $"Cleaning up… {snap}/{total} removed (FAT over USB is slow, hang in there)");
+                    Dispatcher.UIThread.Post(() =>
+                    {
+                        Status = $"Cleaning up… {snap}/{total} removed (FAT over USB is slow, hang in there)";
+                        CleanupProgress = 100.0 * snap / Math.Max(1, total);
+                    });
                 }
             }
             foreach (var d in dirs)
             {
+                if (token.IsCancellationRequested) break;
                 try { Directory.Delete(d, true); nd++; } catch { }
                 var snap2 = nf + nd;
-                Dispatcher.UIThread.Post(() => Status = $"Cleaning up… {snap2}/{total} removed");
+                Dispatcher.UIThread.Post(() =>
+                {
+                    Status = $"Cleaning up… {snap2}/{total} removed";
+                    CleanupProgress = 100.0 * snap2 / Math.Max(1, total);
+                });
             }
             // Alleen de mappen opruimen die we echt hebben aangeraakt (ouders van verwijderde
             // bestanden) — geen volledige boom-scan over USB.
@@ -342,8 +382,11 @@ public class SyncViewModel : ViewModelBase
             Dispatcher.UIThread.Post(() =>
             {
                 IsBusy = false;
+                CleanupBusy = false;
                 _cleanupFiles.Clear(); _cleanupDirs.Clear(); CleanupItems.Clear();
-                Status = $"✓ Cleanup done — {nf} file(s) and {nd} folder(s) removed from the iPod.";
+                Status = token.IsCancellationRequested
+                    ? $"Cleanup stopped — {nf} file(s) and {nd} folder(s) removed so far."
+                    : $"✓ Cleanup done — {nf} file(s) and {nd} folder(s) removed from the iPod.";
                 MarkIpodPresence();
             });
         });
