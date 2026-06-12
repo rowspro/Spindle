@@ -1089,10 +1089,12 @@
                             </TreeView.DataTemplates>
                         </TreeView>
                     </Border>
-                    <Grid Grid.Row="4" ColumnDefinitions="Auto,*,Auto" Margin="0,10,0,0">
+                    <Grid Grid.Row="4" ColumnDefinitions="Auto,*,Auto,Auto" Margin="0,10,0,0">
                         <TextBlock Grid.Column="0" Classes="label" Text="iPod folder" />
                         <TextBox Grid.Column="1" Text="{Binding IpodFolder}" Watermark="The connected iPod (Rockbox)" />
                         <Button Grid.Column="2" Classes="ghost" Content="Browse…" Margin="8,0,0,0" Click="OnBrowseSyncIpod" />
+                        <Button Grid.Column="3" Classes="ghost" Content="Adopt this iPod" Margin="8,0,0,0" Command="{Binding AdoptCommand}"
+                                ToolTip.Tip="Already have music on this iPod from another tool? One-time scan that reads every file's tags (can take a while over USB) so Spindle recognizes existing albums by artist + title — no matter how the files are named or organized. Nothing gets re-transferred." />
                     </Grid>
                     <StackPanel Grid.Row="5" Margin="0,12,0,0">
                     <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,8" IsVisible="{Binding IsTransferring}">

@@ -31,6 +31,7 @@ public class SyncViewModel : ViewModelBase
     public SyncViewModel()
     {
         ScanCommand = new RelayCommand(Scan, () => !IsBusy && !string.IsNullOrWhiteSpace(LibraryFolder));
+        AdoptCommand = new RelayCommand(AdoptIpod, () => !IsBusy);
         StopCommand = new RelayCommand(() => _cts?.Cancel(), () => IsBusy);
         SelectAllCommand = new RelayCommand(() => { foreach (var n in ArtistTree) foreach (var a in n.Albums) a.Selected = true; });
         SelectNoneCommand = new RelayCommand(() => { foreach (var a in _all) a.Selected = false; });
@@ -154,6 +155,87 @@ public class SyncViewModel : ViewModelBase
     public string Status { get => _status; private set => SetField(ref _status, value); }
 
     public RelayCommand ScanCommand { get; }
+    public RelayCommand AdoptCommand { get; }
+
+    // ==== Adopt this iPod: eenmalige tag-index van alles wat er al op staat ====
+    // Cache op de iPod zelf (.spindle-adopt.json) zodat herkenning op artiest+titel-tags werkt,
+    // volledig onafhankelijk van bestandsnamen of mappenstructuur van andere tools.
+    private static string TagKey(string artist, string title) =>
+        System.Text.RegularExpressions.Regex.Replace((artist + "|" + title).ToLowerInvariant(), "[^a-z0-9|]", "");
+
+    private static HashSet<string> LoadAdoptCache(string ipod)
+    {
+        var set = new HashSet<string>(StringComparer.Ordinal);
+        try
+        {
+            var path = Path.Combine(ipod, ".spindle-adopt.json");
+            if (!File.Exists(path)) return set;
+            using var doc = System.Text.Json.JsonDocument.Parse(File.ReadAllText(path));
+            foreach (var e in doc.RootElement.GetProperty("keys").EnumerateArray())
+            {
+                var k = e.GetString();
+                if (!string.IsNullOrEmpty(k)) set.Add(k);
+            }
+        }
+        catch { }
+        return set;
+    }
+
+    private void AdoptIpod()
+    {
+        var ipod = IpodFolder;
+        if (string.IsNullOrWhiteSpace(ipod) || !Directory.Exists(ipod)) { Status = "Connect the iPod (and set its folder) first."; return; }
+        IsBusy = true;
+        _cts = new CancellationTokenSource();
+        var token = _cts.Token;
+        Status = "Adopting iPod — reading the tags of everything on it (one-time)…";
+        Task.Run(() =>
+        {
+            using var awake = KeepAwake.Start();
+            var keys = new HashSet<string>(StringComparer.Ordinal);
+            List<string> files;
+            try
+            {
+                files = Directory.EnumerateFiles(ipod, "*.*", SearchOption.AllDirectories)
+                    .Where(f => AudioExt.Contains(Path.GetExtension(f).ToLowerInvariant()) && !Path.GetFileName(f).StartsWith("._"))
+                    .ToList();
+            }
+            catch { files = new List<string>(); }
+            int done = 0;
+            foreach (var f in files)
+            {
+                if (token.IsCancellationRequested) break;
+                try
+                {
+                    var t = new ATL.Track(f);
+                    var k = TagKey(t.Artist ?? "", t.Title ?? "");
+                    if (k.Length > 1) keys.Add(k);
+                }
+                catch { }
+                int n = ++done;
+                if (n % 25 == 0) Dispatcher.UIThread.Post(() => Status = $"Adopting iPod… {n}/{files.Count} tags read");
+            }
+            bool saved = false;
+            if (!token.IsCancellationRequested)
+            {
+                try
+                {
+                    var json = System.Text.Json.JsonSerializer.Serialize(new { version = 1, keys = keys.ToList() });
+                    File.WriteAllText(Path.Combine(ipod, ".spindle-adopt.json"), json);
+                    saved = true;
+                }
+                catch { }
+            }
+            Dispatcher.UIThread.Post(() =>
+            {
+                IsBusy = false;
+                Status = !saved
+                    ? $"Adopt stopped — nothing saved ({keys.Count} tracks indexed so far)."
+                    : $"✓ iPod adopted — {keys.Count} tracks are now recognized by their tags, regardless of file names.";
+                if (saved) MarkIpodPresence();
+            });
+        });
+    }
     public RelayCommand StopCommand { get; }
     public RelayCommand SelectAllCommand { get; }
     public RelayCommand SelectNoneCommand { get; }
@@ -296,6 +378,7 @@ public class SyncViewModel : ViewModelBase
 
         Task.Run(() =>
         {
+            var adopt = ok ? LoadAdoptCache(ipod) : new HashSet<string>(StringComparer.Ordinal);
             // Index op bestandsnaam-zonder-extensie van ALLES wat op de iPod staat (recursief),
             // zodat ook handmatig/anders gestructureerd overgezette mappen herkend worden — ongeacht waar ze staan.
             var onIpod = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -328,6 +411,21 @@ public class SyncViewModel : ViewModelBase
                 // Fallback: naam-matching over de hele iPod (vindt ook handmatig gekopieerde mappen).
                 if (n == 0)
                     n = a.Files.Count(f => onIpod.Contains(Path.GetFileNameWithoutExtension(f)));
+                // Laatste laag: tag-matching tegen de adopt-cache (naam- en structuur-onafhankelijk).
+                if (n == 0 && adopt.Count > 0)
+                {
+                    int hits = 0;
+                    foreach (var f in a.Files)
+                    {
+                        try
+                        {
+                            var t = new ATL.Track(f);
+                            if (adopt.Contains(TagKey(t.Artist ?? "", t.Title ?? ""))) hits++;
+                        }
+                        catch { }
+                    }
+                    n = hits;
+                }
                 map[a] = n;
             }
 
