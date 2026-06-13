@@ -291,7 +291,11 @@ public class MainViewModel : ViewModelBase
     }
 
     private string _filenameTemplate = NameTemplate.Default;
-    public string FilenameTemplate { get => _filenameTemplate; set => SetField(ref _filenameTemplate, value); }
+    public string FilenameTemplate
+    {
+        get => _filenameTemplate;
+        set { if (SetField(ref _filenameTemplate, value)) CleanupOptions.FilenameTemplate = string.IsNullOrWhiteSpace(value) ? NameTemplate.Default : value; }
+    }
 
     private string _discogsToken = string.Empty;
     public string DiscogsToken { get => _discogsToken; set { if (SetField(ref _discogsToken, value)) Meta.DiscogsToken = value ?? string.Empty; } }
@@ -325,6 +329,13 @@ public class MainViewModel : ViewModelBase
     {
         get => _keepMultipleGenres;
         set { if (SetField(ref _keepMultipleGenres, value)) CleanupOptions.KeepMultipleGenres = value; }
+    }
+
+    private bool _renameToMatchTags = true;
+    public bool RenameToMatchTags
+    {
+        get => _renameToMatchTags;
+        set { if (SetField(ref _renameToMatchTags, value)) CleanupOptions.RenameToMatchTags = value; }
     }
 
     // Standard genres list (editable): base set + the user's own. The Doctor retags to these.
@@ -494,6 +505,7 @@ public class MainViewModel : ViewModelBase
         FilenameTemplate = string.IsNullOrWhiteSpace(FilenameTemplate) ? NameTemplate.Default : FilenameTemplate.Trim(),
         SplitArtistOnComma = SplitArtistOnComma,
         KeepMultipleGenres = KeepMultipleGenres,
+        RenameToMatchTags = RenameToMatchTags,
         FlattenArtistOnSync = FlattenArtistOnSync,
         ConvertToAlacDefault = ConvertToAlacDefault,
         AutoCreatePlaylists = AutoCreatePlaylists,
@@ -524,6 +536,7 @@ public class MainViewModel : ViewModelBase
         DiscogsToken = c.DiscogsToken ?? string.Empty;
         SplitArtistOnComma = c.SplitArtistOnComma;
         KeepMultipleGenres = c.KeepMultipleGenres;
+        RenameToMatchTags = c.RenameToMatchTags;
         FlattenArtistOnSync = c.FlattenArtistOnSync;
         ConvertToAlacDefault = c.ConvertToAlacDefault;
         AutoCreatePlaylists = c.AutoCreatePlaylists;

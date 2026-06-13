@@ -13,4 +13,9 @@ public static class CleanupOptions
     // Keep every genre (each canonicalized, deduped) instead of reducing to the primary one.
     public static bool KeepMultipleGenres { get; set; }
 
+    // After saving tag edits in the editor, rename the file to match the filename template.
+    public static bool RenameToMatchTags { get; set; } = true;
+
+    // The active filename template (mirrors the Personalisations setting) used for that rename.
+    public static string FilenameTemplate { get; set; } = NameTemplate.Default;
 }

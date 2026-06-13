@@ -1118,6 +1118,8 @@
                                           ToolTip.Tip="On: a comma separates artists (Beyoncé, Jay-Z → two). Off: keeps 'Last, First' sortnames (White, Jack) intact." />
                                 <CheckBox Content="Keep multiple genres" IsChecked="{Binding KeepMultipleGenres}"
                                           ToolTip.Tip="On: keep every genre (each canonicalized, deduped). Off: reduce a multi-genre tag to its primary genre." />
+                                <CheckBox Content="Rename files to match tags after editing" IsChecked="{Binding RenameToMatchTags}"
+                                          ToolTip.Tip="When you Save tag edits in the metadata table, the file is renamed to the filename template below (Cmd+Z undoes both)." />
 
                                 <TextBlock Classes="label" Text="Filename template (Sort &amp; Organize)" Margin="0,8,0,0" />
                                 <TextBox Text="{Binding FilenameTemplate}" Watermark="{}{artist} - {album} - {track} {title}"

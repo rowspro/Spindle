@@ -258,7 +258,37 @@ public sealed class TagGridViewModel : ViewModelBase
                 }
                 catch { }
             }
-            _undo?.RecordTags($"Tags edited: {n} tracks", before);
+            // Keep filenames in sync with the tags (Personalisations → Database). One undo step.
+            var renames = new List<UndoJournal.MoveOp>();
+            if (CleanupOptions.RenameToMatchTags)
+            {
+                bool multiDisc = Rows.Select(x => int.TryParse(x.Disc, out var dd) ? dd : 0).DefaultIfEmpty(0).Max() > 1;
+                var taken = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                foreach (var r in dirty)
+                {
+                    try
+                    {
+                        var dir = System.IO.Path.GetDirectoryName(r.Path) ?? "";
+                        var ext = System.IO.Path.GetExtension(r.Path);
+                        var artist = string.IsNullOrWhiteSpace(r.Artist) ? r.AlbumArtist : r.Artist;
+                        int.TryParse(r.Track, out var tn); int.TryParse(r.Disc, out var dn);
+                        var baseName = NameTemplate.Build(CleanupOptions.FilenameTemplate, artist, r.Album, r.Title, tn, r.Year, TagPattern.SanitizeName, dn, multiDisc);
+                        var dest = System.IO.Path.Combine(dir, baseName + ext);
+                        if (string.Equals(dest, r.Path, StringComparison.Ordinal)) { taken.Add(dest); continue; }
+                        int k = 2;
+                        while ((System.IO.File.Exists(dest) && !string.Equals(dest, r.Path, StringComparison.OrdinalIgnoreCase)) || !taken.Add(dest))
+                            dest = System.IO.Path.Combine(dir, baseName + $" ({k++})" + ext);
+                        System.IO.File.Move(r.Path, dest);
+                        renames.Add(new UndoJournal.MoveOp(r.Path, dest));
+                        var d2 = dest;
+                        Dispatcher.UIThread.Post(() => { r.Path = d2; r.FileName = System.IO.Path.GetFileName(d2); });
+                    }
+                    catch { }
+                }
+            }
+
+            if (renames.Count > 0) _undo?.RecordBatch($"Tags edited + renamed: {n} tracks", renames, before);
+            else _undo?.RecordTags($"Tags edited: {n} tracks", before);
             _lib?.RefreshConfigured();
             Dispatcher.UIThread.Post(() =>
             {
@@ -266,7 +296,9 @@ public sealed class TagGridViewModel : ViewModelBase
                 _busy = false;
                 OnPropertyChanged(nameof(DirtyText));
                 SaveCommand.RaiseCanExecuteChanged();
-                Status = $"{n} files saved (Cmd+Z = undo).";
+                Status = renames.Count > 0
+                    ? $"{n} files saved · {renames.Count} renamed to match tags (Cmd+Z = undo)."
+                    : $"{n} files saved (Cmd+Z = undo).";
             });
         });
     }

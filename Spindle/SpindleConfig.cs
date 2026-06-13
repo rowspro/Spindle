@@ -20,6 +20,7 @@ public class SpindleConfig
     // Personalisations — Database (My Music). See docs/IPOD_BEHAVIOR.md.
     public bool SplitArtistOnComma { get; set; } = true;            // false keeps "Last, First" sortnames intact
     public bool KeepMultipleGenres { get; set; }                    // true keeps multi-genre tags instead of reducing to one
+    public bool RenameToMatchTags { get; set; } = true;            // rename files to the template after a tag edit
 
     // Personalisations — iPod: how music is prepared for the device.
     public bool FlattenArtistOnSync { get; set; }                   // primary artist on the iPod copy (source untouched)
