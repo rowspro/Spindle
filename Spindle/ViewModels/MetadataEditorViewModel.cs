@@ -706,33 +706,12 @@ public class MetadataEditorViewModel : ViewModelBase
             {
                 var snap = ++i;
                 Dispatcher.UIThread.Post(() => Status = $"Fetching lyrics… {snap}/{files.Count}");
-                try
-                {
-                    var t = new Track(f);
-                    var artist = !string.IsNullOrWhiteSpace(t.Artist) ? t.Artist : (t.AlbumArtist ?? "");
-                    var res = await LyricsClient.FetchAsync(artist, t.Title ?? "", t.Album ?? "", t.Duration);
-                    if (res == null || res.Instrumental || !res.HasAny) { m++; continue; }
-                    if (!string.IsNullOrWhiteSpace(res.Synced))
-                        try { System.IO.File.WriteAllText(System.IO.Path.ChangeExtension(f, ".lrc"), res.Synced!); } catch { }
-                    var plain = !string.IsNullOrWhiteSpace(res.Plain) ? res.Plain : StripTimestamps(res.Synced);
-                    if (!string.IsNullOrWhiteSpace(plain))
-                        try { var tt = new Track(f); tt.Lyrics = new List<ATL.LyricsInfo> { new ATL.LyricsInfo { UnsynchronizedLyrics = plain } }; tt.Save(); } catch { }
-                    g++;
-                }
-                catch { m++; }
+                if (await Lyrics.ApplyToFileAsync(f)) g++; else m++;
             }
             return (Got: g, Miss: m);
         });
         IsBusy = false;
         Status = $"Lyrics: {counts.Got} found, {counts.Miss} missing.";
-    }
-
-    private static string StripTimestamps(string? lrc)
-    {
-        if (string.IsNullOrWhiteSpace(lrc)) return "";
-        var lines = lrc.Replace("\r", "").Split('\n')
-            .Select(l => System.Text.RegularExpressions.Regex.Replace(l, @"^(\s*\[\d+:\d+(?:\.\d+)?\])+", "").Trim());
-        return string.Join("\n", lines.Where(l => l.Length > 0));
     }
 
     private static Bitmap? BitmapFrom(byte[]? data)

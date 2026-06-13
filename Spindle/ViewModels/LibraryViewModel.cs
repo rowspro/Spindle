@@ -96,6 +96,7 @@ public class LibraryViewModel : ViewModelBase
         _undo = undo;
         ScanCommand = new RelayCommand(Scan, () => !IsBusy && !string.IsNullOrWhiteSpace(LibraryFolder));
         RepairCoversCommand = new RelayCommand(RepairCovers, () => !IsBusy && _albums.Count > 0);
+        FetchLyricsCommand = new RelayCommand(FetchLyrics, () => !IsBusy && _albums.Count > 0);
         FindUpgradesCommand = new RelayCommand(FindUpgrades, () => !IsBusy && _albums.Count > 0);
         StopCommand = new RelayCommand(() => _cts?.Cancel(), () => IsBusy);
         EditNoTagsCommand = new RelayCommand(
@@ -213,6 +214,7 @@ public class LibraryViewModel : ViewModelBase
                 ScanCommand.RaiseCanExecuteChanged();
                 RepairCoversCommand.RaiseCanExecuteChanged();
                 FindUpgradesCommand.RaiseCanExecuteChanged();
+                FetchLyricsCommand.RaiseCanExecuteChanged();
                 StopCommand.RaiseCanExecuteChanged();
             }
         }
@@ -240,6 +242,7 @@ public class LibraryViewModel : ViewModelBase
 
     public RelayCommand ScanCommand { get; }
     public RelayCommand RepairCoversCommand { get; }
+    public RelayCommand FetchLyricsCommand { get; }
     public RelayCommand FindUpgradesCommand { get; }
     public RelayCommand StopCommand { get; }
     public RelayCommand EditNoTagsCommand { get; }
@@ -339,6 +342,7 @@ public class LibraryViewModel : ViewModelBase
                 IsBusy = false;
                 RepairCoversCommand.RaiseCanExecuteChanged();
                 FindUpgradesCommand.RaiseCanExecuteChanged();
+                FetchLyricsCommand.RaiseCanExecuteChanged();
                 EditNoTagsCommand.RaiseCanExecuteChanged();
                 EditNoCoverCommand.RaiseCanExecuteChanged();
                 Status = token.IsCancellationRequested ? "Scan stopped." : $"Scan done — health {score}%. Click a card or album to fix.";
@@ -382,6 +386,37 @@ public class LibraryViewModel : ViewModelBase
         FileCount = Math.Max(0, FileCount - album.Files.Count);
         AlbumCount = Math.Max(0, AlbumCount - 1);
         Status = $"'{album.Title}' moved to '{trashRoot}' ({moved} files) — outside the library, reversible.";
+    }
+
+    // Bulk: fetch lyrics for every track in the library (online LRCLIB) — sidecar .lrc + embedded plain.
+    private void FetchLyrics()
+    {
+        if (IsBusy) return;
+        var files = _albums.SelectMany(a => a.Files).ToList();
+        if (files.Count == 0) { Status = "Scan the library first."; return; }
+        IsBusy = true;
+        _cts = new CancellationTokenSource();
+        var token = _cts.Token;
+        Task.Run(async () =>
+        {
+            int got = 0;
+            for (int i = 0; i < files.Count; i++)
+            {
+                if (token.IsCancellationRequested) break;
+                var snap = i + 1;
+                if (snap % 5 == 0 || snap == 1)
+                    Dispatcher.UIThread.Post(() => Status = $"Fetching lyrics… {snap}/{files.Count} ({got} found)");
+                try { if (await Lyrics.ApplyToFileAsync(files[i], token)) got++; } catch { }
+            }
+            var g = got;
+            Dispatcher.UIThread.Post(() =>
+            {
+                IsBusy = false;
+                Status = token.IsCancellationRequested
+                    ? $"Lyrics stopped — {g} found so far."
+                    : $"✓ Lyrics: {g} of {files.Count} tracks now have lyrics.";
+            });
+        });
     }
 
     private void RepairCovers()

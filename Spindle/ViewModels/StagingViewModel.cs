@@ -1106,7 +1106,7 @@ public class StagingViewModel : ViewModelBase
         ShowPlan = false;
         Status = $"Moving {plan.Count} files…";
 
-        Task.Run(() =>
+        Task.Run(async () =>
         {
             // Vrije-ruimte-check bij cross-volume approve (zelfde volume = rename, kost geen ruimte).
             try
@@ -1157,6 +1157,18 @@ public class StagingViewModel : ViewModelBase
             _undo.Record($"Approve: {selected.Count} album(s) to library", ops);
             _lib.Refresh(NieuwFolder);
             _lib.Refresh(LibraryFolder);
+
+            // Optioneel: lyrics ophalen voor wat zojuist de bibliotheek in ging (online, LRCLIB).
+            if (CleanupOptions.FetchLyricsOnApprove)
+            {
+                int li = 0;
+                foreach (var op in ops)
+                {
+                    var snap = ++li;
+                    Dispatcher.UIThread.Post(() => Status = $"Fetching lyrics… {snap}/{ops.Count}");
+                    try { await Lyrics.ApplyToFileAsync(op.To); } catch { }
+                }
+            }
 
             Dispatcher.UIThread.Post(() =>
             {

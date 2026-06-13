@@ -896,6 +896,7 @@ public class SyncViewModel : ViewModelBase
                                         AudioConvert.CopyTags(staged, part, artistFromAlbumArtist: true, flattenArtist: flatten);
                                         File.Move(part, dest, true);
                                         if (job.Compilation) AudioConvert.SetCompilation(dest);
+                                        CopyLrc(job.File, dest);
                                         Interlocked.Increment(ref copied);
                                     }
                                     else
@@ -927,6 +928,7 @@ public class SyncViewModel : ViewModelBase
                                     File.Move(part, dest, true);
                                     if (flatten) AudioConvert.FlattenArtist(dest);
                                     if (job.Compilation) AudioConvert.SetCompilation(dest);
+                                    CopyLrc(job.File, dest);
                                     Interlocked.Increment(ref copied);
                                 }
                                 finally { try { if (File.Exists(part)) File.Delete(part); } catch { } }
@@ -972,6 +974,17 @@ public class SyncViewModel : ViewModelBase
 
     // Album folder name on disk/iPod: singles of an artist all land in one "Singles" folder.
     private static string AlbumFolder(string album) => Singles.IsSingle(album) ? Singles.Folder : Clean(album);
+
+    // Copy a track's .lrc lyrics sidecar next to its iPod copy, so Rockbox can show synced lyrics.
+    private static void CopyLrc(string srcAudio, string destAudio)
+    {
+        try
+        {
+            var srcLrc = Path.ChangeExtension(srcAudio, ".lrc");
+            if (File.Exists(srcLrc)) File.Copy(srcLrc, Path.ChangeExtension(destAudio, ".lrc"), true);
+        }
+        catch { }
+    }
 
     private static string Clean(string s)
     {

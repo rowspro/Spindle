@@ -338,6 +338,13 @@ public class MainViewModel : ViewModelBase
         set { if (SetField(ref _renameToMatchTags, value)) CleanupOptions.RenameToMatchTags = value; }
     }
 
+    private bool _fetchLyricsOnApprove;
+    public bool FetchLyricsOnApprove
+    {
+        get => _fetchLyricsOnApprove;
+        set { if (SetField(ref _fetchLyricsOnApprove, value)) CleanupOptions.FetchLyricsOnApprove = value; }
+    }
+
     // Standard genres list (editable): base set + the user's own. The Doctor retags to these.
     public ObservableCollection<GenrePref> StandardGenres { get; } = new();
     public RelayCommand AddGenreCommand { get; }
@@ -506,6 +513,7 @@ public class MainViewModel : ViewModelBase
         SplitArtistOnComma = SplitArtistOnComma,
         KeepMultipleGenres = KeepMultipleGenres,
         RenameToMatchTags = RenameToMatchTags,
+        FetchLyricsOnApprove = FetchLyricsOnApprove,
         FlattenArtistOnSync = FlattenArtistOnSync,
         ConvertToAlacDefault = ConvertToAlacDefault,
         AutoCreatePlaylists = AutoCreatePlaylists,
@@ -537,6 +545,7 @@ public class MainViewModel : ViewModelBase
         SplitArtistOnComma = c.SplitArtistOnComma;
         KeepMultipleGenres = c.KeepMultipleGenres;
         RenameToMatchTags = c.RenameToMatchTags;
+        FetchLyricsOnApprove = c.FetchLyricsOnApprove;
         FlattenArtistOnSync = c.FlattenArtistOnSync;
         ConvertToAlacDefault = c.ConvertToAlacDefault;
         AutoCreatePlaylists = c.AutoCreatePlaylists;

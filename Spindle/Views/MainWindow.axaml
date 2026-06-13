@@ -814,12 +814,14 @@
                         </Border>
                     </Grid>
 
-                    <Grid Grid.Row="2" ColumnDefinitions="*,Auto,Auto,Auto" Margin="0,12,0,0">
+                    <Grid Grid.Row="2" ColumnDefinitions="*,Auto,Auto,Auto,Auto" Margin="0,12,0,0">
                         <SelectableTextBlock Grid.Column="0" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondary}" Text="{Binding Status}" />
                         <Button Grid.Column="1" Classes="ghost" Content="Repair covers" Command="{Binding RepairCoversCommand}"
                                 ToolTip.Tip="For albums without art, fetches the cover (MusicBrainz/Cover Art Archive) and embeds it in the files + folder.jpg." />
-                        <Button Grid.Column="2" Classes="ghost" Content="Stop" Width="80" Margin="8,0,0,0" Command="{Binding StopCommand}" HorizontalContentAlignment="Center" />
-                        <Button Grid.Column="3" Classes="primary" Content="Scan" Margin="8,0,0,0" Command="{Binding ScanCommand}" />
+                        <Button Grid.Column="2" Classes="ghost" Content="Fetch lyrics" Margin="8,0,0,0" Command="{Binding FetchLyricsCommand}"
+                                ToolTip.Tip="Fetch lyrics for the whole library (LRCLIB, online): synced → .lrc next to each track, plain → embedded tag." />
+                        <Button Grid.Column="3" Classes="ghost" Content="Stop" Width="80" Margin="8,0,0,0" Command="{Binding StopCommand}" HorizontalContentAlignment="Center" />
+                        <Button Grid.Column="4" Classes="primary" Content="Scan" Margin="8,0,0,0" Command="{Binding ScanCommand}" />
                     </Grid>
                 </Grid>
             </TabItem>
@@ -1120,6 +1122,8 @@
                                           ToolTip.Tip="On: keep every genre (each canonicalized, deduped). Off: reduce a multi-genre tag to its primary genre." />
                                 <CheckBox Content="Rename files to match tags after editing" IsChecked="{Binding RenameToMatchTags}"
                                           ToolTip.Tip="When you Save tag edits in the metadata table, the file is renamed to the filename template below (Cmd+Z undoes both)." />
+                                <CheckBox Content="Fetch lyrics when approving from Inbox" IsChecked="{Binding FetchLyricsOnApprove}"
+                                          ToolTip.Tip="Look up lyrics online (LRCLIB) for albums you approve: synced → .lrc sidecar, plain → embedded tag. Needs internet." />
 
                                 <TextBlock Classes="label" Text="Filename template (Sort &amp; Organize)" Margin="0,8,0,0" />
                                 <TextBox Text="{Binding FilenameTemplate}" Watermark="{}{artist} - {album} - {track} {title}"

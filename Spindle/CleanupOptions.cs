@@ -18,4 +18,7 @@ public static class CleanupOptions
 
     // The active filename template (mirrors the Personalisations setting) used for that rename.
     public static string FilenameTemplate { get; set; } = NameTemplate.Default;
+
+    // Fetch lyrics online (LRCLIB) for albums approved from the Inbox.
+    public static bool FetchLyricsOnApprove { get; set; }
 }
