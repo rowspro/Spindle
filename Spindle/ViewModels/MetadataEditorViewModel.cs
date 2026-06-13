@@ -35,6 +35,7 @@ public class MetadataEditorViewModel : ViewModelBase
         ApproveNextCommand = new RelayCommand(ApproveNext, () => HasFile && !IsBusy);
         BackCommand = new RelayCommand(Back, () => HasPrev && !IsBusy);
         AutoFillCommand = new RelayCommand(AutoFill, () => HasFile && !IsBusy);
+        FetchLyricsCommand = new RelayCommand(() => _ = FetchLyricsAsync(), () => HasFile && !IsBusy);
         RemoveArtCommand = new RelayCommand(RemoveArt, () => HasFile && !IsBusy);
         ApplyArtNowCommand = new RelayCommand(ApplyArtNow, () => HasFile && !IsBusy);
         MatchAlbumCommand = new RelayCommand(MatchAlbum, () => HasFile && !IsBusy && AlbumMatchable);
@@ -173,6 +174,7 @@ public class MetadataEditorViewModel : ViewModelBase
     public RelayCommand ApproveNextCommand { get; }
     public RelayCommand BackCommand { get; }
     public RelayCommand AutoFillCommand { get; }
+    public RelayCommand FetchLyricsCommand { get; }
     public RelayCommand RemoveArtCommand { get; }
     public RelayCommand ApplyArtNowCommand { get; }
 
@@ -681,6 +683,7 @@ public class MetadataEditorViewModel : ViewModelBase
         ApproveNextCommand.RaiseCanExecuteChanged();
         BackCommand.RaiseCanExecuteChanged();
         AutoFillCommand.RaiseCanExecuteChanged();
+        FetchLyricsCommand.RaiseCanExecuteChanged();
         RemoveArtCommand.RaiseCanExecuteChanged();
         ApplyArtNowCommand.RaiseCanExecuteChanged();
         MatchAlbumCommand.RaiseCanExecuteChanged();
@@ -688,6 +691,48 @@ public class MetadataEditorViewModel : ViewModelBase
         OnPropertyChanged(nameof(FolderMode));
         OnPropertyChanged(nameof(HasPrev));
         OnPropertyChanged(nameof(Position));
+    }
+
+    // Online lyrics (LRCLIB): synced → sidecar .lrc next to the file, plain → embedded lyrics tag.
+    private async Task FetchLyricsAsync()
+    {
+        if (IsBusy || _allFiles.Count == 0) return;
+        IsBusy = true;
+        var files = _allFiles.ToList();
+        var counts = await Task.Run(async () =>
+        {
+            int g = 0, m = 0, i = 0;
+            foreach (var f in files)
+            {
+                var snap = ++i;
+                Dispatcher.UIThread.Post(() => Status = $"Fetching lyrics… {snap}/{files.Count}");
+                try
+                {
+                    var t = new Track(f);
+                    var artist = !string.IsNullOrWhiteSpace(t.Artist) ? t.Artist : (t.AlbumArtist ?? "");
+                    var res = await LyricsClient.FetchAsync(artist, t.Title ?? "", t.Album ?? "", t.Duration);
+                    if (res == null || res.Instrumental || !res.HasAny) { m++; continue; }
+                    if (!string.IsNullOrWhiteSpace(res.Synced))
+                        try { System.IO.File.WriteAllText(System.IO.Path.ChangeExtension(f, ".lrc"), res.Synced!); } catch { }
+                    var plain = !string.IsNullOrWhiteSpace(res.Plain) ? res.Plain : StripTimestamps(res.Synced);
+                    if (!string.IsNullOrWhiteSpace(plain))
+                        try { var tt = new Track(f); tt.Lyrics = new List<ATL.LyricsInfo> { new ATL.LyricsInfo { UnsynchronizedLyrics = plain } }; tt.Save(); } catch { }
+                    g++;
+                }
+                catch { m++; }
+            }
+            return (Got: g, Miss: m);
+        });
+        IsBusy = false;
+        Status = $"Lyrics: {counts.Got} found, {counts.Miss} missing.";
+    }
+
+    private static string StripTimestamps(string? lrc)
+    {
+        if (string.IsNullOrWhiteSpace(lrc)) return "";
+        var lines = lrc.Replace("\r", "").Split('\n')
+            .Select(l => System.Text.RegularExpressions.Regex.Replace(l, @"^(\s*\[\d+:\d+(?:\.\d+)?\])+", "").Trim());
+        return string.Join("\n", lines.Where(l => l.Length > 0));
     }
 
     private static Bitmap? BitmapFrom(byte[]? data)

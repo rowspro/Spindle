@@ -13,6 +13,8 @@
                 <StackPanel Orientation="Horizontal" Spacing="6"><TextBlock Classes="icon" FontSize="17" Text="&#xE019;" /><TextBlock Text="Album match" VerticalAlignment="Center" /></StackPanel>
             </Button>
             <Button Grid.Column="3" Classes="ghost" Content="Auto-fill (per track)" Margin="8,0,0,0" Command="{Binding AutoFillCommand}" />
+            <Button Grid.Column="4" Classes="ghost" Content="Fetch lyrics" Margin="8,0,0,0" Command="{Binding FetchLyricsCommand}"
+                    ToolTip.Tip="Look up lyrics on LRCLIB (online) for all loaded tracks: synced → .lrc next to the file, plain → embedded lyrics tag." />
             <TextBlock Grid.Column="5" VerticalAlignment="Center" Margin="10,0,0,0" Foreground="{DynamicResource TextSecondary}" FontSize="12" Text="{Binding FileName}" TextTrimming="CharacterEllipsis" />
             <TextBlock Grid.Column="6" VerticalAlignment="Center" Foreground="{DynamicResource HeaderBlue}" FontSize="13" FontWeight="SemiBold" Text="{Binding Position}" />
         </Grid>
