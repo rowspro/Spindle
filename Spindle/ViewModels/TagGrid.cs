@@ -140,6 +140,9 @@ public sealed class TagGridViewModel : ViewModelBase
         }));
         ApplyF2TCommand = new RelayCommand(ApplyF2T, () => Rows.Count > 0);
         ApplyT2FCommand = new RelayCommand(ApplyT2F, () => Rows.Count > 0 && !_busy);
+        ActionSetGenreCommand = new RelayCommand(
+            () => Mutate(r => r.Genre = BulkGenre ?? ""),
+            () => !string.IsNullOrWhiteSpace(BulkGenre) && Rows.Count > 0);
     }
 
     public RelayCommand SaveCommand { get; }
@@ -147,6 +150,12 @@ public sealed class TagGridViewModel : ViewModelBase
     public RelayCommand ActionTrimCommand { get; }
     public RelayCommand ApplyF2TCommand { get; }
     public RelayCommand ApplyT2FCommand { get; }
+    public RelayCommand ActionSetGenreCommand { get; }
+
+    /// <summary>The user's standard genres — to set one genre across the whole album in one click.</summary>
+    public IReadOnlyList<string> GenreOptions => Genres.Standard;
+    private string? _bulkGenre;
+    public string? BulkGenre { get => _bulkGenre; set { if (SetField(ref _bulkGenre, value)) ActionSetGenreCommand.RaiseCanExecuteChanged(); } }
 
     public bool HasDirty => Rows.Any(r => r.IsDirty);
     public string DirtyText => $"{Rows.Count(r => r.IsDirty)} changed · {Rows.Count} rows";

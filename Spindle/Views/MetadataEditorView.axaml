@@ -63,6 +63,10 @@
                 <TextBlock Classes="caption" Text="Actions (all rows, as pending changes):" VerticalAlignment="Center" Margin="0,0,10,0" />
                 <Button Classes="ghost" Padding="10,5" Content="Normalize genre" Command="{Binding Grid.ActionGenreCommand}" />
                 <Button Classes="ghost" Padding="10,5" Content="Trim spaces" Margin="6,0,0,0" Command="{Binding Grid.ActionTrimCommand}" />
+                <ComboBox MinWidth="150" Margin="12,0,6,0" VerticalAlignment="Center"
+                          ItemsSource="{Binding Grid.GenreOptions}" SelectedItem="{Binding Grid.BulkGenre}"
+                          PlaceholderText="Genre…" ToolTip.Tip="Pick a standard genre to set on the whole album." />
+                <Button Classes="ghost" Padding="10,5" Content="Set genre (all)" Command="{Binding Grid.ActionSetGenreCommand}" />
             </WrapPanel>
             <DataGrid Grid.Row="1" Margin="0,10,0,0" ItemsSource="{Binding Grid.Rows}" AutoGenerateColumns="False"
                       HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto"
