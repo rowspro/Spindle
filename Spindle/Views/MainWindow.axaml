@@ -774,12 +774,12 @@
                                                 ToolTip.Tip="Retag every non-canonical genre in one undoable batch." />
                                         <Button Grid.Column="3" Classes="primary" Content="Re-run checkup" Margin="6,0,0,0" Command="{Binding RunCommand}" />
                                     </Grid>
-                                    <ListBox Grid.Row="1" ItemsSource="{Binding Findings}" SelectionMode="Multiple" Background="Transparent" BorderThickness="0">
+                                    <ListBox Grid.Row="1" ItemsSource="{Binding Findings}" Background="Transparent" BorderThickness="0">
                                         <ListBox.ItemTemplate>
                                             <DataTemplate>
                                                 <Border Classes="card" Margin="0,0,0,8" Padding="14,10"
                                                         DoubleTapped="OnAlbumItemDoubleTapped" Cursor="Hand"
-                                                        ToolTip.Tip="Double-click to open in the Metadata editor. ⌘-click several findings, then double-click to open them one by one.">
+                                                        ToolTip.Tip="Double-click to open this album in the Metadata editor.">
                                                     <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto" VerticalAlignment="Center">
                                                         <Border Grid.Column="0" CornerRadius="9999" Padding="9,3" Background="{DynamicResource WarnBg}" VerticalAlignment="Center">
                                                             <TextBlock Text="{Binding Category}" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource WarnFg}" />
@@ -1528,7 +1528,8 @@
                         </Grid>
 
                         <ListBox Grid.Row="2" Margin="0,12,0,0" ItemsSource="{Binding Albums}" SelectedItem="{Binding SelectedAlbum}"
-                                 SelectionMode="Multiple" Background="Transparent" BorderThickness="0">
+                                 SelectionMode="Multiple" SelectionChanged="OnLibrarySelectionChanged"
+                                 Background="Transparent" BorderThickness="0">
                             <ListBox.ItemsPanel>
                                 <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
                             </ListBox.ItemsPanel>
@@ -1559,56 +1560,95 @@
 
                     <!-- Inspector -->
                     <Border Grid.Column="1" Width="300" Margin="16,0,0,0" Classes="card" Padding="16"
-                            IsVisible="{Binding SelectedAlbum, Converter={x:Static ObjectConverters.IsNotNull}}">
+                            IsVisible="{Binding HasSelection}">
                         <ScrollViewer VerticalScrollBarVisibility="Auto">
-                            <StackPanel>
-                                <Border Width="260" Height="260" CornerRadius="12" ClipToBounds="True" Background="{DynamicResource SurfaceVariant}">
-                                    <Panel>
-                                        <TextBlock Classes="icon" FontSize="64" Text="&#xE019;" HorizontalAlignment="Center" VerticalAlignment="Center"
-                                                   Foreground="{DynamicResource TextMuted}"
-                                                   IsVisible="{Binding SelectedAlbum.Cover, Converter={x:Static ObjectConverters.IsNull}}" />
-                                        <Image Source="{Binding SelectedAlbum.Cover}" Stretch="UniformToFill" />
-                                    </Panel>
-                                </Border>
-                                <TextBlock Text="{Binding SelectedAlbum.Title}" Classes="title" FontSize="16" Margin="0,12,0,0" TextWrapping="Wrap" />
-                                <TextBlock Text="{Binding SelectedAlbum.ArtistText}" Classes="body" Margin="0,2,0,0" />
-                                <TextBlock Text="{Binding SelectedAlbum.Sub}" Classes="caption" Margin="0,4,0,0" />
-                                <TextBlock Text="{Binding SelectedAlbum.FlagText}" FontSize="11" Foreground="{DynamicResource WarnFg}" Margin="0,4,0,0"
-                                           IsVisible="{Binding SelectedAlbum.HasIssues}" />
+                            <Panel>
+                                <!-- Multi-select: a grid of every selected cover + one Edit-in-Metadata action -->
+                                <StackPanel IsVisible="{Binding IsMultiSelect}">
+                                    <TextBlock Text="{Binding MultiTitle}" Classes="title" FontSize="16" />
+                                    <TextBlock Classes="caption" Margin="0,2,0,0" Text="Open them in the Metadata editor and edit one after another." />
+                                    <ItemsControl ItemsSource="{Binding SelectedAlbums}" Margin="0,12,0,0">
+                                        <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <StackPanel Width="80" Margin="0,0,8,8">
+                                                    <Border Width="80" Height="80" CornerRadius="8" ClipToBounds="True" Background="{DynamicResource SurfaceVariant}">
+                                                        <Panel>
+                                                            <TextBlock Classes="icon" FontSize="26" Text="&#xE019;" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                                       Foreground="{DynamicResource TextMuted}"
+                                                                       IsVisible="{Binding Cover, Converter={x:Static ObjectConverters.IsNull}}" />
+                                                            <Image Source="{Binding Cover}" Stretch="UniformToFill" />
+                                                        </Panel>
+                                                    </Border>
+                                                    <TextBlock Text="{Binding Title}" FontSize="10" Margin="0,3,0,0" TextTrimming="CharacterEllipsis" Foreground="{DynamicResource TextSecondary}" />
+                                                </StackPanel>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                    <Button Classes="primary" Margin="0,8,0,0" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                                            Command="{Binding EditInMetadataCommand}">
+                                        <StackPanel Orientation="Horizontal" Spacing="6"><TextBlock Classes="icon" FontSize="16" Text="&#xE892;" /><TextBlock Text="Edit these in Metadata" VerticalAlignment="Center" /></StackPanel>
+                                    </Button>
+                                </StackPanel>
 
-                                <TextBlock Classes="section" Text="ALBUM FIELDS (WHOLE ALBUM)" Margin="0,16,0,8" />
-                                <AutoCompleteBox Name="LibArtistBox" Text="{Binding EditArtist, Mode=TwoWay}" Watermark="Album artist" FilterMode="StartsWith" IsTextCompletionEnabled="True" MinimumPrefixLength="1" KeyDown="OnArtistKeyDown" />
-                                <TextBox Text="{Binding EditAlbum}" Watermark="Album" Margin="0,6,0,0" />
-                                <Grid ColumnDefinitions="*,90" Margin="0,6,0,0">
-                                    <TextBox Grid.Column="0" Text="{Binding EditGenre}" Watermark="Genre" />
-                                    <TextBox Grid.Column="1" Text="{Binding EditYear}" Watermark="Year" Margin="6,0,0,0" />
-                                </Grid>
-                                <Button Classes="primary" Content="Save for whole album" Margin="0,8,0,0" HorizontalAlignment="Stretch"
-                                        Command="{Binding SaveAlbumEditCommand}" />
+                                <!-- Single album -->
+                                <StackPanel IsVisible="{Binding IsSingleSelect}">
+                                    <Border Width="260" Height="260" CornerRadius="12" ClipToBounds="True" Background="{DynamicResource SurfaceVariant}">
+                                        <Panel>
+                                            <TextBlock Classes="icon" FontSize="64" Text="&#xE019;" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                       Foreground="{DynamicResource TextMuted}"
+                                                       IsVisible="{Binding SelectedAlbum.Cover, Converter={x:Static ObjectConverters.IsNull}}" />
+                                            <Image Source="{Binding SelectedAlbum.Cover}" Stretch="UniformToFill" />
+                                        </Panel>
+                                    </Border>
+                                    <TextBlock Text="{Binding SelectedAlbum.Title}" Classes="title" FontSize="16" Margin="0,12,0,0" TextWrapping="Wrap" />
+                                    <TextBlock Text="{Binding SelectedAlbum.ArtistText}" Classes="body" Margin="0,2,0,0" />
+                                    <TextBlock Text="{Binding SelectedAlbum.Sub}" Classes="caption" Margin="0,4,0,0" />
+                                    <TextBlock Text="{Binding SelectedAlbum.FlagText}" FontSize="11" Foreground="{DynamicResource WarnFg}" Margin="0,4,0,0"
+                                               IsVisible="{Binding SelectedAlbum.HasIssues}" />
 
-                                <TextBlock Classes="section" Text="TRACKS" Margin="0,16,0,8" />
-                                <ListBox MaxHeight="240" ItemsSource="{Binding SelectedTracks}" SelectedItem="{Binding SelectedTrack}"
-                                         Background="Transparent" BorderThickness="0">
-                                    <ListBox.ItemTemplate>
-                                        <DataTemplate>
-                                            <Grid ColumnDefinitions="*,Auto">
-                                                <TextBlock Grid.Column="0" Text="{Binding Display}" FontSize="12" Foreground="{DynamicResource TextPrimary}" TextTrimming="CharacterEllipsis" />
-                                                <TextBlock Grid.Column="1" Text="{Binding Right}" FontSize="11" Foreground="{DynamicResource TextMuted}" Margin="8,0,0,0" />
-                                            </Grid>
-                                        </DataTemplate>
-                                    </ListBox.ItemTemplate>
-                                </ListBox>
-                                <TextBlock Classes="caption" Margin="0,4,0,0" Text="Space = play / pause (plays the album)" />
+                                    <TextBlock Classes="section" Text="ALBUM FIELDS (WHOLE ALBUM)" Margin="0,16,0,6" />
+                                    <Grid ColumnDefinitions="64,*">
+                                        <StackPanel Grid.Column="0" Spacing="6">
+                                            <TextBlock Text="Artist" Classes="caption" />
+                                            <TextBlock Text="Album" Classes="caption" />
+                                            <TextBlock Text="Genre" Classes="caption" />
+                                            <TextBlock Text="Year" Classes="caption" />
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="1" Spacing="6">
+                                            <TextBlock Text="{Binding EditArtist}" FontSize="12" TextTrimming="CharacterEllipsis" Foreground="{DynamicResource TextPrimary}" />
+                                            <TextBlock Text="{Binding EditAlbum}" FontSize="12" TextTrimming="CharacterEllipsis" Foreground="{DynamicResource TextPrimary}" />
+                                            <TextBlock Text="{Binding EditGenre}" FontSize="12" TextTrimming="CharacterEllipsis" Foreground="{DynamicResource TextPrimary}" />
+                                            <TextBlock Text="{Binding EditYear}" FontSize="12" Foreground="{DynamicResource TextPrimary}" />
+                                        </StackPanel>
+                                    </Grid>
 
-                                <Button Classes="ghost" Margin="0,14,0,0" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
-                                        Command="{Binding EditInMetadataCommand}">
-                                    <StackPanel Orientation="Horizontal" Spacing="6"><TextBlock Classes="icon" FontSize="16" Text="&#xE892;" /><TextBlock Text="Edit in Metadata" VerticalAlignment="Center" /></StackPanel>
-                                </Button>
-                                <Button Classes="ghost" Margin="0,6,0,0" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
-                                        Command="{Binding ShowInFinderCommand}">
-                                    <StackPanel Orientation="Horizontal" Spacing="6"><TextBlock Classes="icon" FontSize="16" Text="&#xE2C8;" /><TextBlock Text="Show in Finder" VerticalAlignment="Center" /></StackPanel>
-                                </Button>
-                            </StackPanel>
+                                    <Grid ColumnDefinitions="*,*" Margin="0,12,0,0">
+                                        <Button Grid.Column="0" Classes="ghost" Margin="0,0,3,0" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                                                Command="{Binding EditInMetadataCommand}">
+                                            <StackPanel Orientation="Horizontal" Spacing="6"><TextBlock Classes="icon" FontSize="16" Text="&#xE892;" /><TextBlock Text="Edit" VerticalAlignment="Center" /></StackPanel>
+                                        </Button>
+                                        <Button Grid.Column="1" Classes="ghost" Margin="3,0,0,0" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                                                Command="{Binding ShowInFinderCommand}">
+                                            <StackPanel Orientation="Horizontal" Spacing="6"><TextBlock Classes="icon" FontSize="16" Text="&#xE2C8;" /><TextBlock Text="Finder" VerticalAlignment="Center" /></StackPanel>
+                                        </Button>
+                                    </Grid>
+
+                                    <TextBlock Classes="section" Text="TRACKS" Margin="0,16,0,8" />
+                                    <ListBox MaxHeight="240" ItemsSource="{Binding SelectedTracks}" SelectedItem="{Binding SelectedTrack}"
+                                             Background="Transparent" BorderThickness="0">
+                                        <ListBox.ItemTemplate>
+                                            <DataTemplate>
+                                                <Grid ColumnDefinitions="*,Auto">
+                                                    <TextBlock Grid.Column="0" Text="{Binding Display}" FontSize="12" Foreground="{DynamicResource TextPrimary}" TextTrimming="CharacterEllipsis" />
+                                                    <TextBlock Grid.Column="1" Text="{Binding Right}" FontSize="11" Foreground="{DynamicResource TextMuted}" Margin="8,0,0,0" />
+                                                </Grid>
+                                            </DataTemplate>
+                                        </ListBox.ItemTemplate>
+                                    </ListBox>
+                                    <TextBlock Classes="caption" Margin="0,4,0,0" Text="Space = play / pause (plays the album)" />
+                                </StackPanel>
+                            </Panel>
                         </ScrollViewer>
                     </Border>
                 </Grid>

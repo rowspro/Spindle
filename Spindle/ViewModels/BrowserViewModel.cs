@@ -55,6 +55,7 @@ public class BrowserViewModel : ViewModelBase
     private readonly LibraryService _lib;
     private readonly Func<string> _root;
     private readonly Action<IReadOnlyList<string>, string> _onEdit;
+    private readonly Action<IReadOnlyList<(IReadOnlyList<string> Files, string Label)>> _onEditMany;
     private readonly List<BrowserAlbumViewModel> _all = new();
     private readonly ConcurrentDictionary<string, Bitmap> _coverCache = new();
     private CancellationTokenSource? _coverCts;
@@ -65,18 +66,29 @@ public class BrowserViewModel : ViewModelBase
 
     public ObservableCollection<BrowserAlbumViewModel> Albums { get; } = new();
     public ObservableCollection<BrowserTrackViewModel> SelectedTracks { get; } = new();
+    /// <summary>All albums currently ⌘-selected in the grid (drives the multi-select inspector).</summary>
+    public ObservableCollection<BrowserAlbumViewModel> SelectedAlbums { get; } = new();
 
-    public BrowserViewModel(LibraryService lib, Func<string> root, Action<IReadOnlyList<string>, string> onEdit)
+    public BrowserViewModel(LibraryService lib, Func<string> root, Action<IReadOnlyList<string>, string> onEdit,
+        Action<IReadOnlyList<(IReadOnlyList<string> Files, string Label)>> onEditMany)
     {
         _lib = lib;
         _root = root;
         _onEdit = onEdit;
+        _onEditMany = onEditMany;
         RefreshCommand = new RelayCommand(Refresh);
         EditInMetadataCommand = new RelayCommand(() =>
         {
-            var a = SelectedAlbum;
-            if (a != null) _onEdit(a.Tracks.Select(t => t.Path).ToList(), $"{a.ArtistText} — {a.Title} — edit tags.");
-        }, () => SelectedAlbum != null);
+            if (IsMultiSelect)
+            {
+                _onEditMany(SelectedAlbums
+                    .Select(a => ((IReadOnlyList<string>)a.Tracks.Select(t => t.Path).ToList(),
+                                  $"{a.ArtistText} — {a.Title} — edit tags & cover")).ToList());
+                return;
+            }
+            var s = SelectedAlbum;
+            if (s != null) _onEdit(s.Tracks.Select(t => t.Path).ToList(), $"{s.ArtistText} — {s.Title} — edit tags.");
+        }, () => HasSelection);
         ShowInFinderCommand = new RelayCommand(() =>
         {
             var p = SelectedAlbum?.Tracks.FirstOrDefault()?.Path;
@@ -145,7 +157,27 @@ public class BrowserViewModel : ViewModelBase
             EditInMetadataCommand.RaiseCanExecuteChanged();
             ShowInFinderCommand.RaiseCanExecuteChanged();
             SaveAlbumEditCommand.RaiseCanExecuteChanged();
+            OnPropertyChanged(nameof(IsSingleSelect));
         }
+    }
+
+    public bool IsMultiSelect => SelectedAlbums.Count > 1;
+    public bool IsSingleSelect => !IsMultiSelect && SelectedAlbum != null;
+    public bool HasSelection => SelectedAlbums.Count > 0 || SelectedAlbum != null;
+    public string MultiTitle => $"{SelectedAlbums.Count} albums selected";
+
+    /// <summary>Called from the view when the grid's selection changes (⌘/shift-click).</summary>
+    public void UpdateSelection(System.Collections.IList? items)
+    {
+        SelectedAlbums.Clear();
+        if (items != null)
+            foreach (var it in items)
+                if (it is BrowserAlbumViewModel a) SelectedAlbums.Add(a);
+        OnPropertyChanged(nameof(IsMultiSelect));
+        OnPropertyChanged(nameof(IsSingleSelect));
+        OnPropertyChanged(nameof(HasSelection));
+        OnPropertyChanged(nameof(MultiTitle));
+        EditInMetadataCommand.RaiseCanExecuteChanged();
     }
 
     private BrowserTrackViewModel? _selectedTrack;

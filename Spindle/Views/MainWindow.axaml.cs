@@ -96,6 +96,12 @@ public partial class MainWindow : Window
 
     }
 
+    // Library grid: mirror the ⌘/shift multi-selection into the Browser VM so the inspector can show all of them.
+    private void OnLibrarySelectionChanged(object? sender, SelectionChangedEventArgs e)
+    {
+        if (sender is ListBox lb && lb.DataContext is BrowserViewModel b) b.UpdateSelection(lb.SelectedItems);
+    }
+
     // Map a list item to the album it represents (files + a label) for "open in Metadata editor".
     private static (IReadOnlyList<string> Files, string Label)? AlbumOf(object? item) => item switch
     {

@@ -26,7 +26,8 @@ public class MainViewModel : ViewModelBase
             template: () => FilenameTemplate);
 
         Browser = new BrowserViewModel(Lib, () => MusicLibrary,
-            (files, status) => { Meta.LoadFiles(files, status); SelectedTabIndex = 0; });
+            (files, status) => { Meta.LoadFiles(files, status); SelectedTabIndex = 0; },
+            OpenAlbumsInMeta);
 
         Galaxy = new GalaxyViewModel(Lib, () => MusicLibrary,
             onOpenAlbum: (artist, album) => { SelectedTabIndex = 6; Browser.FocusAlbum(artist, album); },
