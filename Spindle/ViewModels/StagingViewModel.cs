@@ -796,8 +796,11 @@ public class StagingViewModel : ViewModelBase
                 lock (_mbCache) cached = _mbCache.TryGetValue(key, out m);
                 if (!cached)
                 {
-                    // fileCount 0: geen bias naar de editie met precies ons aantal tracks — anders maskeer je gaten
-                    try { m = await MusicBrainzClient.MatchReleaseAsync(a.Artist, a.Album, 0); }
+                    // Bias to our track count so MusicBrainz picks the edition that matches this album
+                    // (e.g. the 11-track standard, not a 14-track deluxe) — matches the editor's completeness
+                    // check, which the user trusts. A genuine gap is still flagged (there's rarely a smaller
+                    // edition that exactly masks it). The soft bias only prefers, it doesn't hard-filter.
+                    try { m = await MusicBrainzClient.MatchReleaseAsync(a.Artist, a.Album, a.Files.Count); }
                     catch { m = null; }
                     lock (_mbCache) _mbCache[key] = m;
                     try { await Task.Delay(700, token); } catch { return; }   // MB-rate-limit
