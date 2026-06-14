@@ -211,6 +211,18 @@ public class MetadataEditorViewModel : ViewModelBase
     public bool HasPrev => _index > 0;
     public string Position => _files.Count > 0 ? $"{_index + 1} / {_files.Count}" : string.Empty;
 
+    // Album-wide scope: the "Whole album" fields (Album, Album artist, Genre, Year, cover) are written to every
+    // track of the album on Save. This label makes that explicit in the form.
+    public bool IsAlbumScope => _allFiles.Count > 1;
+    public string AlbumScopeText => _allFiles.Count > 1
+        ? $"Saved to all {_allFiles.Count} tracks of this album"
+        : "Saved to this track";
+    private void RaiseAlbumScope()
+    {
+        OnPropertyChanged(nameof(IsAlbumScope));
+        OnPropertyChanged(nameof(AlbumScopeText));
+    }
+
     // ---- album queue: edit several albums one by one (⌘-click multiple, then open) ----
     private List<(List<string> Files, string Label)> _albumQueue = new();
     private int _albumIndex;
@@ -302,6 +314,7 @@ public class MetadataEditorViewModel : ViewModelBase
         EditorMode = "form";
         RecomputeAlbumMatchable();
         RecomputeChecks();
+        RaiseAlbumScope();
     }
 
     public void LoadFolder(string folder)
@@ -326,6 +339,7 @@ public class MetadataEditorViewModel : ViewModelBase
             EditorMode = _files.Count > 1 ? "tabel" : "form";
             RecomputeAlbumMatchable();
         RecomputeChecks();
+        RaiseAlbumScope();
         }
         catch (Exception e)
         {
@@ -384,6 +398,7 @@ public class MetadataEditorViewModel : ViewModelBase
             OnPropertyChanged(nameof(HasFile));
             OnPropertyChanged(nameof(Position));
             RaiseNav();
+            RaiseAlbumScope();
             Status = "No files to edit.";
             return;
         }
@@ -394,6 +409,7 @@ public class MetadataEditorViewModel : ViewModelBase
         EditorMode = _files.Count > 1 ? "tabel" : "form";
         RecomputeAlbumMatchable();
         RecomputeChecks();
+        RaiseAlbumScope();
     }
 
     private async void MatchAlbum()
