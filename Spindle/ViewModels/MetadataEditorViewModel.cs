@@ -39,6 +39,7 @@ public class MetadataEditorViewModel : ViewModelBase
     {
         _undo = undo;
         Grid = new TagGridViewModel(lib, undo);
+        Grid.PropertyChanged += (_, e) => { if (e.PropertyName == nameof(TagGridViewModel.IsBusy)) OnPropertyChanged(nameof(AnyBusy)); };
         Versions.CollectionChanged += (_, _) => OnPropertyChanged(nameof(HasVersions));
         Duplicates.CollectionChanged += (_, _) => OnPropertyChanged(nameof(HasDuplicates));
         ModeFormCommand = new RelayCommand(() => EditorMode = "form");
@@ -46,7 +47,13 @@ public class MetadataEditorViewModel : ViewModelBase
         ModeConvCommand = new RelayCommand(() => { if (!Grid.HasDirty) Grid.Reload(); EditorMode = "conv"; });
         SaveCommand = new RelayCommand(Save, () => HasFile && !IsBusy);
         AutoFillCommand = new RelayCommand(AutoFill, () => HasFile && !IsBusy);
-        FetchLyricsCommand = new RelayCommand(() => _ = FetchLyricsAsync(), () => HasFile && !IsBusy);
+        FetchLyricsCommand = new RelayCommand(() =>
+        {
+            var files = _allFiles.ToList();
+            if (files.Count == 0) return;
+            BackgroundJobs.RunLyrics(files);
+            Status = $"Fetching lyrics for {files.Count} tracks in the background — you can keep editing.";
+        }, () => HasFile);
         ApplyGenreToAlbumCommand = new RelayCommand(ApplyGenreToAlbum, () => HasFile && !IsBusy);
         RemoveArtCommand = new RelayCommand(RemoveArt, () => HasFile && !IsBusy);
         ApplyArtNowCommand = new RelayCommand(ApplyArtNow, () => HasFile && !IsBusy);
@@ -263,8 +270,11 @@ public class MetadataEditorViewModel : ViewModelBase
     public bool IsBusy
     {
         get => _isBusy;
-        private set { if (SetField(ref _isBusy, value)) RaiseNav(); }
+        private set { if (SetField(ref _isBusy, value)) { RaiseNav(); OnPropertyChanged(nameof(AnyBusy)); } }
     }
+
+    /// <summary>Busy in the form (Save/match/fetch) OR in the track table (Save changes) — drives the progress line.</summary>
+    public bool AnyBusy => IsBusy || Grid.IsBusy;
 
     private string _status = "Open a file or folder (album). Auto-fill completes missing tags via MusicBrainz.";
     public string Status { get => _status; private set => SetField(ref _status, value); }
@@ -726,7 +736,8 @@ public class MetadataEditorViewModel : ViewModelBase
 
     private void Save()
     {
-        if (!HasFile) return;
+        if (!HasFile || IsBusy) return;
+        IsBusy = true;   // drives the progress line while we write this track + propagate to the album
         // Auto-clean stray spaces (opt-out in Personalisations).
         if (CleanupOptions.TrimSpaces)
         {
@@ -766,10 +777,12 @@ public class MetadataEditorViewModel : ViewModelBase
         bool cYear = !string.Equals((Year ?? "").Trim(), (_loadedYear ?? "").Trim());
         var path = _path; var art = _artData;
         var album = Album; var aa = AlbumArtist; var genre = Genre; var year = Year;
+        void Done() => Dispatcher.UIThread.Post(() => { IsBusy = false; Status = "Saved."; });
         if (cAlbum || cAa || cGenre || cYear)
-            Task.Run(() => ApplyAlbumFieldsToSiblings(path, origAlbum, cAlbum, album, cAa, aa, cGenre, genre, cYear, year, artChangedNow, art));
+            Task.Run(() => { try { ApplyAlbumFieldsToSiblings(path, origAlbum, cAlbum, album, cAa, aa, cGenre, genre, cYear, year, artChangedNow, art); } finally { Done(); } });
         else if (artChangedNow)
-            Task.Run(() => ApplyArtToAlbum(path, art));
+            Task.Run(() => { try { ApplyArtToAlbum(path, art); } finally { Done(); } });
+        else { IsBusy = false; Status = "Saved."; }
         _loadedAlbum = Album; _loadedAlbumArtist = AlbumArtist; _loadedGenre = Genre; _loadedYear = Year;
     }
 
@@ -865,26 +878,6 @@ public class MetadataEditorViewModel : ViewModelBase
     }
 
     // Online lyrics (LRCLIB): synced → sidecar .lrc next to the file, plain → embedded lyrics tag.
-    private async Task FetchLyricsAsync()
-    {
-        if (IsBusy || _allFiles.Count == 0) return;
-        IsBusy = true;
-        var files = _allFiles.ToList();
-        var counts = await Task.Run(async () =>
-        {
-            int g = 0, m = 0, i = 0;
-            foreach (var f in files)
-            {
-                var snap = ++i;
-                Dispatcher.UIThread.Post(() => Status = $"Fetching lyrics… {snap}/{files.Count}");
-                if (await Lyrics.ApplyToFileAsync(f)) g++; else m++;
-            }
-            return (Got: g, Miss: m);
-        });
-        IsBusy = false;
-        Status = $"Lyrics: {counts.Got} found, {counts.Miss} missing.";
-    }
-
     // Write the current Genre to every loaded track of the album (one undo batch).
     private void ApplyGenreToAlbum()
     {

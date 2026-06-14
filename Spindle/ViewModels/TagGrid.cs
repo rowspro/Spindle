@@ -124,6 +124,8 @@ public sealed class TagGridViewModel : ViewModelBase
     private readonly UndoJournal? _undo;
     private List<string> _lastFiles = new();
     private bool _busy;
+    /// <summary>True while writing rows to disk — drives the editor's progress line.</summary>
+    public bool IsBusy { get => _busy; private set => SetField(ref _busy, value); }
 
     public ObservableCollection<TagRowViewModel> Rows { get; } = new();
 
@@ -244,7 +246,7 @@ public sealed class TagGridViewModel : ViewModelBase
     {
         var dirty = Rows.Where(r => r.IsDirty).ToList();
         if (dirty.Count == 0) return;
-        _busy = true;
+        IsBusy = true;
         SaveCommand.RaiseCanExecuteChanged();
         Status = $"Saving {dirty.Count} files…";
         var before = dirty.Select(r => r.Snapshot()).ToList();
@@ -306,7 +308,7 @@ public sealed class TagGridViewModel : ViewModelBase
             Dispatcher.UIThread.Post(() =>
             {
                 foreach (var r in dirty) r.Accept();
-                _busy = false;
+                IsBusy = false;
                 OnPropertyChanged(nameof(DirtyText));
                 SaveCommand.RaiseCanExecuteChanged();
                 Status = renames.Count > 0
@@ -357,7 +359,7 @@ public sealed class TagGridViewModel : ViewModelBase
         }
         if (jobs.Count == 0) { Status = "Nothing to rename."; return; }
 
-        _busy = true;
+        IsBusy = true;
         ApplyT2FCommand.RaiseCanExecuteChanged();
         Status = $"Renaming {jobs.Count} files…";
         Task.Run(() =>
@@ -381,7 +383,7 @@ public sealed class TagGridViewModel : ViewModelBase
             _lib?.RefreshConfigured();
             Dispatcher.UIThread.Post(() =>
             {
-                _busy = false;
+                IsBusy = false;
                 ApplyT2FCommand.RaiseCanExecuteChanged();
                 UpdatePreviews();
                 Status = $"{n} renamed" + (skipped > 0 ? $", {skipped} skipped" : "") + " (Cmd+Z = undo).";

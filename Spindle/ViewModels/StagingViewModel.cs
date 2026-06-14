@@ -1136,8 +1136,18 @@ public class StagingViewModel : ViewModelBase
                 }
             }
             catch { }
+
+            // Don't move while a background lyric fetch is still writing into these folders — wait it out
+            // so the .lrc / embedded-lyrics writes finish before the files leave the inbox.
+            var srcDirs = plan.Select(p => Path.GetDirectoryName(p.FromPath) ?? "")
+                .Concat(selected.SelectMany(a => a.SourceDirs)).Where(s => s.Length > 0).Distinct().ToList();
+            if (BackgroundJobs.Busy)
+                Dispatcher.UIThread.Post(() => Status = "Finishing lyrics before moving…");
+            await BackgroundJobs.WaitForFolders(srcDirs);
+
             int moved = 0;
             var ops = new List<UndoJournal.MoveOp>();
+            var movedAudio = new List<string>();
             var dirs = new HashSet<string>();
             foreach (var item in plan)
             {
@@ -1147,7 +1157,21 @@ public class StagingViewModel : ViewModelBase
                     try { File.Move(item.FromPath, item.ToPath); }
                     catch (IOException) { File.Copy(item.FromPath, item.ToPath, false); File.Delete(item.FromPath); }
                     ops.Add(new UndoJournal.MoveOp(item.FromPath, item.ToPath));
+                    movedAudio.Add(item.ToPath);
                     moved++;
+                    // Carry the lyrics sidecar (.lrc) along with its track so fetched lyrics aren't left behind.
+                    var lrc = Path.ChangeExtension(item.FromPath, ".lrc");
+                    if (File.Exists(lrc))
+                    {
+                        var lrcDest = Path.ChangeExtension(item.ToPath, ".lrc");
+                        try
+                        {
+                            try { File.Move(lrc, lrcDest); }
+                            catch (IOException) { File.Copy(lrc, lrcDest, true); File.Delete(lrc); }
+                            ops.Add(new UndoJournal.MoveOp(lrc, lrcDest));
+                        }
+                        catch { }
+                    }
                 }
                 catch { }
             }
@@ -1166,16 +1190,9 @@ public class StagingViewModel : ViewModelBase
             _lib.Refresh(LibraryFolder);
 
             // Optioneel: lyrics ophalen voor wat zojuist de bibliotheek in ging (online, LRCLIB).
-            if (CleanupOptions.FetchLyricsOnApprove)
-            {
-                int li = 0;
-                foreach (var op in ops)
-                {
-                    var snap = ++li;
-                    Dispatcher.UIThread.Post(() => Status = $"Fetching lyrics… {snap}/{ops.Count}");
-                    try { await Lyrics.ApplyToFileAsync(op.To); } catch { }
-                }
-            }
+            // Runs in the background across cores so the inbox is free again immediately.
+            if (CleanupOptions.FetchLyricsOnApprove && movedAudio.Count > 0)
+                BackgroundJobs.RunLyrics(movedAudio);
 
             Dispatcher.UIThread.Post(() =>
             {

@@ -402,15 +402,28 @@ public class LibraryViewModel : ViewModelBase
         var token = _cts.Token;
         Task.Run(async () =>
         {
-            int got = 0;
-            for (int i = 0; i < files.Count; i++)
+            int got = 0, done = 0;
+            var po = new ParallelOptions
             {
-                if (token.IsCancellationRequested) break;
-                var snap = i + 1;
-                if (snap % 5 == 0 || snap == 1)
-                    Dispatcher.UIThread.Post(() => Status = $"Fetching lyrics… {snap}/{files.Count} ({got} found)");
-                try { if (await Lyrics.ApplyToFileAsync(files[i], token)) got++; } catch { }
+                MaxDegreeOfParallelism = Math.Clamp(Environment.ProcessorCount, 4, 8),
+                CancellationToken = token
+            };
+            try
+            {
+                await Parallel.ForEachAsync(files, po, async (f, ct) =>
+                {
+                    bool ok = false;
+                    try { ok = await Lyrics.ApplyToFileAsync(f, ct); } catch { }
+                    if (ok) Interlocked.Increment(ref got);
+                    var snap = Interlocked.Increment(ref done);
+                    if (snap % 5 == 0 || snap == 1)
+                    {
+                        var g0 = got;
+                        Dispatcher.UIThread.Post(() => Status = $"Fetching lyrics… {snap}/{files.Count} ({g0} found)");
+                    }
+                });
             }
+            catch (OperationCanceledException) { }
             var g = got;
             Dispatcher.UIThread.Post(() =>
             {

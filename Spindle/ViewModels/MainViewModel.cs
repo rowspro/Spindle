@@ -123,7 +123,7 @@ public class MainViewModel : ViewModelBase
     /// <summary>True whenever any tool is doing work — drives the glowing top progress bar.</summary>
     public bool IsWorking =>
         IndexBusy || Meta.IsBusy || Sync.IsBusy || Library.IsBusy || Staging.IsBusy
-        || Duplicates.IsBusy || Wantlist.IsBusy || Staging.DetailEditor.IsBusy;
+        || Duplicates.IsBusy || Wantlist.IsBusy || Staging.DetailEditor.IsBusy || BackgroundJobs.Busy;
 
     /// <summary>The status line of whichever tool is busy (usually "x/y …") — shown next to the top bar.</summary>
     public string WorkingStatus =>
@@ -134,6 +134,7 @@ public class MainViewModel : ViewModelBase
         : Meta.IsBusy ? Meta.Status
         : Duplicates.IsBusy ? Duplicates.Status
         : Wantlist.IsBusy ? Wantlist.Status
+        : BackgroundJobs.Busy ? BackgroundJobs.Status
         : IndexBusy ? GlobalStatus
         : "";
 
@@ -147,6 +148,12 @@ public class MainViewModel : ViewModelBase
         };
         Hook(Meta); Hook(Sync); Hook(Library); Hook(Staging);
         Hook(Duplicates); Hook(Wantlist); Hook(Staging.DetailEditor);
+        // Background lyric jobs run off the VMs; refresh the indicator when they progress.
+        BackgroundJobs.Changed += () => Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+        {
+            OnPropertyChanged(nameof(IsWorking));
+            OnPropertyChanged(nameof(WorkingStatus));
+        });
     }
 
     private double _indexPercent;
