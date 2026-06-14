@@ -421,8 +421,13 @@ public sealed class DoctorViewModel : ViewModelBase
         {
             var tags = new List<UndoJournal.TagOp>();
             var moves = new List<UndoJournal.MoveOp>();
+            int i = 0;
             foreach (var f in list)
             {
+                var snap = ++i;
+                Dispatcher.UIThread.Post(() => Summary = category == "Genres"
+                    ? $"Retagging genres… {snap}/{list.Count}"
+                    : $"Moving into place… {snap}/{list.Count}");
                 if (category == "Genres") tags.AddRange(RetagGenre(f));
                 else moves.AddRange(DoMoves(f.PlannedMoves, root));
             }

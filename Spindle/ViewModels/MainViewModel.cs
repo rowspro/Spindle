@@ -122,12 +122,14 @@ public class MainViewModel : ViewModelBase
 
     /// <summary>True whenever any tool is doing work — drives the glowing top progress bar.</summary>
     public bool IsWorking =>
-        IndexBusy || Meta.IsBusy || Sync.IsBusy || Library.IsBusy || Staging.IsBusy
-        || Duplicates.IsBusy || Wantlist.IsBusy || Staging.DetailEditor.IsBusy || BackgroundJobs.Busy;
+        IndexBusy || Meta.IsBusy || Meta.Grid.IsBusy || Sync.IsBusy || Library.IsBusy || Library.Doctor.IsBusy
+        || Staging.IsBusy || Duplicates.IsBusy || Wantlist.IsBusy
+        || Staging.DetailEditor.IsBusy || Staging.DetailEditor.Grid.IsBusy || BackgroundJobs.Busy;
 
     /// <summary>The status line of whichever tool is busy (usually "x/y …") — shown next to the top bar.</summary>
     public string WorkingStatus =>
         Library.IsBusy ? Library.Status
+        : Library.Doctor.IsBusy ? Library.Doctor.Summary
         : Sync.IsBusy ? Sync.Status
         : Staging.IsBusy ? Staging.Status
         : Staging.DetailEditor.IsBusy ? Staging.DetailEditor.Status
@@ -148,6 +150,17 @@ public class MainViewModel : ViewModelBase
         };
         Hook(Meta); Hook(Sync); Hook(Library); Hook(Staging);
         Hook(Duplicates); Hook(Wantlist); Hook(Staging.DetailEditor);
+        // Library Doctor: its progress text is "Summary" (unify / move into place / retag).
+        Library.Doctor.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(DoctorViewModel.IsBusy)) OnPropertyChanged(nameof(IsWorking));
+            if (e.PropertyName == nameof(DoctorViewModel.IsBusy) || e.PropertyName == nameof(DoctorViewModel.Summary))
+                OnPropertyChanged(nameof(WorkingStatus));
+        };
+        // Track-table saves (write to disk) drive the top bar too.
+        void HookGrid(TagGridViewModel g) => g.PropertyChanged += (_, e) =>
+        { if (e.PropertyName == nameof(TagGridViewModel.IsBusy)) OnPropertyChanged(nameof(IsWorking)); };
+        HookGrid(Meta.Grid); HookGrid(Staging.DetailEditor.Grid);
         // Background lyric jobs run off the VMs; refresh the indicator when they progress.
         BackgroundJobs.Changed += () => Avalonia.Threading.Dispatcher.UIThread.Post(() =>
         {
