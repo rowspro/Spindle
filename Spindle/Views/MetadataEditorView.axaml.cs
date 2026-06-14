@@ -25,8 +25,8 @@ public partial class MetadataEditorView : UserControl
 
     private void InitializeComponent() => AvaloniaXamlLoader.Load(this);
 
-    // Genre multi-tag: filter on the segment after the last ';' and, on pick, replace only that segment —
-    // so "Rock; " offers the full list again and selecting "Pop" yields "Rock; Pop".
+    // Genre multi-tag: filter on the segment after the user's chosen separator and, on pick, replace only
+    // that segment — so "Rock, " offers the full list again and selecting "Pop" yields "Rock, Pop".
     private void WireGenreMultiTag()
     {
         if (this.FindControl<AutoCompleteBox>("GenreBox") is not { } gb) return;
@@ -38,16 +38,18 @@ public partial class MetadataEditorView : UserControl
         gb.TextSelector = (search, item) =>
         {
             var s = search ?? "";
-            int i = s.LastIndexOf(';');
-            return i >= 0 ? s.Substring(0, i + 1).TrimEnd() + " " + item : item;
+            var sep = Spindle.CleanupOptions.GenreSeparator;
+            int i = s.LastIndexOf(sep, StringComparison.Ordinal);
+            return i >= 0 ? s.Substring(0, i + sep.Length).TrimEnd() + " " + item : item;
         };
     }
 
     private static string LastGenreSegment(string? text)
     {
         if (string.IsNullOrEmpty(text)) return "";
-        int i = text.LastIndexOf(';');
-        return (i >= 0 ? text.Substring(i + 1) : text).Trim();
+        var sep = Spindle.CleanupOptions.GenreSeparator;
+        int i = text.LastIndexOf(sep, StringComparison.Ordinal);
+        return (i >= 0 ? text.Substring(i + sep.Length) : text).Trim();
     }
 
     private MetadataEditorViewModel? Vm => DataContext as MetadataEditorViewModel;

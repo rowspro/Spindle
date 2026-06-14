@@ -744,6 +744,8 @@ public class MetadataEditorViewModel : ViewModelBase
             Title = Collapse(Title); Artist = Collapse(Artist); AlbumArtist = Collapse(AlbumArtist);
             Album = Collapse(Album); Genre = Collapse(Genre);
         }
+        // Unify multi-genre separators to the chosen one (consistent tagging).
+        Genre = GenreFormat.UnifySeparators(Genre);
         bool artChangedNow = _artChanged;
         try
         {

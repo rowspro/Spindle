@@ -13,6 +13,10 @@ public static class CleanupOptions
     // Keep every genre (each canonicalized, deduped) instead of reducing to the primary one.
     public static bool KeepMultipleGenres { get; set; }
 
+    // Separator the user picks for multi-genre tags. All other multi-genre separators are unified to it
+    // on save (a single "/" is left alone — it lives inside canonical names like Hip-Hop/Rap).
+    public static string GenreSeparator { get; set; } = ",";
+
     // After saving tag edits in the editor, rename the file to match the filename template.
     public static bool RenameToMatchTags { get; set; } = true;
 

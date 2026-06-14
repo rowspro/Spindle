@@ -378,6 +378,14 @@ public class MainViewModel : ViewModelBase
         set { if (SetField(ref _keepMultipleGenres, value)) CleanupOptions.KeepMultipleGenres = value; }
     }
 
+    public string[] GenreSeparatorOptions { get; } = { ",", ";", "//", "\\" };
+    private string _genreSeparator = ",";
+    public string GenreSeparator
+    {
+        get => _genreSeparator;
+        set { if (SetField(ref _genreSeparator, value ?? ",")) CleanupOptions.GenreSeparator = _genreSeparator; }
+    }
+
     private bool _renameToMatchTags = true;
     public bool RenameToMatchTags
     {
@@ -566,6 +574,7 @@ public class MainViewModel : ViewModelBase
         FilenameTemplate = string.IsNullOrWhiteSpace(FilenameTemplate) ? NameTemplate.Default : FilenameTemplate.Trim(),
         SplitArtistOnComma = SplitArtistOnComma,
         KeepMultipleGenres = KeepMultipleGenres,
+        GenreSeparator = GenreSeparator,
         RenameToMatchTags = RenameToMatchTags,
         TrimSpaces = TrimSpaces,
         FetchLyricsOnApprove = FetchLyricsOnApprove,
@@ -599,6 +608,7 @@ public class MainViewModel : ViewModelBase
         DiscogsToken = c.DiscogsToken ?? string.Empty;
         SplitArtistOnComma = c.SplitArtistOnComma;
         KeepMultipleGenres = c.KeepMultipleGenres;
+        GenreSeparator = string.IsNullOrEmpty(c.GenreSeparator) ? "," : c.GenreSeparator;
         RenameToMatchTags = c.RenameToMatchTags;
         TrimSpaces = c.TrimSpaces;
         FetchLyricsOnApprove = c.FetchLyricsOnApprove;

@@ -20,6 +20,7 @@ public class SpindleConfig
     // Personalisations — Database (My Music). See docs/IPOD_BEHAVIOR.md.
     public bool SplitArtistOnComma { get; set; } = true;            // false keeps "Last, First" sortnames intact
     public bool KeepMultipleGenres { get; set; }                    // true keeps multi-genre tags instead of reducing to one
+    public string GenreSeparator { get; set; } = ",";              // chosen multi-genre separator (",", ";", "//", "\\")
     public bool RenameToMatchTags { get; set; } = true;            // rename files to the template after a tag edit
     public bool TrimSpaces { get; set; } = true;                    // collapse stray spaces in tags automatically on save
     public bool FetchLyricsOnApprove { get; set; }                  // fetch lyrics online when approving from the Inbox

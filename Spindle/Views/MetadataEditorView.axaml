@@ -134,7 +134,7 @@
                     <TextBlock Classes="label" Text="Genre" />
                     <AutoCompleteBox Name="GenreBox" Grid.Column="1" Text="{Binding Genre, Mode=TwoWay}" ItemsSource="{Binding GenreOptions}"
                                      FilterMode="Custom" IsTextCompletionEnabled="False" MinimumPrefixLength="0"
-                                     Watermark="Pick a genre, or add more with ; (e.g. Rock; Pop)" />
+                                     Watermark="Pick a genre, or add more with your separator (Settings)" />
                 </Grid>
                 <Grid ColumnDefinitions="110,*"><TextBlock Classes="label" Text="Year" /><TextBox Grid.Column="1" Text="{Binding Year}" /></Grid>
                 <Grid ColumnDefinitions="110,*"><TextBlock Classes="label" Text="AcoustID key" /><TextBox Grid.Column="1" Text="{Binding AcoustIdKey}" Watermark="optional — for untagged files (free via acoustid.org)" /></Grid>

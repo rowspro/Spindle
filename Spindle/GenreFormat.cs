@@ -11,6 +11,37 @@ public static class GenreFormat
 {
     private static readonly char[] Separators = { '/', ';', ',', '|', '\\' };
 
+    // Multi-genre separators we unify (NOT a lone '/', which lives inside canonical names like Hip-Hop/Rap).
+    private static readonly string[] MultiSeparators = { "//", "\\", ";", ",", "|" };
+
+    /// <summary>The chosen separator rendered with its usual spacing, e.g. "Rock, Pop" / "Rock // Pop".</summary>
+    public static string SepJoin => CleanupOptions.GenreSeparator switch
+    {
+        ";" => "; ",
+        "//" => " // ",
+        "\\" => " \\ ",
+        _ => ", ",
+    };
+
+    /// <summary>
+    /// Unify the multi-genre separators in a tag to the user's chosen one — without canonicalizing the
+    /// names and without touching a lone '/' (part of names like Hip-Hop/Rap). Used on save so tagging
+    /// stays consistent: "Rock; Pop" / "Rock\Pop" → "Rock, Pop" when the separator is a comma.
+    /// </summary>
+    public static string UnifySeparators(string? s)
+    {
+        if (string.IsNullOrWhiteSpace(s)) return s ?? string.Empty;
+        const char sentinel = '\u0001';
+        var tmp = s;
+        foreach (var o in MultiSeparators) tmp = tmp.Replace(o, sentinel.ToString());
+        var tokens = tmp.Split(sentinel, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        if (tokens.Length <= 1) return s.Trim();
+        var dedup = new List<string>();
+        foreach (var t in tokens)
+            if (!dedup.Any(x => string.Equals(x, t, StringComparison.OrdinalIgnoreCase))) dedup.Add(t);
+        return string.Join(SepJoin, dedup);
+    }
+
     public static string Normalize(string? s)
     {
         if (string.IsNullOrWhiteSpace(s)) return s ?? string.Empty;
@@ -25,7 +56,7 @@ public static class GenreFormat
                 var c = Canonical(tk);
                 if (!canon.Any(x => string.Equals(x, c, StringComparison.OrdinalIgnoreCase))) canon.Add(c);
             }
-            return canon.Count == 0 ? Canonical(s.Trim()) : string.Join(", ", canon);
+            return canon.Count == 0 ? Canonical(s.Trim()) : string.Join(SepJoin, canon);
         }
 
         // Take the primary genre when several are jammed together with a separator.
