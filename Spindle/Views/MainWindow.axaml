@@ -445,6 +445,13 @@
                 IsVisible="{Binding IsWorking}" BoxShadow="0 0 10 0 #803B82F6">
             <ProgressBar Classes="topbusy" IsIndeterminate="True" MinHeight="3" Height="3" />
         </Border>
+        <!-- Floating progress text (x/y …) shown on any screen while working. -->
+        <Border Grid.ColumnSpan="2" VerticalAlignment="Top" HorizontalAlignment="Center" ZIndex="101" Margin="0,9,0,0"
+                IsVisible="{Binding IsWorking}" Background="{DynamicResource Surface}" BorderBrush="{DynamicResource CardBorder}"
+                BorderThickness="1" CornerRadius="9999" Padding="12,4" BoxShadow="0 2 8 0 #25000000">
+            <TextBlock Text="{Binding WorkingStatus}" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource TextSecondary}"
+                       TextTrimming="CharacterEllipsis" MaxWidth="520" />
+        </Border>
 
         <!-- ===== Sidebar ===== -->
         <Border Grid.Column="0" Background="{DynamicResource SidebarBg}"
@@ -1342,17 +1349,8 @@
                                 <StackPanel Orientation="Horizontal" Spacing="6"><TextBlock Classes="icon" FontSize="17" Text="&#xE5C4;" /><TextBlock Text="Back" VerticalAlignment="Center" /></StackPanel>
                             </Button>
                             <TextBlock Grid.Column="1" Margin="14,0,0,0" Classes="h2" Text="{Binding DetailTitle}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
-                            <Button Grid.Column="2" Classes="ghost" Click="OnInboxCoverChoose" ToolTip.Tip="Choose a cover image and apply it to this whole album.">
-                                <StackPanel Orientation="Horizontal" Spacing="6"><TextBlock Classes="icon" FontSize="16" Text="&#xE3F4;" /><TextBlock Text="Cover…" VerticalAlignment="Center" /></StackPanel>
-                            </Button>
-                            <Button Grid.Column="3" Classes="ghost" Margin="6,0,0,0" Click="OnInboxCoverPaste" ToolTip.Tip="Paste a cover from the clipboard and apply it to this whole album.">
-                                <TextBlock Classes="icon" FontSize="16" Text="&#xE14F;" />
-                            </Button>
-                            <Button Grid.Column="4" Classes="ghost" Margin="6,0,0,0" Command="{Binding EditInMetadataCommand}">
-                                <StackPanel Orientation="Horizontal" Spacing="6"><TextBlock Classes="icon" FontSize="16" Text="&#xE892;" /><TextBlock Text="Edit in Metadata" VerticalAlignment="Center" /></StackPanel>
-                            </Button>
                         </Grid>
-                        <ItemsControl Grid.Row="1" ItemsSource="{Binding DetailChecks}" Margin="0,0,0,10">
+                        <ItemsControl Grid.Row="1" IsVisible="False" ItemsSource="{Binding DetailChecks}" Margin="0,0,0,10">
                             <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
@@ -1364,7 +1362,7 @@
                         </ItemsControl>
                         <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
                             <StackPanel Spacing="12">
-                                <Border Classes="card" Padding="14" IsVisible="{Binding HasVersions}">
+                                <Border Classes="card" Padding="14" IsVisible="False">
                                     <StackPanel>
                                         <TextBlock Classes="title" FontSize="13.5" Text="Multiple versions received — keep the best" />
                                         <TextBlock Classes="caption" Margin="0,2,0,8" Text="Pick one; the other folders move to the trash in one undoable batch." />
@@ -1386,7 +1384,7 @@
                                         </ItemsControl>
                                     </StackPanel>
                                 </Border>
-                                <Border Classes="card" IsVisible="{Binding HasDuplicates}">
+                                <Border Classes="card" IsVisible="False">
                                     <StackPanel>
                                         <TextBlock Classes="title" Text="Duplicates in this folder" />
                                         <ItemsControl ItemsSource="{Binding DetailDuplicates}" Margin="0,8,0,0">
@@ -1417,7 +1415,7 @@
                                         </ItemsControl>
                                     </StackPanel>
                                 </Border>
-                                <Border Classes="card">
+                                <Border Classes="card" IsVisible="False">
                                     <StackPanel>
                                         <TextBlock Classes="title" Text="Files" />
                                         <ItemsControl ItemsSource="{Binding DetailFiles}" Margin="0,8,0,0">

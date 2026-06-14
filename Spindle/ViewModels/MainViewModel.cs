@@ -114,20 +114,36 @@ public class MainViewModel : ViewModelBase
     }
 
     private string _globalStatus = "Ready.";
-    public string GlobalStatus { get => _globalStatus; private set => SetField(ref _globalStatus, value); }
+    public string GlobalStatus { get => _globalStatus; private set { if (SetField(ref _globalStatus, value)) OnPropertyChanged(nameof(WorkingStatus)); } }
 
     private bool _indexBusy;
-    public bool IndexBusy { get => _indexBusy; private set { if (SetField(ref _indexBusy, value)) OnPropertyChanged(nameof(IsWorking)); } }
+    public bool IndexBusy { get => _indexBusy; private set { if (SetField(ref _indexBusy, value)) { OnPropertyChanged(nameof(IsWorking)); OnPropertyChanged(nameof(WorkingStatus)); } } }
 
     /// <summary>True whenever any tool is doing work — drives the glowing top progress bar.</summary>
     public bool IsWorking =>
         IndexBusy || Meta.IsBusy || Sync.IsBusy || Library.IsBusy || Staging.IsBusy
         || Duplicates.IsBusy || Wantlist.IsBusy || Staging.DetailEditor.IsBusy;
 
+    /// <summary>The status line of whichever tool is busy (usually "x/y …") — shown next to the top bar.</summary>
+    public string WorkingStatus =>
+        Library.IsBusy ? Library.Status
+        : Sync.IsBusy ? Sync.Status
+        : Staging.IsBusy ? Staging.Status
+        : Staging.DetailEditor.IsBusy ? Staging.DetailEditor.Status
+        : Meta.IsBusy ? Meta.Status
+        : Duplicates.IsBusy ? Duplicates.Status
+        : Wantlist.IsBusy ? Wantlist.Status
+        : IndexBusy ? GlobalStatus
+        : "";
+
     private void WireBusyIndicator()
     {
         void Hook(ViewModelBase vm) => vm.PropertyChanged += (_, e) =>
-        { if (e.PropertyName == "IsBusy") OnPropertyChanged(nameof(IsWorking)); };
+        {
+            if (e.PropertyName == "IsBusy") OnPropertyChanged(nameof(IsWorking));
+            if (e.PropertyName == "IsBusy" || e.PropertyName == "Status")
+                OnPropertyChanged(nameof(WorkingStatus));
+        };
         Hook(Meta); Hook(Sync); Hook(Library); Hook(Staging);
         Hook(Duplicates); Hook(Wantlist); Hook(Staging.DetailEditor);
     }

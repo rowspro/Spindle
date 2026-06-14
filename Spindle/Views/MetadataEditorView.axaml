@@ -4,7 +4,7 @@
              x:CompileBindings="False"
              x:Class="Spindle.Views.MetadataEditorView">
     <!-- DataContext is a MetadataEditorViewModel, supplied by the host (Metadata tab or Inbox detail). -->
-    <Grid RowDefinitions="Auto,Auto,*,Auto">
+    <Grid RowDefinitions="Auto,Auto,Auto,*,Auto">
         <Grid Grid.Row="0" ColumnDefinitions="Auto,Auto,Auto,Auto,Auto,*,Auto">
             <Button Grid.Column="0" Classes="ghost" Content="Open file…" Click="OnOpenMetaFile" IsVisible="{Binding ShowSourceButtons}" />
             <Button Grid.Column="1" Classes="ghost" Content="Open folder…" Margin="8,0,0,0" Click="OnOpenMetaFolder" IsVisible="{Binding ShowSourceButtons}" />
@@ -30,7 +30,72 @@
                        Text="{Binding AlbumMatchBlockReason}" ToolTip.Tip="{Binding AlbumMatchBlockReason}"
                        IsVisible="{Binding AlbumMatchBlocked}" />
         </StackPanel>
-        <Panel Grid.Row="2" Margin="0,14,0,0">
+        <!-- Album health checks + inbox-only pruning (versions / duplicates) -->
+        <StackPanel Grid.Row="2" Spacing="8" Margin="0,10,0,0">
+            <ItemsControl ItemsSource="{Binding Checks}">
+                <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border Classes="checkchip" Classes.ok="{Binding IsOk}" Classes.warn="{Binding IsWarn}"><TextBlock Text="{Binding Text}" /></Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <Border Classes="card" Padding="12" IsVisible="{Binding HasVersions}">
+                <StackPanel>
+                    <TextBlock Classes="title" FontSize="13" Text="Multiple versions received — keep the best" />
+                    <TextBlock Classes="caption" Margin="0,2,0,8" Text="Pick one; the other folders move to the trash in one undoable batch." />
+                    <ItemsControl ItemsSource="{Binding Versions}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Grid ColumnDefinitions="*,Auto,Auto" Margin="0,3,0,3">
+                                    <StackPanel VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding DirName}" FontWeight="SemiBold" FontSize="13" Foreground="{DynamicResource TextPrimary}" TextTrimming="CharacterEllipsis" />
+                                        <TextBlock Classes="caption" Text="{Binding Stats}" />
+                                    </StackPanel>
+                                    <Border Grid.Column="1" CornerRadius="9999" Padding="9,3" Margin="8,0" Background="{DynamicResource SuccessBg}" IsVisible="{Binding IsBest}" VerticalAlignment="Center">
+                                        <TextBlock Text="best quality" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource Success}" />
+                                    </Border>
+                                    <Button Grid.Column="2" Classes="primary" Padding="12,5" VerticalAlignment="Center" Content="Keep this one" Command="{Binding KeepCommand}" />
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Border>
+            <Border Classes="card" IsVisible="{Binding HasDuplicates}">
+                <StackPanel>
+                    <TextBlock Classes="title" Text="Duplicates in this folder" />
+                    <ItemsControl ItemsSource="{Binding Duplicates}" Margin="0,8,0,0">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Padding="10,8" Margin="0,0,0,6" CornerRadius="8" Background="{DynamicResource Recess}">
+                                    <StackPanel>
+                                        <TextBlock Text="{Binding Title}" Classes="title" FontSize="13" />
+                                        <ItemsControl ItemsSource="{Binding Files}" Margin="0,4,0,0">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Grid ColumnDefinitions="*,Auto,Auto,Auto" Margin="0,2">
+                                                        <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                                            <TextBlock Text="{Binding FileName}" FontSize="12" Foreground="{DynamicResource TextPrimary}" TextTrimming="CharacterEllipsis" />
+                                                            <TextBlock Text="{Binding Meta}" Classes="caption" FontSize="10" TextTrimming="CharacterEllipsis" />
+                                                        </StackPanel>
+                                                        <Button Grid.Column="1" Classes="ghost" Padding="8,3" Margin="8,0,0,0" VerticalAlignment="Center" Command="{Binding PlayCommand}" ToolTip.Tip="Play"><TextBlock Classes="icon" FontSize="15" Text="&#xE037;" Foreground="{DynamicResource Accent}" /></Button>
+                                                        <Border Grid.Column="2" Classes="badge" Margin="8,0,8,0" VerticalAlignment="Center"><TextBlock Text="{Binding Format}" /></Border>
+                                                        <Button Grid.Column="3" Classes="ghost" Padding="8,3" VerticalAlignment="Center" Command="{Binding DeleteCommand}" ToolTip.Tip="Delete this file (to _Verwijderd, reversible)."><TextBlock Classes="icon" FontSize="15" Text="&#xE872;" Foreground="{DynamicResource ErrorBrush}" /></Button>
+                                                    </Grid>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+
+        <Panel Grid.Row="3" Margin="0,14,0,0">
         <Grid ColumnDefinitions="*,Auto" IsVisible="{Binding IsFormMode}">
             <StackPanel Grid.Column="0" Spacing="8">
                 <Grid ColumnDefinitions="110,*"><TextBlock Classes="label" Text="Title" /><TextBox Grid.Column="1" Text="{Binding Title}" /></Grid>
@@ -164,7 +229,7 @@
             </Border>
         </Border>
         </Panel>
-        <Grid Grid.Row="3" ColumnDefinitions="*,Auto" Margin="0,12,0,0">
+        <Grid Grid.Row="4" ColumnDefinitions="*,Auto" Margin="0,12,0,0">
             <SelectableTextBlock Grid.Column="0" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondary}" Text="{Binding Status}" />
             <Button Grid.Column="1" Classes="primary" Content="Save" Command="{Binding SaveCommand}" IsVisible="{Binding IsFormMode}"
                     ToolTip.Tip="Save the tag edits to this track. Approving the whole album happens in the Inbox when it's correct and complete." />

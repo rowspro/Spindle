@@ -281,9 +281,13 @@ public class StagingViewModel : ViewModelBase
                 DetailVersions.Clear();
                 foreach (var v in versions) DetailVersions.Add(v.Vm);
                 OnPropertyChanged(nameof(HasVersions));
+                DetailEditor.Versions.Clear();
+                foreach (var v in versions) DetailEditor.Versions.Add(v.Vm);
                 DetailFiles.Clear();
                 foreach (var r in rows.OrderBy(r => r.FileName, StringComparer.OrdinalIgnoreCase)) DetailFiles.Add(r);
                 RebuildDuplicates();
+                DetailEditor.Duplicates.Clear();
+                foreach (var g in DetailDuplicates) DetailEditor.Duplicates.Add(g);
                 ShowDetail = true;
                 RebuildChecks(album);
                 Status = $"{DetailFiles.Count} tracks in '{album.Title}'.";

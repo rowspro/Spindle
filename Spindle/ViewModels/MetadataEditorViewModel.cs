@@ -23,12 +23,24 @@ public class MetadataEditorViewModel : ViewModelBase
     /// <summary>Show the "Open file/folder" entry buttons (true in the Metadata tab, false when embedded in the Inbox).</summary>
     public bool ShowSourceButtons { get; init; } = true;
 
+    // ---- Album "health" checks shown as chips in the editor (what's wrong) ----
+    public ObservableCollection<CheckItem> Checks { get; } = new();
+    // Inbox-only pruning: multiple downloaded versions / in-folder duplicates (populated by the host).
+    public ObservableCollection<StagingVersionViewModel> Versions { get; } = new();
+    public ObservableCollection<StagingDupGroup> Duplicates { get; } = new();
+    public bool HasVersions => Versions.Count > 1;
+    public bool HasDuplicates => Duplicates.Count > 0;
+
+    private static readonly string[] LosslessExtns = { ".flac", ".wav", ".aiff", ".aif", ".alac" };
+
     private readonly UndoJournal? _undo;
 
     public MetadataEditorViewModel(LibraryService? lib = null, UndoJournal? undo = null)
     {
         _undo = undo;
         Grid = new TagGridViewModel(lib, undo);
+        Versions.CollectionChanged += (_, _) => OnPropertyChanged(nameof(HasVersions));
+        Duplicates.CollectionChanged += (_, _) => OnPropertyChanged(nameof(HasDuplicates));
         ModeFormCommand = new RelayCommand(() => EditorMode = "form");
         ModeTableCommand = new RelayCommand(() => { if (!Grid.HasDirty) Grid.Reload(); EditorMode = "tabel"; });
         ModeConvCommand = new RelayCommand(() => { if (!Grid.HasDirty) Grid.Reload(); EditorMode = "conv"; });
@@ -80,6 +92,67 @@ public class MetadataEditorViewModel : ViewModelBase
     private static string NormKey(string? s) => System.Text.RegularExpressions.Regex.Replace((s ?? "").ToLowerInvariant(), "[^a-z0-9]", "");
 
     // Read the loaded files and decide whether they form one coherent, matchable album.
+    // Compute the album "health" checks from the loaded files (+ async MusicBrainz completeness).
+    private void RecomputeChecks()
+    {
+        var files = _allFiles.ToList();
+        Task.Run(async () =>
+        {
+            bool tags = true, cover = true, year = true, genre = true, lossless = true, single = true;
+            var trackKeys = new HashSet<(int, int)>();
+            string artist = "", album = ""; int n = 0;
+            foreach (var f in files)
+            {
+                try
+                {
+                    var t = new Track(f);
+                    var eff = !string.IsNullOrWhiteSpace(t.AlbumArtist) ? t.AlbumArtist : (t.Artist ?? "");
+                    if (string.IsNullOrWhiteSpace(t.Title) || string.IsNullOrWhiteSpace(eff)) tags = false;
+                    if (t.EmbeddedPictures.Count == 0 &&
+                        !System.IO.File.Exists(System.IO.Path.Combine(System.IO.Path.GetDirectoryName(f) ?? "", "folder.jpg"))) cover = false;
+                    if (((int?)t.Year ?? 0) <= 0) year = false;
+                    if (string.IsNullOrWhiteSpace(t.Genre)) genre = false;
+                    if (!LosslessExtns.Contains(System.IO.Path.GetExtension(f).ToLowerInvariant())) lossless = false;
+                    int tn = t.TrackNumber ?? 0, dc = t.DiscNumber ?? 0;
+                    if (tn > 0 && !trackKeys.Add((dc, tn))) single = false;
+                    if (artist.Length == 0) { artist = eff; album = t.Album ?? ""; }
+                    n++;
+                }
+                catch { }
+            }
+            Dispatcher.UIThread.Post(() =>
+            {
+                Checks.Clear();
+                Checks.Add(new CheckItem("tags complete", tags));
+                Checks.Add(new CheckItem("cover art", cover));
+                Checks.Add(new CheckItem("year", year));
+                Checks.Add(new CheckItem("genre", genre));
+                Checks.Add(new CheckItem("single version", single));
+                Checks.Add(new CheckItem("lossless", lossless));
+                Checks.Add(new CheckItem("completeness check pending (MusicBrainz)…", null));
+            });
+            // Async completeness: compare the loaded track count against the matched release
+            // (same source as "Album match"). Only show the chip when we actually know the count.
+            int exp = 0;
+            try
+            {
+                if (n > 0 && artist.Length > 0 && album.Length > 0)
+                {
+                    var cands = await AlbumMetadata.SearchAsync(artist, album, n, DiscogsToken);
+                    var best = cands?.FirstOrDefault();
+                    if (best != null) { await AlbumMetadata.EnsureTracksAsync(best, DiscogsToken); exp = best.TrackTitles.Count; }
+                }
+            }
+            catch { }
+            Dispatcher.UIThread.Post(() =>
+            {
+                if (Checks.Count == 0) return;
+                if (exp > 0) Checks[Checks.Count - 1] = new CheckItem($"complete ({n}/{exp} tracks)", n >= exp);
+                else Checks.RemoveAt(Checks.Count - 1);   // unknown → don't show a noisy chip
+            });
+        });
+    }
+
     private void RecomputeAlbumMatchable()
     {
         var files = _allFiles.ToList();
@@ -215,6 +288,7 @@ public class MetadataEditorViewModel : ViewModelBase
         Grid.Load(_allFiles);
         EditorMode = "form";
         RecomputeAlbumMatchable();
+        RecomputeChecks();
     }
 
     public void LoadFolder(string folder)
@@ -237,6 +311,7 @@ public class MetadataEditorViewModel : ViewModelBase
             Grid.Load(_allFiles);
             EditorMode = _files.Count > 1 ? "tabel" : "form";
             RecomputeAlbumMatchable();
+        RecomputeChecks();
         }
         catch (Exception e)
         {
@@ -266,6 +341,7 @@ public class MetadataEditorViewModel : ViewModelBase
         Grid.Load(_allFiles);
         EditorMode = _files.Count > 1 ? "tabel" : "form";
         RecomputeAlbumMatchable();
+        RecomputeChecks();
     }
 
     private async void MatchAlbum()
