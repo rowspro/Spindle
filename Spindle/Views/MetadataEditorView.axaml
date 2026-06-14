@@ -19,8 +19,6 @@
             <ProgressBar Classes="topbusy" IsIndeterminate="True" MinHeight="3" Height="3" />
         </Border>
         <Grid Grid.Row="0" ColumnDefinitions="Auto,Auto,Auto,Auto,Auto,*,Auto">
-            <Button Grid.Column="0" Classes="ghost" Content="Open file…" Click="OnOpenMetaFile" IsVisible="{Binding ShowSourceButtons}" />
-            <Button Grid.Column="1" Classes="ghost" Content="Open folder…" Margin="8,0,0,0" Click="OnOpenMetaFolder" IsVisible="{Binding ShowSourceButtons}" />
             <Button Grid.Column="2" Classes="primary" Command="{Binding MatchAlbumCommand}"
                     ToolTip.Tip="Matches the whole album against one release (Apple/Discogs/MusicBrainz) and applies consistent tags + cover to all tracks.">
                 <StackPanel Orientation="Horizontal" Spacing="6"><TextBlock Classes="icon" FontSize="17" Text="&#xE019;" /><TextBlock Text="Album match" VerticalAlignment="Center" /></StackPanel>
