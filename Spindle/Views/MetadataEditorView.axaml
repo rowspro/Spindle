@@ -32,6 +32,19 @@
         </StackPanel>
         <!-- Album health checks + inbox-only pruning (versions / duplicates) -->
         <StackPanel Grid.Row="2" Spacing="8" Margin="0,10,0,0">
+            <Border Classes="card" Padding="10,7" IsVisible="{Binding HasAlbumQueue}">
+                <Grid ColumnDefinitions="Auto,*,Auto,Auto">
+                    <TextBlock Grid.Column="0" Classes="title" FontSize="13" VerticalAlignment="Center" Text="{Binding AlbumQueuePosition}" />
+                    <TextBlock Grid.Column="1" Classes="caption" Margin="12,0,0,0" VerticalAlignment="Center"
+                               Text="Editing several albums in a row — finish this one, then go to the next." />
+                    <Button Grid.Column="2" Classes="ghost" Command="{Binding PrevAlbumCommand}">
+                        <StackPanel Orientation="Horizontal" Spacing="6"><TextBlock Classes="icon" FontSize="16" Text="&#xE5C4;" /><TextBlock Text="Previous album" VerticalAlignment="Center" /></StackPanel>
+                    </Button>
+                    <Button Grid.Column="3" Classes="primary" Margin="6,0,0,0" Command="{Binding NextAlbumCommand}">
+                        <StackPanel Orientation="Horizontal" Spacing="6"><TextBlock Text="Next album" VerticalAlignment="Center" /><TextBlock Classes="icon" FontSize="16" Text="&#xE5C8;" /></StackPanel>
+                    </Button>
+                </Grid>
+            </Border>
             <ItemsControl ItemsSource="{Binding Checks}">
                 <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
                 <ItemsControl.ItemTemplate>

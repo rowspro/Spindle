@@ -50,6 +50,8 @@ public class MetadataEditorViewModel : ViewModelBase
         ApplyGenreToAlbumCommand = new RelayCommand(ApplyGenreToAlbum, () => HasFile && !IsBusy);
         RemoveArtCommand = new RelayCommand(RemoveArt, () => HasFile && !IsBusy);
         ApplyArtNowCommand = new RelayCommand(ApplyArtNow, () => HasFile && !IsBusy);
+        NextAlbumCommand = new RelayCommand(() => GoToAlbum(_albumIndex + 1), () => HasNextAlbum && !IsBusy);
+        PrevAlbumCommand = new RelayCommand(() => GoToAlbum(_albumIndex - 1), () => HasPrevAlbum && !IsBusy);
         MatchAlbumCommand = new RelayCommand(MatchAlbum, () => HasFile && !IsBusy && AlbumMatchable);
         ApplyAlbumMatchCommand = new RelayCommand(ApplyAlbumMatch, () => SelectedCandidate != null && !IsBusy);
         CancelCandidatesCommand = new RelayCommand(() => ShowCandidates = false);
@@ -209,6 +211,16 @@ public class MetadataEditorViewModel : ViewModelBase
     public bool HasPrev => _index > 0;
     public string Position => _files.Count > 0 ? $"{_index + 1} / {_files.Count}" : string.Empty;
 
+    // ---- album queue: edit several albums one by one (⌘-click multiple, then open) ----
+    private List<(List<string> Files, string Label)> _albumQueue = new();
+    private int _albumIndex;
+    public bool HasAlbumQueue => _albumQueue.Count > 1;
+    public bool HasNextAlbum => _albumIndex < _albumQueue.Count - 1;
+    public bool HasPrevAlbum => _albumIndex > 0;
+    public string AlbumQueuePosition => HasAlbumQueue ? $"Album {_albumIndex + 1} of {_albumQueue.Count}" : string.Empty;
+    public RelayCommand NextAlbumCommand { get; }
+    public RelayCommand PrevAlbumCommand { get; }
+
     private string _fileName = string.Empty;
     public string FileName { get => _fileName; private set => SetField(ref _fileName, value); }
 
@@ -279,6 +291,7 @@ public class MetadataEditorViewModel : ViewModelBase
 
     public void Open(string path)
     {
+        _albumQueue = new(); _albumIndex = 0; RaiseAlbumQueue();
         _folderLoaded = false;
         _reviewNotes.Clear();
         _files = new List<string> { path };
@@ -293,6 +306,7 @@ public class MetadataEditorViewModel : ViewModelBase
 
     public void LoadFolder(string folder)
     {
+        _albumQueue = new(); _albumIndex = 0; RaiseAlbumQueue();
         try
         {
             _files = System.IO.Directory
@@ -321,6 +335,44 @@ public class MetadataEditorViewModel : ViewModelBase
 
     /// <summary>Load an explicit set of files (e.g. the "no tags" / "no cover" lists from Gezondheid) and step through them.</summary>
     public void LoadFiles(IReadOnlyList<string> files, string? context = null)
+    {
+        _albumQueue = new();
+        _albumIndex = 0;
+        RaiseAlbumQueue();
+        LoadFilesCore(files, context);
+    }
+
+    /// <summary>Open several albums one after another. The editor shows a "next album" strip; each album stays a coherent unit.</summary>
+    public void LoadAlbumQueue(IReadOnlyList<(IReadOnlyList<string> Files, string Label)> albums)
+    {
+        var list = albums.Where(a => a.Files.Count > 0).Select(a => (a.Files.ToList(), a.Label)).ToList();
+        if (list.Count == 0) { LoadFiles(System.Array.Empty<string>()); return; }
+        if (list.Count == 1) { LoadFiles(list[0].Item1, list[0].Label); return; }
+        _albumQueue = list;
+        _albumIndex = 0;
+        RaiseAlbumQueue();
+        LoadFilesCore(list[0].Item1, list[0].Label);
+    }
+
+    private void GoToAlbum(int i)
+    {
+        if (i < 0 || i >= _albumQueue.Count) return;
+        _albumIndex = i;
+        RaiseAlbumQueue();
+        LoadFilesCore(_albumQueue[i].Files, _albumQueue[i].Label);
+    }
+
+    private void RaiseAlbumQueue()
+    {
+        OnPropertyChanged(nameof(HasAlbumQueue));
+        OnPropertyChanged(nameof(HasNextAlbum));
+        OnPropertyChanged(nameof(HasPrevAlbum));
+        OnPropertyChanged(nameof(AlbumQueuePosition));
+        NextAlbumCommand.RaiseCanExecuteChanged();
+        PrevAlbumCommand.RaiseCanExecuteChanged();
+    }
+
+    private void LoadFilesCore(IReadOnlyList<string> files, string? context = null)
     {
         _files = files.ToList();
         _allFiles = _files.ToList();
@@ -752,6 +804,8 @@ public class MetadataEditorViewModel : ViewModelBase
         ApplyArtNowCommand.RaiseCanExecuteChanged();
         MatchAlbumCommand.RaiseCanExecuteChanged();
         ApplyAlbumMatchCommand.RaiseCanExecuteChanged();
+        NextAlbumCommand.RaiseCanExecuteChanged();
+        PrevAlbumCommand.RaiseCanExecuteChanged();
         OnPropertyChanged(nameof(FolderMode));
         OnPropertyChanged(nameof(HasPrev));
         OnPropertyChanged(nameof(Position));

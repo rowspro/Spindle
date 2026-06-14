@@ -96,11 +96,68 @@ public partial class MainWindow : Window
 
     }
 
-    // Double-click a Library Doctor finding to open its album in the Metadata editor for inspection.
-    private void OnDoctorFindingDoubleTapped(object? sender, TappedEventArgs e)
+    // Map a list item to the album it represents (files + a label) for "open in Metadata editor".
+    private static (IReadOnlyList<string> Files, string Label)? AlbumOf(object? item) => item switch
     {
-        if ((sender as Control)?.DataContext is DoctorFinding f)
-            f.EditCommand?.Execute(null);
+        BrowserAlbumViewModel b => (b.Tracks.Select(t => t.Path).ToList(), $"{b.ArtistText} — {b.Title} — edit tags & cover"),
+        DoctorFinding d => (d.Files, $"Doctor — {d.Title}: {d.Sub}"),
+        StagingAlbumViewModel s => (s.Files, $"{s.Title} — edit tags & cover"),
+        HealthAlbumNode h => (h.Paths, h.Header),
+        _ => null
+    };
+
+    // Double-click a row to open its album(s) in the Metadata editor. ⌘-click several rows first to open them
+    // as a queue (one by one). Used by the Library grid and the Library Doctor findings.
+    private void OnAlbumItemDoubleTapped(object? sender, TappedEventArgs e)
+    {
+        if (Vm == null || sender is not Control c) return;
+        var tapped = c.DataContext;
+        var list = c.FindAncestorOfType<ListBox>();
+        IEnumerable<object?> items =
+            list?.SelectedItems is { Count: > 1 } sel && sel.Contains(tapped)
+                ? sel.Cast<object?>()
+                : new[] { tapped };
+        var albums = items.Select(AlbumOf).Where(a => a != null).Select(a => a!.Value).ToList();
+        if (albums.Count > 0) Vm.OpenAlbumsInMeta(albums);
+    }
+
+    // Inbox: with several albums ticked, double-click opens them as a queue in the Metadata tab. With one (or none),
+    // it runs the tapped album's Fix — the rich in-tab editor that also offers version/duplicate pruning.
+    private void OnInboxAlbumDoubleTapped(object? sender, TappedEventArgs e)
+    {
+        if (Vm == null || (sender as Control)?.DataContext is not StagingAlbumViewModel tapped) return;
+        var ticked = Vm.Staging.Albums.Where(a => a.IsSelected).ToList();
+        if (ticked.Count >= 2)
+        {
+            var albums = ticked.Select(a => ((IReadOnlyList<string>)a.Files, $"{a.Title} — edit tags & cover")).ToList();
+            Vm.OpenAlbumsInMeta(albums);
+        }
+        else tapped.FixCommand.Execute(null);
+    }
+
+    // Health "All albums" tree: double-click an album node to open it in the Metadata editor.
+    private void OnHealthAlbumNodeDoubleTapped(object? sender, TappedEventArgs e)
+    {
+        if (Vm == null || (sender as Control)?.DataContext is not HealthAlbumNode n) return;
+        if (n.Paths.Count > 0) Vm.OpenAlbumsInMeta(new[] { ((IReadOnlyList<string>)n.Paths, n.Header) });
+    }
+
+    // Duplicates: these are loose files with no album identity — double-click reveals the file in Finder.
+    private void OnDuplicateFileDoubleTapped(object? sender, TappedEventArgs e)
+    {
+        if ((sender as Control)?.DataContext is DuplicateFileViewModel f) RevealInFinder(f.Path);
+    }
+
+    private static void RevealInFinder(string? path)
+    {
+        if (string.IsNullOrEmpty(path)) return;
+        try
+        {
+            if (OperatingSystem.IsWindows()) System.Diagnostics.Process.Start("explorer.exe", $"/select,\"{path}\"");
+            else if (OperatingSystem.IsMacOS()) System.Diagnostics.Process.Start("open", new[] { "-R", path });
+            else System.Diagnostics.Process.Start("xdg-open", System.IO.Path.GetDirectoryName(path) ?? path);
+        }
+        catch { }
     }
 
     private MainViewModel? Vm => DataContext as MainViewModel;

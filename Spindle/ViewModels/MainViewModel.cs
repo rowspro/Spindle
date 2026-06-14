@@ -185,6 +185,15 @@ public class MainViewModel : ViewModelBase
     }
 
 
+    /// <summary>Open one or more albums in the Metadata editor. One → loaded directly; several → a queue with "next album" navigation.</summary>
+    public void OpenAlbumsInMeta(IReadOnlyList<(IReadOnlyList<string> Files, string Label)> albums)
+    {
+        if (albums == null || albums.Count == 0) return;
+        if (albums.Count == 1) Meta.LoadFiles(albums[0].Files, albums[0].Label);
+        else Meta.LoadAlbumQueue(albums);
+        SelectedTabIndex = 0;
+    }
+
     // ---- Top bar ----
     public string CurrentSection => SelectedTabIndex switch
     {

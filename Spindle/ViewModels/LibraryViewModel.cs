@@ -47,7 +47,9 @@ public class HealthAlbumNode
 {
     public string Header { get; }
     public List<string> Tracks { get; }
-    public HealthAlbumNode(string header, List<string> tracks) { Header = header; Tracks = tracks; }
+    /// <summary>Full file paths for this album (for "open in Metadata editor"); Tracks holds display names only.</summary>
+    public List<string> Paths { get; }
+    public HealthAlbumNode(string header, List<string> tracks, List<string> paths) { Header = header; Tracks = tracks; Paths = paths; }
 }
 
 /// <summary>Artist node in the "Alle albums" tree (children are albums).</summary>
@@ -166,7 +168,8 @@ public class LibraryViewModel : ViewModelBase
         {
             var albums = g.OrderBy(a => a.Name)
                 .Select(a => new HealthAlbumNode($"{a.Name}  ·  {a.Files.Count} tracks",
-                    a.Files.Select(x => Path.GetFileName(x) ?? x).OrderBy(x => x).ToList()))
+                    a.Files.Select(x => Path.GetFileName(x) ?? x).OrderBy(x => x).ToList(),
+                    a.Files.OrderBy(x => x, StringComparer.OrdinalIgnoreCase).ToList()))
                 .ToList();
             AlbumTree.Add(new HealthArtistNode(string.IsNullOrWhiteSpace(g.Key) ? "(unknown)" : g.Key, albums));
         }

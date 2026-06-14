@@ -774,12 +774,12 @@
                                                 ToolTip.Tip="Retag every non-canonical genre in one undoable batch." />
                                         <Button Grid.Column="3" Classes="primary" Content="Re-run checkup" Margin="6,0,0,0" Command="{Binding RunCommand}" />
                                     </Grid>
-                                    <ListBox Grid.Row="1" ItemsSource="{Binding Findings}" Background="Transparent" BorderThickness="0">
+                                    <ListBox Grid.Row="1" ItemsSource="{Binding Findings}" SelectionMode="Multiple" Background="Transparent" BorderThickness="0">
                                         <ListBox.ItemTemplate>
                                             <DataTemplate>
                                                 <Border Classes="card" Margin="0,0,0,8" Padding="14,10"
-                                                        DoubleTapped="OnDoctorFindingDoubleTapped" Cursor="Hand"
-                                                        ToolTip.Tip="Double-click to open this album in the Metadata editor and check it before fixing.">
+                                                        DoubleTapped="OnAlbumItemDoubleTapped" Cursor="Hand"
+                                                        ToolTip.Tip="Double-click to open in the Metadata editor. ⌘-click several findings, then double-click to open them one by one.">
                                                     <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto" VerticalAlignment="Center">
                                                         <Border Grid.Column="0" CornerRadius="9999" Padding="9,3" Background="{DynamicResource WarnBg}" VerticalAlignment="Center">
                                                             <TextBlock Text="{Binding Category}" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource WarnFg}" />
@@ -811,7 +811,9 @@
                                             <TextBlock Text="{Binding Name}" Classes="title" FontSize="14" />
                                         </TreeDataTemplate>
                                         <TreeDataTemplate DataType="vm:HealthAlbumNode" ItemsSource="{Binding Tracks}">
-                                            <TextBlock Text="{Binding Header}" FontSize="13" Foreground="{DynamicResource TextSecondary}" FontWeight="SemiBold" />
+                                            <TextBlock Text="{Binding Header}" FontSize="13" Foreground="{DynamicResource TextSecondary}" FontWeight="SemiBold"
+                                                       Cursor="Hand" DoubleTapped="OnHealthAlbumNodeDoubleTapped"
+                                                       ToolTip.Tip="Double-click to open this album in the Metadata editor." />
                                         </TreeDataTemplate>
                                     </TreeView.DataTemplates>
                                 </TreeView>
@@ -883,7 +885,9 @@
                                                 </ItemsControl.ItemsPanel>
                                                 <ItemsControl.ItemTemplate>
                                                     <DataTemplate>
-                                                        <Border Width="240" Margin="0,0,8,8" Padding="10" CornerRadius="8" Background="{DynamicResource Recess}" BorderBrush="{DynamicResource CardBorder}" BorderThickness="1">
+                                                        <Border Width="240" Margin="0,0,8,8" Padding="10" CornerRadius="8" Background="{DynamicResource Recess}" BorderBrush="{DynamicResource CardBorder}" BorderThickness="1"
+                                                                Cursor="Hand" DoubleTapped="OnDuplicateFileDoubleTapped"
+                                                                ToolTip.Tip="Double-click to reveal this file in Finder.">
                                                             <StackPanel Spacing="3">
                                                                 <TextBlock Text="{Binding Quality}" Foreground="{DynamicResource HeaderBlue}" FontSize="13" FontWeight="Bold" />
                                                                 <TextBlock Text="{Binding Album}" Foreground="{DynamicResource TextSecondary}" FontSize="12" TextTrimming="CharacterEllipsis" />
@@ -1285,7 +1289,9 @@
                              Background="Transparent" BorderThickness="0" Padding="0">
                             <ListBox.ItemTemplate>
                                 <DataTemplate>
-                                    <Border Classes="card" Margin="0,0,0,8" Padding="12">
+                                    <Border Classes="card" Margin="0,0,0,8" Padding="12" Cursor="Hand"
+                                            DoubleTapped="OnInboxAlbumDoubleTapped"
+                                            ToolTip.Tip="Double-click to fix in the Metadata editor. Tick several albums, then double-click to edit them one by one.">
                                         <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto,Auto,Auto" VerticalAlignment="Center">
                                             <CheckBox Grid.Column="0" VerticalAlignment="Center" IsChecked="{Binding IsSelected}" IsEnabled="{Binding CanSelect}" />
                                             <Border Grid.Column="1" Width="56" Height="56" CornerRadius="8" Margin="4,0,0,0" ClipToBounds="True" Background="{DynamicResource SurfaceVariant}">
@@ -1522,13 +1528,15 @@
                         </Grid>
 
                         <ListBox Grid.Row="2" Margin="0,12,0,0" ItemsSource="{Binding Albums}" SelectedItem="{Binding SelectedAlbum}"
-                                 Background="Transparent" BorderThickness="0">
+                                 SelectionMode="Multiple" Background="Transparent" BorderThickness="0">
                             <ListBox.ItemsPanel>
                                 <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
                             </ListBox.ItemsPanel>
                             <ListBox.ItemTemplate>
                                 <DataTemplate>
-                                    <StackPanel Width="150" Margin="2">
+                                    <StackPanel Width="150" Margin="2" Cursor="Hand"
+                                                DoubleTapped="OnAlbumItemDoubleTapped"
+                                                ToolTip.Tip="Double-click to edit in Metadata. ⌘-click several albums, then double-click to edit them one by one.">
                                         <Border Width="150" Height="150" CornerRadius="10" ClipToBounds="True" Background="{DynamicResource SurfaceVariant}">
                                             <Panel>
                                                 <TextBlock Classes="icon" FontSize="44" Text="&#xE019;" HorizontalAlignment="Center" VerticalAlignment="Center"
