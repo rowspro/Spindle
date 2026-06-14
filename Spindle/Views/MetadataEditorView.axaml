@@ -34,13 +34,14 @@
         <Grid ColumnDefinitions="*,Auto" IsVisible="{Binding IsFormMode}">
             <StackPanel Grid.Column="0" Spacing="8">
                 <Grid ColumnDefinitions="110,*"><TextBlock Classes="label" Text="Title" /><TextBox Grid.Column="1" Text="{Binding Title}" /></Grid>
-                <Grid ColumnDefinitions="110,*"><TextBlock Classes="label" Text="Artist" /><TextBox Grid.Column="1" Text="{Binding Artist}" /></Grid>
+                <Grid ColumnDefinitions="110,*"><TextBlock Classes="label" Text="Artist" /><AutoCompleteBox Grid.Column="1" Text="{Binding Artist, Mode=TwoWay}" ItemsSource="{Binding ArtistSuggestions}" FilterMode="StartsWith" IsTextCompletionEnabled="True" MinimumPrefixLength="1" KeyDown="OnArtistKeyDown" /></Grid>
                 <Grid ColumnDefinitions="110,*"><TextBlock Classes="label" Text="Album artist" /><AutoCompleteBox Grid.Column="1" Text="{Binding AlbumArtist, Mode=TwoWay}" ItemsSource="{Binding ArtistSuggestions}" FilterMode="StartsWith" IsTextCompletionEnabled="True" MinimumPrefixLength="1" KeyDown="OnArtistKeyDown" /></Grid>
                 <Grid ColumnDefinitions="110,*"><TextBlock Classes="label" Text="Album" /><TextBox Grid.Column="1" Text="{Binding Album}" /></Grid>
                 <Grid ColumnDefinitions="110,*,Auto">
                     <TextBlock Classes="label" Text="Genre" />
                     <AutoCompleteBox Grid.Column="1" Text="{Binding Genre, Mode=TwoWay}" ItemsSource="{Binding GenreOptions}"
-                                     FilterMode="Contains" MinimumPrefixLength="0" Watermark="Pick a standard genre or type your own" />
+                                     FilterMode="Contains" IsTextCompletionEnabled="True" MinimumPrefixLength="0"
+                                     Watermark="Pick a standard genre or type your own" />
                     <Button Grid.Column="2" Classes="ghost" Margin="8,0,0,0" Content="Apply to album"
                             Command="{Binding ApplyGenreToAlbumCommand}"
                             ToolTip.Tip="Write this genre to every track of the album (Cmd+Z = undo)." />
