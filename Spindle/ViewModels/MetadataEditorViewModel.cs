@@ -130,7 +130,7 @@ public class MetadataEditorViewModel : ViewModelBase
                 Checks.Add(new CheckItem("cover art", cover));
                 Checks.Add(new CheckItem("year", year));
                 Checks.Add(new CheckItem("genre", genre));
-                Checks.Add(new CheckItem("single version", single));
+                Checks.Add(new CheckItem("no duplicate tracks", single));
                 Checks.Add(new CheckItem("lossless", lossless));
                 Checks.Add(new CheckItem("completeness check pending (MusicBrainz)…", null));
             });

@@ -894,7 +894,7 @@ public class StagingViewModel : ViewModelBase
         DetailChecks.Add(new CheckItem("cover art", !a.Flags.Contains("no cover")));
         DetailChecks.Add(new CheckItem("year", !a.Flags.Contains("missing year")));
         DetailChecks.Add(new CheckItem("genre", !a.Flags.Contains("missing genre")));
-        DetailChecks.Add(new CheckItem("single version", !a.Flags.Contains("duplicate versions")));
+        DetailChecks.Add(new CheckItem("no duplicate tracks", !a.Flags.Contains("duplicate versions")));
         DetailChecks.Add(new CheckItem("lossless", !a.Flags.Any(f => f.EndsWith(" lossy"))));
         if (a.HasValidation)
         {
