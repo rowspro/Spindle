@@ -378,6 +378,13 @@ public class MainViewModel : ViewModelBase
         set { if (SetField(ref _renameToMatchTags, value)) CleanupOptions.RenameToMatchTags = value; }
     }
 
+    private bool _trimSpaces = true;
+    public bool TrimSpaces
+    {
+        get => _trimSpaces;
+        set { if (SetField(ref _trimSpaces, value)) CleanupOptions.TrimSpaces = value; }
+    }
+
     private bool _fetchLyricsOnApprove;
     public bool FetchLyricsOnApprove
     {
@@ -553,6 +560,7 @@ public class MainViewModel : ViewModelBase
         SplitArtistOnComma = SplitArtistOnComma,
         KeepMultipleGenres = KeepMultipleGenres,
         RenameToMatchTags = RenameToMatchTags,
+        TrimSpaces = TrimSpaces,
         FetchLyricsOnApprove = FetchLyricsOnApprove,
         FlattenArtistOnSync = FlattenArtistOnSync,
         ConvertToAlacDefault = ConvertToAlacDefault,
@@ -585,6 +593,7 @@ public class MainViewModel : ViewModelBase
         SplitArtistOnComma = c.SplitArtistOnComma;
         KeepMultipleGenres = c.KeepMultipleGenres;
         RenameToMatchTags = c.RenameToMatchTags;
+        TrimSpaces = c.TrimSpaces;
         FetchLyricsOnApprove = c.FetchLyricsOnApprove;
         FlattenArtistOnSync = c.FlattenArtistOnSync;
         ConvertToAlacDefault = c.ConvertToAlacDefault;

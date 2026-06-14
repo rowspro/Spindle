@@ -257,8 +257,12 @@ public sealed class TagGridViewModel : ViewModelBase
                 try
                 {
                     var t = new Track(r.Path);
-                    t.Title = r.Title; t.Artist = r.Artist; t.AlbumArtist = r.AlbumArtist;
-                    t.Album = r.Album; t.Genre = r.Genre;
+                    bool trim = CleanupOptions.TrimSpaces;
+                    t.Title = trim ? Collapse(r.Title) : r.Title;
+                    t.Artist = trim ? Collapse(r.Artist) : r.Artist;
+                    t.AlbumArtist = trim ? Collapse(r.AlbumArtist) : r.AlbumArtist;
+                    t.Album = trim ? Collapse(r.Album) : r.Album;
+                    t.Genre = trim ? Collapse(r.Genre) : r.Genre;
                     t.TrackNumber = int.TryParse(r.Track, out var tn) && tn > 0 ? tn : null;
                     t.DiscNumber = int.TryParse(r.Disc, out var dn) && dn > 0 ? dn : null;
                     t.Year = int.TryParse(r.Year, out var y) ? y : 0;

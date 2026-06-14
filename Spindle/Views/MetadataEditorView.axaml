@@ -13,16 +13,13 @@
                 <StackPanel Orientation="Horizontal" Spacing="6"><TextBlock Classes="icon" FontSize="17" Text="&#xE019;" /><TextBlock Text="Album match" VerticalAlignment="Center" /></StackPanel>
             </Button>
             <Button Grid.Column="3" Classes="ghost" Content="Auto-fill (per track)" Margin="8,0,0,0" Command="{Binding AutoFillCommand}" />
-            <Button Grid.Column="4" Classes="ghost" Content="Fetch lyrics" Margin="8,0,0,0" Command="{Binding FetchLyricsCommand}"
-                    ToolTip.Tip="Look up lyrics on LRCLIB (online) for all loaded tracks: synced → .lrc next to the file, plain → embedded lyrics tag." />
             <TextBlock Grid.Column="5" VerticalAlignment="Center" Margin="10,0,0,0" Foreground="{DynamicResource TextSecondary}" FontSize="12" Text="{Binding FileName}" TextTrimming="CharacterEllipsis" />
             <TextBlock Grid.Column="6" VerticalAlignment="Center" Foreground="{DynamicResource HeaderBlue}" FontSize="13" FontWeight="SemiBold" Text="{Binding Position}" />
         </Grid>
 
         <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,10,0,0">
-            <Button Classes="chipbtn" Content="Form" Command="{Binding ModeFormCommand}" Classes.active="{Binding IsFormMode}" />
-            <Button Classes="chipbtn" Content="Table" Margin="6,0,0,0" Command="{Binding ModeTableCommand}" Classes.active="{Binding IsTableMode}" />
-            <Button Classes="chipbtn" Content="Converters" Margin="6,0,0,0" Command="{Binding ModeConvCommand}" Classes.active="{Binding IsConvMode}" />
+            <Button Classes="chipbtn" Content="Album" Command="{Binding ModeFormCommand}" Classes.active="{Binding IsFormMode}" />
+            <Button Classes="chipbtn" Content="Track metadata" Margin="6,0,0,0" Command="{Binding ModeTableCommand}" Classes.active="{Binding IsTableMode}" />
             <TextBlock Classes="caption" Margin="14,0,0,0" VerticalAlignment="Center" Text="{Binding Grid.Status}"
                        IsVisible="{Binding !AlbumMatchBlocked}" />
             <TextBlock Margin="14,0,0,0" VerticalAlignment="Center" FontSize="12" FontWeight="SemiBold"
@@ -111,19 +108,9 @@
         <Panel Grid.Row="3" Margin="0,14,0,0">
         <Grid ColumnDefinitions="*,Auto" IsVisible="{Binding IsFormMode}">
             <StackPanel Grid.Column="0" Spacing="8">
-                <!-- Per-track fields -->
-                <TextBlock Classes="section" Text="THIS TRACK" />
-                <Grid ColumnDefinitions="110,*"><TextBlock Classes="label" Text="Title" /><TextBox Grid.Column="1" Text="{Binding Title}" /></Grid>
-                <Grid ColumnDefinitions="110,*"><TextBlock Classes="label" Text="Artist" /><AutoCompleteBox Grid.Column="1" Text="{Binding Artist, Mode=TwoWay}" ItemsSource="{Binding ArtistSuggestions}" FilterMode="StartsWith" IsTextCompletionEnabled="True" MinimumPrefixLength="1" KeyDown="OnArtistKeyDown" /></Grid>
-                <Grid ColumnDefinitions="110,*,90,*">
-                    <TextBlock Grid.Column="0" Classes="label" Text="Track" /><TextBox Grid.Column="1" Text="{Binding Track}" />
-                    <TextBlock Grid.Column="2" Classes="label" Text="Disc" Margin="12,0,10,0" /><TextBox Grid.Column="3" Text="{Binding Disc}" />
-                </Grid>
-                <Grid ColumnDefinitions="110,*"><TextBlock Classes="label" Text="AcoustID key" /><TextBox Grid.Column="1" Text="{Binding AcoustIdKey}" Watermark="optional — for untagged files (free via acoustid.org)" /></Grid>
-
                 <!-- Album-wide fields: written to every track of the album on Save -->
-                <StackPanel Orientation="Horizontal" Spacing="10" Margin="0,8,0,0">
-                    <TextBlock Classes="section" Text="WHOLE ALBUM" VerticalAlignment="Center" />
+                <StackPanel Orientation="Horizontal" Spacing="10">
+                    <TextBlock Classes="section" Text="ALBUM" VerticalAlignment="Center" />
                     <Border CornerRadius="9999" Padding="9,2" Background="{DynamicResource SurfaceVariant}" VerticalAlignment="Center" IsVisible="{Binding IsAlbumScope}">
                         <TextBlock Text="{Binding AlbumScopeText}" FontSize="11" Foreground="{DynamicResource TextMuted}" />
                     </Border>
@@ -137,31 +124,27 @@
                                      Watermark="Pick a standard genre or type your own" />
                 </Grid>
                 <Grid ColumnDefinitions="110,*"><TextBlock Classes="label" Text="Year" /><TextBox Grid.Column="1" Text="{Binding Year}" /></Grid>
+                <Grid ColumnDefinitions="110,*"><TextBlock Classes="label" Text="AcoustID key" /><TextBox Grid.Column="1" Text="{Binding AcoustIdKey}" Watermark="optional — for untagged files (free via acoustid.org)" /></Grid>
+
+                <Button Classes="ghost" Margin="0,8,0,0" HorizontalAlignment="Left" Content="Fetch lyrics for all tracks" Command="{Binding FetchLyricsCommand}"
+                        ToolTip.Tip="Look up lyrics on LRCLIB (online) for every track of the album: synced → .lrc next to the file, plain → embedded lyrics tag." />
             </StackPanel>
             <StackPanel Grid.Column="1" Width="190" Margin="16,0,0,0">
                 <Border Width="190" Height="190" Background="{DynamicResource Recess}" BorderBrush="{DynamicResource CardBorder}" BorderThickness="1" CornerRadius="6">
                     <Image Source="{Binding AlbumArt}" Stretch="Uniform" />
                 </Border>
-                <Button Classes="ghost" Content="Choose image…" Margin="0,8,0,0" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Click="OnLoadMetaArt" />
-                <Button Classes="ghost" Content="Paste cover" Margin="0,6,0,0" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Click="OnPasteMetaArt"
-                        ToolTip.Tip="Pastes an image from the clipboard (Mp3tag-style)." />
-                <Button Classes="ghost" Content="Remove cover" Margin="0,6,0,0" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Command="{Binding RemoveArtCommand}" />
+                <Button Classes="ghost" Content="Choose cover from Finder" Margin="0,8,0,0" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Click="OnLoadMetaArt" />
+                <Button Classes="ghost" Content="Fetch cover" Margin="0,6,0,0" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Command="{Binding FetchCoverCommand}"
+                        ToolTip.Tip="Fetch only the album art via our tools (Apple/Discogs/MusicBrainz). No other tags are touched." />
                 <TextBlock Classes="caption" Margin="0,8,0,0" TextWrapping="Wrap" TextAlignment="Center"
                            Text="Cover is part of the album — saved to every track." />
             </StackPanel>
         </Grid>
 
-        <!-- TABLE mode: Mp3tag-style grid editor -->
+        <!-- TRACK METADATA mode: Mp3tag-style grid editor (per-track fields) -->
         <Grid RowDefinitions="Auto,*,Auto" IsVisible="{Binding IsTableMode}">
-            <WrapPanel Grid.Row="0">
-                <TextBlock Classes="caption" Text="Actions (all rows, as pending changes):" VerticalAlignment="Center" Margin="0,0,10,0" />
-                <Button Classes="ghost" Padding="10,5" Content="Normalize genre" Command="{Binding Grid.ActionGenreCommand}" />
-                <Button Classes="ghost" Padding="10,5" Content="Trim spaces" Margin="6,0,0,0" Command="{Binding Grid.ActionTrimCommand}" />
-                <ComboBox MinWidth="150" Margin="12,0,6,0" VerticalAlignment="Center"
-                          ItemsSource="{Binding Grid.GenreOptions}" SelectedItem="{Binding Grid.BulkGenre}"
-                          PlaceholderText="Genre…" ToolTip.Tip="Pick a standard genre to set on the whole album." />
-                <Button Classes="ghost" Padding="10,5" Content="Set genre (all)" Command="{Binding Grid.ActionSetGenreCommand}" />
-            </WrapPanel>
+            <TextBlock Grid.Row="0" Classes="caption"
+                       Text="Per-track tags. Album-wide fields (album, album artist, genre, year, cover) live in the Album tab. Spaces are tidied automatically on save." />
             <DataGrid Grid.Row="1" Margin="0,10,0,0" ItemsSource="{Binding Grid.Rows}" AutoGenerateColumns="False"
                       HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto"
                       CanUserResizeColumns="True" GridLinesVisibility="Horizontal" HeadersVisibility="Column"
@@ -184,35 +167,6 @@
                         ToolTip.Tip="Writes the changed rows to the files (Cmd+Z = undo)." />
             </Grid>
         </Grid>
-
-        <!-- CONVERTERS mode -->
-        <ScrollViewer IsVisible="{Binding IsConvMode}" VerticalScrollBarVisibility="Auto">
-            <StackPanel Spacing="12">
-                <Border Classes="card">
-                    <StackPanel>
-                        <TextBlock Classes="title" Text="Filename → Tags" />
-                        <TextBlock Classes="caption" Margin="0,2,0,8" Text="Parses fields from the filename and fills the table as pending changes — review there and click Save." />
-                        <Grid ColumnDefinitions="*,Auto">
-                            <TextBox Grid.Column="0" Text="{Binding Grid.PatternF2T}" Watermark="%artist% - %title%" />
-                            <Button Grid.Column="1" Classes="primary" Margin="8,0,0,0" Content="Fill table" Command="{Binding Grid.ApplyF2TCommand}" />
-                        </Grid>
-                        <TextBlock Classes="caption" Margin="0,8,0,0" Text="{Binding Grid.PreviewF2T}" TextWrapping="Wrap" />
-                    </StackPanel>
-                </Border>
-                <Border Classes="card">
-                    <StackPanel>
-                        <TextBlock Classes="title" Text="Tags → Filename" />
-                        <TextBlock Classes="caption" Margin="0,2,0,8" Text="Renames the files based on the (table) tags. Reversible with Cmd+Z." />
-                        <Grid ColumnDefinitions="*,Auto">
-                            <TextBox Grid.Column="0" Text="{Binding Grid.PatternT2F}" Watermark="%track% %title%" />
-                            <Button Grid.Column="1" Classes="primary" Margin="8,0,0,0" Content="Rename files" Command="{Binding Grid.ApplyT2FCommand}" />
-                        </Grid>
-                        <TextBlock Classes="caption" Margin="0,8,0,0" Text="{Binding Grid.PreviewT2F}" TextWrapping="Wrap" />
-                    </StackPanel>
-                </Border>
-                <TextBlock Classes="caption" Text="Tokens: %artist%  %albumartist%  %album%  %title%  %track%  %disc%  %year%  %genre%" />
-            </StackPanel>
-        </ScrollViewer>
 
         <!-- Album-match candidate picker (overlay, all modes) -->
         <Border ZIndex="50" IsVisible="{Binding ShowCandidates}"

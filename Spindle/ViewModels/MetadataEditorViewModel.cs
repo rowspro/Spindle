@@ -50,6 +50,7 @@ public class MetadataEditorViewModel : ViewModelBase
         ApplyGenreToAlbumCommand = new RelayCommand(ApplyGenreToAlbum, () => HasFile && !IsBusy);
         RemoveArtCommand = new RelayCommand(RemoveArt, () => HasFile && !IsBusy);
         ApplyArtNowCommand = new RelayCommand(ApplyArtNow, () => HasFile && !IsBusy);
+        FetchCoverCommand = new RelayCommand(FetchCover, () => HasFile && !IsBusy);
         NextAlbumCommand = new RelayCommand(() => GoToAlbum(_albumIndex + 1), () => HasNextAlbum && !IsBusy);
         PrevAlbumCommand = new RelayCommand(() => GoToAlbum(_albumIndex - 1), () => HasPrevAlbum && !IsBusy);
         MatchAlbumCommand = new RelayCommand(MatchAlbum, () => HasFile && !IsBusy && AlbumMatchable);
@@ -277,6 +278,7 @@ public class MetadataEditorViewModel : ViewModelBase
     public IReadOnlyList<string> GenreOptions => Genres.Standard;
     public RelayCommand RemoveArtCommand { get; }
     public RelayCommand ApplyArtNowCommand { get; }
+    public RelayCommand FetchCoverCommand { get; }
 
     // ---- weergavemodus: formulier / tabel / converters (fase 2) ----
     public RelayCommand ModeFormCommand { get; }
@@ -531,6 +533,31 @@ public class MetadataEditorViewModel : ViewModelBase
         catch (Exception e) { Status = "Couldn't read pasted image: " + e.Message; }
     }
 
+    /// <summary>Fetch only the album art via our tools (Apple/Discogs/MusicBrainz) — no other tags touched.</summary>
+    private async void FetchCover()
+    {
+        if (IsBusy || !HasFile) return;
+        var artist = (!string.IsNullOrWhiteSpace(AlbumArtist) ? AlbumArtist : Artist).Trim();
+        var album = (Album ?? string.Empty).Trim();
+        if (album.Length == 0) { Status = "Fill in the Album field first to fetch a cover."; return; }
+        IsBusy = true;
+        Status = $"Fetching cover: {artist} – {album}…";
+        try
+        {
+            var list = await AlbumMetadata.SearchAsync(artist, album, _allFiles.Count, DiscogsToken);
+            var hit = list.FirstOrDefault(c => !string.IsNullOrEmpty(c.CoverUrl));
+            if (hit == null) { Status = "No cover found (try adjusting artist/album)."; return; }
+            var data = await AlbumMetadata.DownloadCoverAsync(hit.CoverUrl);
+            if (data == null) { Status = "Cover download failed."; return; }
+            _artData = data;
+            _artChanged = true;
+            AlbumArt = BitmapFrom(data);
+            Status = "Cover fetched — written to the whole album on Save.";
+        }
+        catch (Exception e) { Status = "Fetch cover failed: " + e.Message; }
+        finally { IsBusy = false; }
+    }
+
     /// <summary>Write the current cover to ALL loaded files immediately (no Approve needed).</summary>
     private void ApplyArtNow()
     {
@@ -694,9 +721,18 @@ public class MetadataEditorViewModel : ViewModelBase
         return rec;
     }
 
+    private static string Collapse(string? s) =>
+        s == null ? string.Empty : System.Text.RegularExpressions.Regex.Replace(s.Trim(), @"\s+", " ");
+
     private void Save()
     {
         if (!HasFile) return;
+        // Auto-clean stray spaces (opt-out in Personalisations).
+        if (CleanupOptions.TrimSpaces)
+        {
+            Title = Collapse(Title); Artist = Collapse(Artist); AlbumArtist = Collapse(AlbumArtist);
+            Album = Collapse(Album); Genre = Collapse(Genre);
+        }
         bool artChangedNow = _artChanged;
         try
         {
@@ -818,6 +854,7 @@ public class MetadataEditorViewModel : ViewModelBase
         ApplyGenreToAlbumCommand.RaiseCanExecuteChanged();
         RemoveArtCommand.RaiseCanExecuteChanged();
         ApplyArtNowCommand.RaiseCanExecuteChanged();
+        FetchCoverCommand.RaiseCanExecuteChanged();
         MatchAlbumCommand.RaiseCanExecuteChanged();
         ApplyAlbumMatchCommand.RaiseCanExecuteChanged();
         NextAlbumCommand.RaiseCanExecuteChanged();

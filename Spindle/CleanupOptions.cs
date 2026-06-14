@@ -16,6 +16,9 @@ public static class CleanupOptions
     // After saving tag edits in the editor, rename the file to match the filename template.
     public static bool RenameToMatchTags { get; set; } = true;
 
+    // Collapse leading/trailing/double spaces in tag fields automatically on save. Opt-out in settings.
+    public static bool TrimSpaces { get; set; } = true;
+
     // The active filename template (mirrors the Personalisations setting) used for that rename.
     public static string FilenameTemplate { get; set; } = NameTemplate.Default;
 
