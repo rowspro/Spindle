@@ -36,6 +36,7 @@ public class MainViewModel : ViewModelBase
         Wantlist = new WantlistViewModel(Lib, () => MusicLibrary, () => DownloadFilePath);
         _mirror.Status += msg => Avalonia.Threading.Dispatcher.UIThread.Post(() => MirrorStatus = msg);
 
+        WireBusyIndicator();
         LoadFromConfig(Settings.Load());
 
         // Pre-fill tool folders with the library path, but never overwrite a remembered value.
@@ -116,7 +117,20 @@ public class MainViewModel : ViewModelBase
     public string GlobalStatus { get => _globalStatus; private set => SetField(ref _globalStatus, value); }
 
     private bool _indexBusy;
-    public bool IndexBusy { get => _indexBusy; private set => SetField(ref _indexBusy, value); }
+    public bool IndexBusy { get => _indexBusy; private set { if (SetField(ref _indexBusy, value)) OnPropertyChanged(nameof(IsWorking)); } }
+
+    /// <summary>True whenever any tool is doing work — drives the glowing top progress bar.</summary>
+    public bool IsWorking =>
+        IndexBusy || Meta.IsBusy || Sync.IsBusy || Library.IsBusy || Staging.IsBusy
+        || Duplicates.IsBusy || Wantlist.IsBusy || Staging.DetailEditor.IsBusy;
+
+    private void WireBusyIndicator()
+    {
+        void Hook(ViewModelBase vm) => vm.PropertyChanged += (_, e) =>
+        { if (e.PropertyName == "IsBusy") OnPropertyChanged(nameof(IsWorking)); };
+        Hook(Meta); Hook(Sync); Hook(Library); Hook(Staging);
+        Hook(Duplicates); Hook(Wantlist); Hook(Staging.DetailEditor);
+    }
 
     private double _indexPercent;
     public double IndexPercent { get => _indexPercent; private set => SetField(ref _indexPercent, value); }

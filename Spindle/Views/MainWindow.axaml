@@ -250,6 +250,13 @@
             <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
             <Setter Property="FontSize" Value="14" />
         </Style>
+        <!-- Glowing top busy bar -->
+        <Style Selector="ProgressBar.topbusy">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="{DynamicResource Accent}" />
+            <Setter Property="MinHeight" Value="3" />
+            <Setter Property="CornerRadius" Value="0" />
+        </Style>
         <Style Selector="TabItem:selected">
             <Setter Property="Foreground" Value="{DynamicResource HeaderBlue}" />
         </Style>
@@ -432,6 +439,12 @@
     </Window.Styles>
 
     <Grid ColumnDefinitions="240,*">
+
+        <!-- Glowing rolling progress bar across the very top — visible whenever any tool is working. -->
+        <Border Grid.ColumnSpan="2" VerticalAlignment="Top" ZIndex="100" Height="3"
+                IsVisible="{Binding IsWorking}" BoxShadow="0 0 10 0 #803B82F6">
+            <ProgressBar Classes="topbusy" IsIndeterminate="True" MinHeight="3" Height="3" />
+        </Border>
 
         <!-- ===== Sidebar ===== -->
         <Border Grid.Column="0" Background="{DynamicResource SidebarBg}"
