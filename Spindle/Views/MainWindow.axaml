@@ -587,11 +587,8 @@
                                     <TextBlock Classes="caption" TextWrapping="Wrap"
                                                Text="Finds artist spelling variants (AC/DC vs AC &amp; DC), files that strayed from your naming template, messy genres and album oddities — every fix is one Cmd+Z away from undone." />
                                 </StackPanel>
-                                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                                    <Button Classes="ghost" Content="Find duplicates" Click="OnFindDuplicates"
-                                            ToolTip.Tip="Scan the whole library for duplicate tracks (same artist+title, optional AcoustID fingerprint) and keep the best copy." />
-                                    <Button Classes="primary" Content="Run checkup" Command="{Binding OpenDoctorCommand}" />
-                                </StackPanel>
+                                <Button Grid.Column="2" Classes="primary" Content="Run checkup" VerticalAlignment="Center"
+                                        Command="{Binding OpenDoctorCommand}" />
                             </Grid>
                         </Border>
 
@@ -761,13 +758,19 @@
                             <Grid>
                                 <!-- Library Doctor -->
                                 <Grid IsVisible="{Binding ShowDoctorPanel}" RowDefinitions="Auto,*" DataContext="{Binding Doctor}">
-                                    <Grid Grid.Row="0" ColumnDefinitions="*,Auto,Auto,Auto" Margin="6,4,6,10">
+                                    <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="6,4,6,10">
                                         <TextBlock Grid.Column="0" Classes="body" Text="{Binding Summary}" VerticalAlignment="Center" TextWrapping="Wrap" />
-                                        <Button Grid.Column="1" Classes="ghost" Content="Fix all locations" Margin="8,0,0,0" Command="{Binding FixAllLocationsCommand}"
-                                                ToolTip.Tip="Move every misplaced file to where the template says, in one undoable batch." />
-                                        <Button Grid.Column="2" Classes="ghost" Content="Fix all genres" Margin="6,0,0,0" Command="{Binding FixAllGenresCommand}"
-                                                ToolTip.Tip="Retag every non-canonical genre in one undoable batch." />
-                                        <Button Grid.Column="3" Classes="primary" Content="Re-run checkup" Margin="6,0,0,0" Command="{Binding RunCommand}" />
+                                        <WrapPanel Grid.Column="1" VerticalAlignment="Center">
+                                            <CheckBox Content="Match by fingerprint" IsChecked="{Binding UseFingerprint}" VerticalAlignment="Center" Margin="0,0,8,0"
+                                                      ToolTip.Tip="Also detect duplicates by AcoustID acoustic fingerprint during the checkup (slower; needs an AcoustID key)." />
+                                            <Button Classes="ghost" Content="Fix all locations" Margin="0,0,6,0" Command="{Binding FixAllLocationsCommand}"
+                                                    ToolTip.Tip="Move every misplaced file to where the template says, in one undoable batch." />
+                                            <Button Classes="ghost" Content="Fix all genres" Margin="0,0,6,0" Command="{Binding FixAllGenresCommand}"
+                                                    ToolTip.Tip="Retag every non-canonical genre in one undoable batch." />
+                                            <Button Classes="ghost" Content="Fix all duplicates" Margin="0,0,6,0" Command="{Binding FixAllDuplicatesCommand}"
+                                                    ToolTip.Tip="Keep the best copy of every duplicate set; move the rest to the trash (undoable)." />
+                                            <Button Classes="primary" Content="Re-run checkup" Command="{Binding RunCommand}" />
+                                        </WrapPanel>
                                     </Grid>
                                     <ListBox Grid.Row="1" ItemsSource="{Binding Findings}" Background="Transparent" BorderThickness="0">
                                         <ListBox.ItemTemplate>
@@ -775,7 +778,7 @@
                                                 <Border Classes="card" Margin="0,0,0,8" Padding="14,10"
                                                         DoubleTapped="OnAlbumItemDoubleTapped" Cursor="Hand"
                                                         ToolTip.Tip="Double-click to open this album in the Metadata editor.">
-                                                    <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto" VerticalAlignment="Center">
+                                                    <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto,Auto" VerticalAlignment="Center">
                                                         <Border Grid.Column="0" CornerRadius="9999" Padding="9,3" Background="{DynamicResource WarnBg}" VerticalAlignment="Center">
                                                             <TextBlock Text="{Binding Category}" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource WarnFg}" />
                                                         </Border>
@@ -792,6 +795,9 @@
                                                                 Command="{Binding EditCommand}" IsVisible="{Binding HasEdit}">
                                                             <StackPanel Orientation="Horizontal" Spacing="6"><TextBlock Classes="icon" FontSize="16" Text="&#xE892;" /><TextBlock Text="Edit in Metadata" VerticalAlignment="Center" /></StackPanel>
                                                         </Button>
+                                                        <Button Grid.Column="5" Classes="ghost" Margin="6,0,0,0" VerticalAlignment="Center"
+                                                                Command="{Binding DismissCommand}" IsVisible="{Binding HasDismiss}" Content="Not a duplicate"
+                                                                ToolTip.Tip="These aren't the same recording — don't flag this set in future checkups." />
                                                     </Grid>
                                                 </Border>
                                             </DataTemplate>

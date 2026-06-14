@@ -22,11 +22,16 @@ public sealed class DoctorFinding : ViewModelBase
 
     public RelayCommand? FixCommand { get; set; }
     public RelayCommand? EditCommand { get; set; }
+    public RelayCommand? DismissCommand { get; set; }
     public bool HasFix => FixCommand != null;
     public bool HasEdit => EditCommand != null;
+    public bool HasDismiss => DismissCommand != null;
 
     internal List<UndoJournal.MoveOp> PlannedMoves { get; } = new();
     internal string GenreCanonical = "";
+    // Duplicates: label (shown in the picker) → file path; the chosen one is kept, the rest trashed.
+    internal Dictionary<string, string> CopyByLabel { get; } = new();
+    internal string DupIgnoreKey = "";
 }
 
 /// <summary>
@@ -52,13 +57,33 @@ public sealed class DoctorViewModel : ViewModelBase
             () => !IsBusy && Findings.Any(f => f.Category == "Locations"));
         FixAllGenresCommand = new RelayCommand(() => FixAll("Genres"),
             () => !IsBusy && Findings.Any(f => f.Category == "Genres"));
+        FixAllDuplicatesCommand = new RelayCommand(DedupeAll,
+            () => !IsBusy && Findings.Any(f => f.Category == "Duplicates"));
     }
 
     public ObservableCollection<DoctorFinding> Findings { get; } = new();
     public RelayCommand RunCommand { get; }
     public RelayCommand FixAllLocationsCommand { get; }
     public RelayCommand FixAllGenresCommand { get; }
+    public RelayCommand FixAllDuplicatesCommand { get; }
     public bool HasRun { get; private set; }
+
+    private bool _useFingerprint;
+    /// <summary>Opt-in: also match duplicates by AcoustID fingerprint (slower, needs a key) during the checkup.</summary>
+    public bool UseFingerprint { get => _useFingerprint; set => SetField(ref _useFingerprint, value); }
+
+    // "Not a duplicate" memory — survives checkups (persisted in SpindleConfig.DuplicateIgnores).
+    private readonly HashSet<string> _dupIgnores = new(StringComparer.OrdinalIgnoreCase);
+    public void LoadDupIgnores(List<string>? keys)
+    {
+        _dupIgnores.Clear();
+        foreach (var k in keys ?? new()) if (!string.IsNullOrEmpty(k)) _dupIgnores.Add(k);
+    }
+    public List<string> DupIgnoreKeys() => _dupIgnores.ToList();
+    private static string DupIgnoreKeyOf(string title) =>
+        System.Text.RegularExpressions.Regex.Replace(title.ToLowerInvariant(), "[^a-z0-9]", "");
+    private static string NormDup(string? s) =>
+        System.Text.RegularExpressions.Regex.Replace((s ?? "").ToLowerInvariant(), "[^a-z0-9]", "");
 
     private bool _busy;
     public bool IsBusy { get => _busy; private set { if (SetField(ref _busy, value)) RaiseCmds(); } }
@@ -71,6 +96,7 @@ public sealed class DoctorViewModel : ViewModelBase
         RunCommand.RaiseCanExecuteChanged();
         FixAllLocationsCommand.RaiseCanExecuteChanged();
         FixAllGenresCommand.RaiseCanExecuteChanged();
+        FixAllDuplicatesCommand.RaiseCanExecuteChanged();
     }
 
     // ---- conventions (mirrored from the inbox approve flow) ----
@@ -110,7 +136,7 @@ public sealed class DoctorViewModel : ViewModelBase
         HasRun = true;
         Summary = "Examining your library…";
         var template = _template();
-        Task.Run(() =>
+        Task.Run(async () =>
         {
             var found = new List<DoctorFinding>();
             List<IndexedTrack> tracks;
@@ -269,7 +295,54 @@ public sealed class DoctorViewModel : ViewModelBase
                 found.Add(f);
             }
 
-            var order = new Dictionary<string, int> { ["Artists"] = 0, ["Locations"] = 1, ["Genres"] = 2, ["GenreStd"] = 3, ["Albums"] = 4 };
+            // 5) Duplicate tracks across the whole library (same artist + title; from the index, fast).
+            var byKey = new Dictionary<string, List<IndexedTrack>>();
+            foreach (var t in tracks)
+            {
+                if (string.IsNullOrWhiteSpace(t.Title)) continue;
+                var who = t.Artist.Length > 0 ? t.Artist : t.AlbumArtist;
+                if (who.Length == 0) continue;
+                var key = NormDup(who) + "|" + NormDup(t.Title);
+                if (!byKey.TryGetValue(key, out var l)) byKey[key] = l = new List<IndexedTrack>();
+                l.Add(t);
+            }
+            var grouped = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var kv in byKey.Where(kv => kv.Value.Count > 1))
+            {
+                var df = MakeDupFinding(kv.Value, "");
+                if (df != null) { found.Add(df); foreach (var t in kv.Value) grouped.Add(t.Path); }
+            }
+
+            // 5b) Optional deep pass: AcoustID fingerprint over the rest (catches same recording, different tags).
+            if (UseFingerprint)
+            {
+                var fpKey = Settings.Load().AcoustIdKey ?? string.Empty;
+                if (!string.IsNullOrWhiteSpace(fpKey) && FingerprintService.Available)
+                {
+                    var remaining = tracks.Where(t => !grouped.Contains(t.Path)).ToList();
+                    var byAid = new Dictionary<string, List<IndexedTrack>>();
+                    for (int i = 0; i < remaining.Count; i++)
+                    {
+                        var snap = i + 1;
+                        Dispatcher.UIThread.Post(() => Summary = $"Fingerprinting… {snap}/{remaining.Count}");
+                        string? aid = null;
+                        try { aid = await FingerprintService.AcoustIdOf(remaining[i].Path, fpKey); } catch { }
+                        if (aid != null)
+                        {
+                            if (!byAid.TryGetValue(aid, out var l)) byAid[aid] = l = new List<IndexedTrack>();
+                            l.Add(remaining[i]);
+                        }
+                        try { await Task.Delay(350); } catch { }
+                    }
+                    foreach (var kv in byAid.Where(kv => kv.Value.Count > 1))
+                    {
+                        var df = MakeDupFinding(kv.Value, "🔊 ");
+                        if (df != null) found.Add(df);
+                    }
+                }
+            }
+
+            var order = new Dictionary<string, int> { ["Artists"] = 0, ["Locations"] = 1, ["Genres"] = 2, ["GenreStd"] = 3, ["Albums"] = 4, ["Duplicates"] = 5 };
             var sorted = found.OrderBy(f => order[f.Category]).ThenByDescending(f => f.Files.Count).ToList();
 
             // Every finding is openable in the metadata editor (button + double-click) so you can
@@ -286,9 +359,10 @@ public sealed class DoctorViewModel : ViewModelBase
                 int ng = sorted.Count(f => f.Category == "Genres");
                 int ngs = sorted.Count(f => f.Category == "GenreStd");
                 int nal = sorted.Count(f => f.Category == "Albums");
+                int ndup = sorted.Count(f => f.Category == "Duplicates");
                 Summary = sorted.Count == 0
                     ? $"Checkup done — {tracks.Count:N0} tracks examined, nothing to fix. Your library is in great shape."
-                    : $"{sorted.Count} findings — {na} artist spellings · {nl} misplaced albums · {ng} genre variants · {ngs} non-standard/missing genres · {nal} album oddities";
+                    : $"{sorted.Count} findings — {na} artist spellings · {nl} misplaced albums · {ng} genre variants · {ngs} non-standard/missing genres · {nal} album oddities · {ndup} duplicate sets";
                 IsBusy = false;
             });
         });
@@ -442,6 +516,137 @@ public sealed class DoctorViewModel : ViewModelBase
                 IsBusy = false;
             });
         });
+    }
+
+    // ---- Duplicates (part of the checkup) ----
+    private static string Quality(IndexedTrack t)
+    {
+        var q = t.Format;
+        if (t.Bitrate > 0) q += $" {t.Bitrate}";
+        return q.Length > 0 ? q : "?";
+    }
+
+    private DoctorFinding? MakeDupFinding(List<IndexedTrack> copies, string prefix)
+    {
+        var ordered = copies.OrderByDescending(t => t.Lossless)
+                            .ThenByDescending(t => t.Bitrate)
+                            .ThenByDescending(t => t.Size).ToList();
+        var first = ordered[0];
+        var who = first.Artist.Length > 0 ? first.Artist : first.AlbumArtist;
+        var title = prefix + $"{(who.Length > 0 ? who : "?")} — {(first.Title.Length > 0 ? first.Title : "?")}";
+        var ignoreKey = DupIgnoreKeyOf(title);
+        if (_dupIgnores.Contains(ignoreKey)) return null;
+        var f = new DoctorFinding
+        {
+            Category = "Duplicates",
+            Title = title,
+            Files = ordered.Select(t => t.Path).ToList(),
+            FixLabel = "Dedupe",
+            DupIgnoreKey = ignoreKey,
+        };
+        foreach (var t in ordered)
+        {
+            var label = $"keep {Quality(t)} · {Path.GetFileName(t.Path)}";
+            var lbl = label; int n = 2;
+            while (f.CopyByLabel.ContainsKey(lbl)) lbl = $"{label} ({n++})";
+            f.Spellings.Add(lbl);
+            f.CopyByLabel[lbl] = t.Path;
+        }
+        f.SelectedSpelling = f.Spellings[0];
+        f.Sub = $"{ordered.Count} copies · keep {Quality(first)}, others → trash";
+        f.FixCommand = new RelayCommand(() => Dedupe(f));
+        f.DismissCommand = new RelayCommand(() => DismissDup(f));
+        return f;
+    }
+
+    private static string DupTrashDir(string root)
+    {
+        var full = Path.GetFullPath(root).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        var parent = Path.GetDirectoryName(full);
+        return parent != null ? Path.Combine(parent, "_Dubbele_verwijderd (Spindle)") : Path.Combine(full, "_Dubbele_verwijderd");
+    }
+
+    private static List<UndoJournal.MoveOp> TrashDuplicates(DoctorFinding f, string? keep, string root)
+    {
+        var moves = new List<UndoJournal.MoveOp>();
+        var trash = DupTrashDir(root);
+        foreach (var path in f.Files)
+        {
+            if (string.Equals(path, keep, StringComparison.OrdinalIgnoreCase)) continue;
+            try
+            {
+                if (!File.Exists(path)) continue;
+                Directory.CreateDirectory(trash);
+                var dest = Path.Combine(trash, Path.GetFileName(path));
+                for (int n = 2; File.Exists(dest); n++)
+                    dest = Path.Combine(trash, $"{Path.GetFileNameWithoutExtension(path)} ({n}){Path.GetExtension(path)}");
+                File.Move(path, dest);
+                moves.Add(new UndoJournal.MoveOp(path, dest));
+            }
+            catch { }
+        }
+        return moves;
+    }
+
+    private static string? Keeper(DoctorFinding f) =>
+        f.SelectedSpelling != null && f.CopyByLabel.TryGetValue(f.SelectedSpelling, out var p) ? p : f.Files.FirstOrDefault();
+
+    private void Dedupe(DoctorFinding f)
+    {
+        if (IsBusy) return;
+        IsBusy = true;
+        Summary = "Removing duplicates…";
+        var root = _root();
+        var keep = Keeper(f);
+        Task.Run(() =>
+        {
+            var moves = TrashDuplicates(f, keep, root);
+            _undo.RecordBatch($"Doctor: dedupe {f.Title}", moves, new List<UndoJournal.TagOp>());
+            try { _lib.Refresh(root); } catch { }
+            Dispatcher.UIThread.Post(() =>
+            {
+                Findings.Remove(f);
+                Summary = $"{moves.Count} duplicate file(s) moved to trash (Cmd+Z = undo).";
+                IsBusy = false;
+            });
+        });
+    }
+
+    private void DedupeAll()
+    {
+        if (IsBusy) return;
+        var list = Findings.Where(f => f.Category == "Duplicates").ToList();
+        if (list.Count == 0) return;
+        IsBusy = true;
+        Summary = "Removing duplicates…";
+        var root = _root();
+        Task.Run(() =>
+        {
+            var moves = new List<UndoJournal.MoveOp>();
+            int i = 0;
+            foreach (var f in list)
+            {
+                var snap = ++i;
+                Dispatcher.UIThread.Post(() => Summary = $"Deduping… {snap}/{list.Count}");
+                moves.AddRange(TrashDuplicates(f, Keeper(f), root));
+            }
+            _undo.RecordBatch($"Doctor: deduped {list.Count} set(s)", moves, new List<UndoJournal.TagOp>());
+            try { _lib.Refresh(root); } catch { }
+            Dispatcher.UIThread.Post(() =>
+            {
+                foreach (var f in list) Findings.Remove(f);
+                Summary = $"{moves.Count} duplicate file(s) moved to trash (Cmd+Z = undo).";
+                IsBusy = false;
+            });
+        });
+    }
+
+    private void DismissDup(DoctorFinding f)
+    {
+        if (f.DupIgnoreKey.Length > 0) _dupIgnores.Add(f.DupIgnoreKey);
+        Findings.Remove(f);
+        Summary = $"Marked as not-a-duplicate — won't be flagged again ({_dupIgnores.Count} remembered).";
+        RaiseCmds();
     }
 
     private List<UndoJournal.TagOp> RetagGenre(DoctorFinding f)

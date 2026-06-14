@@ -168,14 +168,6 @@ public partial class MainWindow : Window
 
     private MainViewModel? Vm => DataContext as MainViewModel;
 
-    // Health → Find duplicates: point the duplicate scanner at the library and open it.
-    private void OnFindDuplicates(object? sender, RoutedEventArgs e)
-    {
-        if (Vm == null) return;
-        if (string.IsNullOrWhiteSpace(Vm.Duplicates.Folder)) Vm.Duplicates.Folder = Vm.MusicLibrary;
-        Vm.SelectedTabIndex = 2;   // Duplicates page (no longer in the sidebar; reached from Health)
-    }
-
     private bool _themeHooked;
 
     private void HookTheme()
