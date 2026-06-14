@@ -17,9 +17,38 @@ namespace Spindle.Views;
 /// Acts on its own DataContext (a MetadataEditorViewModel), so both hosts share one editor.</summary>
 public partial class MetadataEditorView : UserControl
 {
-    public MetadataEditorView() => InitializeComponent();
+    public MetadataEditorView()
+    {
+        InitializeComponent();
+        WireGenreMultiTag();
+    }
 
     private void InitializeComponent() => AvaloniaXamlLoader.Load(this);
+
+    // Genre multi-tag: filter on the segment after the last ';' and, on pick, replace only that segment —
+    // so "Rock; " offers the full list again and selecting "Pop" yields "Rock; Pop".
+    private void WireGenreMultiTag()
+    {
+        if (this.FindControl<AutoCompleteBox>("GenreBox") is not { } gb) return;
+        gb.TextFilter = (search, item) =>
+        {
+            var seg = LastGenreSegment(search);
+            return seg.Length == 0 || (item?.Contains(seg, StringComparison.OrdinalIgnoreCase) ?? false);
+        };
+        gb.TextSelector = (search, item) =>
+        {
+            var s = search ?? "";
+            int i = s.LastIndexOf(';');
+            return i >= 0 ? s.Substring(0, i + 1).TrimEnd() + " " + item : item;
+        };
+    }
+
+    private static string LastGenreSegment(string? text)
+    {
+        if (string.IsNullOrEmpty(text)) return "";
+        int i = text.LastIndexOf(';');
+        return (i >= 0 ? text.Substring(i + 1) : text).Trim();
+    }
 
     private MetadataEditorViewModel? Vm => DataContext as MetadataEditorViewModel;
 
