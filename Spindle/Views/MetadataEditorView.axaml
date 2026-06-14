@@ -4,7 +4,20 @@
              x:CompileBindings="False"
              x:Class="Spindle.Views.MetadataEditorView">
     <!-- DataContext is a MetadataEditorViewModel, supplied by the host (Metadata tab or Inbox detail). -->
+    <UserControl.Styles>
+        <Style Selector="ProgressBar.topbusy">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="{DynamicResource Accent}" />
+            <Setter Property="MinHeight" Value="3" />
+            <Setter Property="CornerRadius" Value="0" />
+        </Style>
+    </UserControl.Styles>
     <Grid RowDefinitions="Auto,Auto,Auto,*,Auto">
+        <!-- Glowing line: shown while this editor is doing work (match, fetch cover/lyrics, auto-fill…). -->
+        <Border Grid.RowSpan="5" VerticalAlignment="Top" ZIndex="100" Height="3"
+                IsVisible="{Binding IsBusy}" BoxShadow="0 0 10 0 #803B82F6">
+            <ProgressBar Classes="topbusy" IsIndeterminate="True" MinHeight="3" Height="3" />
+        </Border>
         <Grid Grid.Row="0" ColumnDefinitions="Auto,Auto,Auto,Auto,Auto,*,Auto">
             <Button Grid.Column="0" Classes="ghost" Content="Open file…" Click="OnOpenMetaFile" IsVisible="{Binding ShowSourceButtons}" />
             <Button Grid.Column="1" Classes="ghost" Content="Open folder…" Margin="8,0,0,0" Click="OnOpenMetaFolder" IsVisible="{Binding ShowSourceButtons}" />
