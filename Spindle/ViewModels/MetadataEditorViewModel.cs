@@ -36,6 +36,7 @@ public class MetadataEditorViewModel : ViewModelBase
         BackCommand = new RelayCommand(Back, () => HasPrev && !IsBusy);
         AutoFillCommand = new RelayCommand(AutoFill, () => HasFile && !IsBusy);
         FetchLyricsCommand = new RelayCommand(() => _ = FetchLyricsAsync(), () => HasFile && !IsBusy);
+        ApplyGenreToAlbumCommand = new RelayCommand(ApplyGenreToAlbum, () => HasFile && !IsBusy);
         RemoveArtCommand = new RelayCommand(RemoveArt, () => HasFile && !IsBusy);
         ApplyArtNowCommand = new RelayCommand(ApplyArtNow, () => HasFile && !IsBusy);
         MatchAlbumCommand = new RelayCommand(MatchAlbum, () => HasFile && !IsBusy && AlbumMatchable);
@@ -175,6 +176,10 @@ public class MetadataEditorViewModel : ViewModelBase
     public RelayCommand BackCommand { get; }
     public RelayCommand AutoFillCommand { get; }
     public RelayCommand FetchLyricsCommand { get; }
+    public RelayCommand ApplyGenreToAlbumCommand { get; }
+
+    /// <summary>Standard genres for the album-genre picker in the form.</summary>
+    public IReadOnlyList<string> GenreOptions => Genres.Standard;
     public RelayCommand RemoveArtCommand { get; }
     public RelayCommand ApplyArtNowCommand { get; }
 
@@ -684,6 +689,7 @@ public class MetadataEditorViewModel : ViewModelBase
         BackCommand.RaiseCanExecuteChanged();
         AutoFillCommand.RaiseCanExecuteChanged();
         FetchLyricsCommand.RaiseCanExecuteChanged();
+        ApplyGenreToAlbumCommand.RaiseCanExecuteChanged();
         RemoveArtCommand.RaiseCanExecuteChanged();
         ApplyArtNowCommand.RaiseCanExecuteChanged();
         MatchAlbumCommand.RaiseCanExecuteChanged();
@@ -712,6 +718,30 @@ public class MetadataEditorViewModel : ViewModelBase
         });
         IsBusy = false;
         Status = $"Lyrics: {counts.Got} found, {counts.Miss} missing.";
+    }
+
+    // Write the current Genre to every loaded track of the album (one undo batch).
+    private void ApplyGenreToAlbum()
+    {
+        if (IsBusy || _allFiles.Count == 0) return;
+        var genre = (Genre ?? "").Trim();
+        var files = _allFiles.ToList();
+        IsBusy = true;
+        Task.Run(() =>
+        {
+            var before = new List<UndoJournal.TagOp>();
+            foreach (var f in files)
+            {
+                try { var t = new Track(f); before.Add(Snapshot(t, f)); t.Genre = genre; t.Save(); } catch { }
+            }
+            _undo?.RecordTags($"Genre → \"{genre}\": {files.Count} tracks", before);
+            Dispatcher.UIThread.Post(() =>
+            {
+                IsBusy = false;
+                Grid.Reload();
+                Status = $"Genre '{genre}' applied to {files.Count} tracks (Cmd+Z = undo).";
+            });
+        });
     }
 
     private static Bitmap? BitmapFrom(byte[]? data)
