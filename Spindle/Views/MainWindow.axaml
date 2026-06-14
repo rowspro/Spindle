@@ -472,7 +472,7 @@
                 <!-- Navigation -->
                 <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
                     <StackPanel>
-                        <TextBlock Classes="navGroup" Text="WORKFLOW" />
+                        <TextBlock Classes="navGroup" Text="INCOMING" />
                         <Button Classes="nav" Tag="5" Click="OnNav"
                                 Classes.active="{Binding SelectedTabIndex, Converter={x:Static vm:IntEquals.Instance}, ConverterParameter=5}">
                             <StackPanel Orientation="Horizontal"><TextBlock Classes="icon" FontSize="19" Width="28" Text="&#xE168;" /><TextBlock Text="Inbox" VerticalAlignment="Center" />
