@@ -94,18 +94,6 @@ public partial class MainWindow : Window
             }
         }
 
-        if (Vm.SelectedTabIndex != 0) return; // Metadata tab
-        if (e.Source is TextBox) return;
-        if (e.Key == Key.Left)
-        {
-            if (Vm.Meta.BackCommand.CanExecute(null)) Vm.Meta.BackCommand.Execute(null);
-            e.Handled = true;
-        }
-        else if (e.Key == Key.Right)
-        {
-            if (Vm.Meta.ApproveNextCommand.CanExecute(null)) Vm.Meta.ApproveNextCommand.Execute(null);
-            e.Handled = true;
-        }
     }
 
     // Double-click a Library Doctor finding to open its album in the Metadata editor for inspection.

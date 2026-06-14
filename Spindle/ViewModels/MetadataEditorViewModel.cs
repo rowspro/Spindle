@@ -32,8 +32,7 @@ public class MetadataEditorViewModel : ViewModelBase
         ModeFormCommand = new RelayCommand(() => EditorMode = "form");
         ModeTableCommand = new RelayCommand(() => { if (!Grid.HasDirty) Grid.Reload(); EditorMode = "tabel"; });
         ModeConvCommand = new RelayCommand(() => { if (!Grid.HasDirty) Grid.Reload(); EditorMode = "conv"; });
-        ApproveNextCommand = new RelayCommand(ApproveNext, () => HasFile && !IsBusy);
-        BackCommand = new RelayCommand(Back, () => HasPrev && !IsBusy);
+        SaveCommand = new RelayCommand(Save, () => HasFile && !IsBusy);
         AutoFillCommand = new RelayCommand(AutoFill, () => HasFile && !IsBusy);
         FetchLyricsCommand = new RelayCommand(() => _ = FetchLyricsAsync(), () => HasFile && !IsBusy);
         ApplyGenreToAlbumCommand = new RelayCommand(ApplyGenreToAlbum, () => HasFile && !IsBusy);
@@ -172,8 +171,7 @@ public class MetadataEditorViewModel : ViewModelBase
     private string _status = "Open a file or folder (album). Auto-fill completes missing tags via MusicBrainz.";
     public string Status { get => _status; private set => SetField(ref _status, value); }
 
-    public RelayCommand ApproveNextCommand { get; }
-    public RelayCommand BackCommand { get; }
+    public RelayCommand SaveCommand { get; }
     public RelayCommand AutoFillCommand { get; }
     public RelayCommand FetchLyricsCommand { get; }
     public RelayCommand ApplyGenreToAlbumCommand { get; }
@@ -337,21 +335,6 @@ public class MetadataEditorViewModel : ViewModelBase
         }
         catch (Exception e) { Status = "Apply failed: " + e.Message; }
         finally { IsBusy = false; }
-    }
-
-    private void ApproveNext()
-    {
-        if (IsBusy) return;
-        Save();
-        if (_index < _files.Count - 1) { _index++; Load(_files[_index]); }
-        else if (FolderMode) { Status = "Done — went through all tracks."; RaiseNav(); }
-    }
-
-    private void Back()
-    {
-        if (IsBusy || _index == 0) return;
-        _index--;
-        Load(_files[_index]);
     }
 
     private string _loadedAlbum = "", _loadedAlbumArtist = "", _loadedGenre = "", _loadedYear = "";
@@ -685,8 +668,7 @@ public class MetadataEditorViewModel : ViewModelBase
 
     private void RaiseNav()
     {
-        ApproveNextCommand.RaiseCanExecuteChanged();
-        BackCommand.RaiseCanExecuteChanged();
+        SaveCommand.RaiseCanExecuteChanged();
         AutoFillCommand.RaiseCanExecuteChanged();
         FetchLyricsCommand.RaiseCanExecuteChanged();
         ApplyGenreToAlbumCommand.RaiseCanExecuteChanged();

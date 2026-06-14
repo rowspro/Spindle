@@ -1216,14 +1216,6 @@
                             </StackPanel>
                         </Border>
 
-                        <Border Classes="card">
-                            <StackPanel Spacing="7">
-                                <TextBlock Classes="section" Text="METADATA" />
-                                <Grid ColumnDefinitions="160,*"><TextBlock Grid.Column="0" FontWeight="SemiBold" Text="←" /><TextBlock Grid.Column="1" Foreground="{DynamicResource TextSecondary}" Text="Previous track" /></Grid>
-                                <Grid ColumnDefinitions="160,*"><TextBlock Grid.Column="0" FontWeight="SemiBold" Text="→" /><TextBlock Grid.Column="1" Foreground="{DynamicResource TextSecondary}" Text="Approve and go to the next track" /></Grid>
-                            </StackPanel>
-                        </Border>
-
                       </StackPanel>
                     </ScrollViewer>
                   </TabItem>
