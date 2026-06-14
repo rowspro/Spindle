@@ -500,15 +500,7 @@
                             <StackPanel Orientation="Horizontal"><TextBlock Classes="icon" FontSize="19" Width="28" Text="&#xEAA2;" /><TextBlock Text="Health" VerticalAlignment="Center" /></StackPanel>
                         </Button>
 
-                        <TextBlock Classes="navGroup" Text="TOOLS" />
-                        <Button Classes="nav" Tag="0" Click="OnNav"
-                                Classes.active="{Binding SelectedTabIndex, Converter={x:Static vm:IntEquals.Instance}, ConverterParameter=0}">
-                            <StackPanel Orientation="Horizontal"><TextBlock Classes="icon" FontSize="19" Width="28" Text="&#xE892;" /><TextBlock Text="Metadata" VerticalAlignment="Center" /></StackPanel>
-                        </Button>
-                        <Button Classes="nav" Tag="2" Click="OnNav"
-                                Classes.active="{Binding SelectedTabIndex, Converter={x:Static vm:IntEquals.Instance}, ConverterParameter=2}">
-                            <StackPanel Orientation="Horizontal"><TextBlock Classes="icon" FontSize="19" Width="28" Text="&#xE14D;" /><TextBlock Text="Duplicates" VerticalAlignment="Center" /></StackPanel>
-                        </Button>
+                        <TextBlock Classes="navGroup" Text="TRANSFER" IsVisible="{Binding RockboxMode}" />
                         <Button Classes="nav" Tag="3" Click="OnNav" IsVisible="{Binding RockboxMode}"
                                 Classes.active="{Binding SelectedTabIndex, Converter={x:Static vm:IntEquals.Instance}, ConverterParameter=3}">
                             <StackPanel Orientation="Horizontal"><TextBlock Classes="icon" FontSize="19" Width="28" Text="&#xE32C;" /><TextBlock Text="Transfer" VerticalAlignment="Center" /></StackPanel>
@@ -595,8 +587,11 @@
                                     <TextBlock Classes="caption" TextWrapping="Wrap"
                                                Text="Finds artist spelling variants (AC/DC vs AC &amp; DC), files that strayed from your naming template, messy genres and album oddities — every fix is one Cmd+Z away from undone." />
                                 </StackPanel>
-                                <Button Grid.Column="2" Classes="primary" Content="Run checkup" VerticalAlignment="Center"
-                                        Command="{Binding OpenDoctorCommand}" />
+                                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                    <Button Classes="ghost" Content="Find duplicates" Click="OnFindDuplicates"
+                                            ToolTip.Tip="Scan the whole library for duplicate tracks (same artist+title, optional AcoustID fingerprint) and keep the best copy." />
+                                    <Button Classes="primary" Content="Run checkup" Command="{Binding OpenDoctorCommand}" />
+                                </StackPanel>
                             </Grid>
                         </Border>
 
