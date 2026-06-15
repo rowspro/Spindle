@@ -431,6 +431,34 @@ public class MainViewModel : ViewModelBase
         set { if (SetField(ref _fetchLyricsOnApprove, value)) CleanupOptions.FetchLyricsOnApprove = value; }
     }
 
+    private bool _autoFetchLyrics;
+    public bool AutoFetchLyrics
+    {
+        get => _autoFetchLyrics;
+        set { if (SetField(ref _autoFetchLyrics, value)) { CleanupOptions.AutoFetchLyrics = value; if (value) StartAutoLyricsFill(); } }
+    }
+
+    /// <summary>When opted in, fill missing lyrics across the whole library in the background (LRCLIB).
+    /// "Missing" = no .lrc sidecar next to the track. Transfers then carry the .lrc to the iPod.</summary>
+    public void StartAutoLyricsFill()
+    {
+        if (!CleanupOptions.AutoFetchLyrics) return;
+        var root = MusicLibrary;
+        if (string.IsNullOrWhiteSpace(root) || !System.IO.Directory.Exists(root)) return;
+        System.Threading.Tasks.Task.Run(() =>
+        {
+            var missing = new List<string>();
+            try
+            {
+                foreach (var r in Lib.Index.AllTracks(root))
+                    if (!System.IO.File.Exists(System.IO.Path.ChangeExtension(r.Path, ".lrc"))) missing.Add(r.Path);
+            }
+            catch { }
+            if (missing.Count > 0)
+                Avalonia.Threading.Dispatcher.UIThread.Post(() => BackgroundJobs.RunLyrics(missing));
+        });
+    }
+
     // Standard genres list (editable): base set + the user's own. The Doctor retags to these.
     public ObservableCollection<GenrePref> StandardGenres { get; } = new();
     public RelayCommand AddGenreCommand { get; }
@@ -602,6 +630,7 @@ public class MainViewModel : ViewModelBase
         RenameToMatchTags = RenameToMatchTags,
         TrimSpaces = TrimSpaces,
         FetchLyricsOnApprove = FetchLyricsOnApprove,
+        AutoFetchLyrics = AutoFetchLyrics,
         FlattenArtistOnSync = FlattenArtistOnSync,
         ConvertToAlacDefault = ConvertToAlacDefault,
         AutoCreatePlaylists = AutoCreatePlaylists,
@@ -638,6 +667,7 @@ public class MainViewModel : ViewModelBase
         RenameToMatchTags = c.RenameToMatchTags;
         TrimSpaces = c.TrimSpaces;
         FetchLyricsOnApprove = c.FetchLyricsOnApprove;
+        AutoFetchLyrics = c.AutoFetchLyrics;   // setter kicks off the background fill if enabled
         FlattenArtistOnSync = c.FlattenArtistOnSync;
         ConvertToAlacDefault = c.ConvertToAlacDefault;
         AutoCreatePlaylists = c.AutoCreatePlaylists;

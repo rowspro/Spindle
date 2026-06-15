@@ -33,6 +33,7 @@ public class SpindleConfig
     public bool RenameToMatchTags { get; set; } = true;            // rename files to the template after a tag edit
     public bool TrimSpaces { get; set; } = true;                    // collapse stray spaces in tags automatically on save
     public bool FetchLyricsOnApprove { get; set; }                  // fetch lyrics online when approving from the Inbox
+    public bool AutoFetchLyrics { get; set; }                       // background-fill the whole library's lyrics (LRCLIB)
 
     // Personalisations — iPod: how music is prepared for the device.
     public bool FlattenArtistOnSync { get; set; }                   // primary artist on the iPod copy (source untouched)

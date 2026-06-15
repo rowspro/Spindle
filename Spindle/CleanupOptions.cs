@@ -28,4 +28,7 @@ public static class CleanupOptions
 
     // Fetch lyrics online (LRCLIB) for albums approved from the Inbox.
     public static bool FetchLyricsOnApprove { get; set; }
+
+    // Opt-in: keep the whole library's lyrics filled in the background (LRCLIB). Transfers carry the .lrc.
+    public static bool AutoFetchLyrics { get; set; }
 }
