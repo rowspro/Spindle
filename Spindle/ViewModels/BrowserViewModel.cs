@@ -56,6 +56,7 @@ public class BrowserViewModel : ViewModelBase
     private readonly Func<string> _root;
     private readonly Action<IReadOnlyList<string>, string> _onEdit;
     private readonly Action<IReadOnlyList<(IReadOnlyList<string> Files, string Label)>> _onEditMany;
+    private readonly Action<List<PlayerItem>> _onQueue;
     private readonly List<BrowserAlbumViewModel> _all = new();
     private readonly ConcurrentDictionary<string, Bitmap> _coverCache = new();
     private CancellationTokenSource? _coverCts;
@@ -70,13 +71,26 @@ public class BrowserViewModel : ViewModelBase
     public ObservableCollection<BrowserAlbumViewModel> SelectedAlbums { get; } = new();
 
     public BrowserViewModel(LibraryService lib, Func<string> root, Action<IReadOnlyList<string>, string> onEdit,
-        Action<IReadOnlyList<(IReadOnlyList<string> Files, string Label)>> onEditMany)
+        Action<IReadOnlyList<(IReadOnlyList<string> Files, string Label)>> onEditMany, Action<List<PlayerItem>> onQueue)
     {
         _lib = lib;
         _root = root;
         _onEdit = onEdit;
         _onEditMany = onEditMany;
+        _onQueue = onQueue;
         RefreshCommand = new RelayCommand(Refresh);
+        QueueAlbumCommand = new RelayCommand(() =>
+        {
+            var a = SelectedAlbum;
+            if (a != null) _onQueue(a.Tracks.Select(t => ToItem(t, a)).ToList());
+        }, () => SelectedAlbum != null);
+        QueueTrackCommand = new RelayCommand(() =>
+        {
+            var a = SelectedAlbum; var tr = SelectedTrack;
+            if (a == null || tr == null) return;
+            var hit = a.Tracks.FirstOrDefault(t => t.Path == tr.Path);
+            if (hit != null) _onQueue(new List<PlayerItem> { ToItem(hit, a) });
+        }, () => SelectedTrack != null);
         EditInMetadataCommand = new RelayCommand(() =>
         {
             if (IsMultiSelect)
@@ -110,7 +124,17 @@ public class BrowserViewModel : ViewModelBase
     }
 
     public RelayCommand RefreshCommand { get; }
+    public RelayCommand QueueAlbumCommand { get; }
+    public RelayCommand QueueTrackCommand { get; }
     public RelayCommand EditInMetadataCommand { get; }
+
+    private static PlayerItem ToItem(IndexedTrack t, BrowserAlbumViewModel a) => new()
+    {
+        Path = t.Path,
+        Title = string.IsNullOrWhiteSpace(t.Title) ? System.IO.Path.GetFileName(t.Path) : t.Title,
+        Sub = a.ArtistText + " — " + a.Title,
+        Duration = t.Duration,
+    };
     public RelayCommand ShowInFinderCommand { get; }
     public RelayCommand SaveAlbumEditCommand { get; }
     public RelayCommand FilterAllCommand { get; }
@@ -157,6 +181,7 @@ public class BrowserViewModel : ViewModelBase
             EditInMetadataCommand.RaiseCanExecuteChanged();
             ShowInFinderCommand.RaiseCanExecuteChanged();
             SaveAlbumEditCommand.RaiseCanExecuteChanged();
+            QueueAlbumCommand.RaiseCanExecuteChanged();
             OnPropertyChanged(nameof(IsSingleSelect));
         }
     }
@@ -181,7 +206,7 @@ public class BrowserViewModel : ViewModelBase
     }
 
     private BrowserTrackViewModel? _selectedTrack;
-    public BrowserTrackViewModel? SelectedTrack { get => _selectedTrack; set => SetField(ref _selectedTrack, value); }
+    public BrowserTrackViewModel? SelectedTrack { get => _selectedTrack; set { if (SetField(ref _selectedTrack, value)) QueueTrackCommand.RaiseCanExecuteChanged(); } }
 
     private void SetFilter(string f)
     {

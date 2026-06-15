@@ -1,4 +1,6 @@
+using System.Collections.ObjectModel;
 using System.Diagnostics;
+using Avalonia.Media.Imaging;
 using Avalonia.Threading;
 
 namespace Spindle.ViewModels;
@@ -46,6 +48,14 @@ public sealed class PlayerViewModel : ViewModelBase
     public string CurrentPath => HasTrack ? _queue[_idx].Path : "";
     public string NowTitle => HasTrack ? _queue[_idx].Title : "";
     public string NowSub => HasTrack ? _queue[_idx].Sub : "";
+
+    /// <summary>The live queue (for the Player tab list). NowIndex marks the playing item.</summary>
+    public ObservableCollection<PlayerItem> Queue { get; } = new();
+    public int NowIndex => _idx;
+
+    private Bitmap? _nowArt;
+    public Bitmap? NowArt { get => _nowArt; private set { if (SetField(ref _nowArt, value)) OnPropertyChanged(nameof(HasArt)); } }
+    public bool HasArt => _nowArt != null;
     public string PlayPauseIcon => _paused ? "" : ""; // play_arrow : pause
 
     private double _progress;
@@ -58,14 +68,75 @@ public sealed class PlayerViewModel : ViewModelBase
     {
         if (items.Count == 0) return;
         _queue = items;
+        SyncQueue();
         _idx = Math.Clamp(start, 0, items.Count - 1);
         StartCurrent();
+    }
+
+    /// <summary>Append tracks to the queue. Starts playing if nothing is playing yet.</summary>
+    public void Enqueue(List<PlayerItem> items)
+    {
+        if (items == null || items.Count == 0) return;
+        bool wasIdle = !HasTrack;
+        _queue.AddRange(items);
+        SyncQueue();
+        if (wasIdle) { _idx = 0; StartCurrent(); }
+        else RaiseAll();
+    }
+
+    /// <summary>Jump to a specific queue position (click in the Player tab).</summary>
+    public void PlayAt(int index)
+    {
+        if (index < 0 || index >= _queue.Count) return;
+        _idx = index;
+        StartCurrent();
+    }
+
+    private void SyncQueue()
+    {
+        Queue.Clear();
+        foreach (var it in _queue) Queue.Add(it);
+        OnPropertyChanged(nameof(NowIndex));
+    }
+
+    private static Bitmap? BitmapFrom(byte[]? data)
+    {
+        if (data == null || data.Length == 0) return null;
+        try { return new Bitmap(new System.IO.MemoryStream(data)); }
+        catch { return null; }
+    }
+
+    private void LoadArtFor(string path)
+    {
+        NowArt = null;
+        Task.Run(() =>
+        {
+            Bitmap? bmp = null;
+            try
+            {
+                var t = new ATL.Track(path);
+                if (t.EmbeddedPictures.Count > 0) bmp = BitmapFrom(t.EmbeddedPictures[0].PictureData);
+                if (bmp == null)
+                {
+                    var dir = System.IO.Path.GetDirectoryName(path) ?? "";
+                    foreach (var name in new[] { "folder.jpg", "cover.jpg", "folder.png", "cover.png" })
+                    {
+                        var p = System.IO.Path.Combine(dir, name);
+                        if (System.IO.File.Exists(p)) { try { bmp = new Bitmap(p); } catch { } break; }
+                    }
+                }
+            }
+            catch { }
+            Dispatcher.UIThread.Post(() => NowArt = bmp);
+        });
     }
 
     private void StartCurrent()
     {
         KillProc();
         _paused = false;
+        LoadArtFor(_queue[_idx].Path);
+        OnPropertyChanged(nameof(NowIndex));
         try
         {
             // afplay via een sh-watchdog: sterft Spindle (ook bij force quit), dan sterft afplay
@@ -127,10 +198,13 @@ public sealed class PlayerViewModel : ViewModelBase
         KillProc();
         _idx = -1;
         _queue = new List<PlayerItem>();
+        Queue.Clear();
+        NowArt = null;
         _sw.Reset();
         _tick.Stop();
         Progress = 0;
         TimeText = "";
+        OnPropertyChanged(nameof(NowIndex));
         RaiseAll();
     }
 

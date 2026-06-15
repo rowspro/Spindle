@@ -510,6 +510,36 @@
 
                 <!-- Bottom: settings -->
                 <StackPanel Grid.Row="2">
+                    <!-- Mini player: fills the empty sidebar space with now-playing + controls. -->
+                    <Border Margin="0,0,0,8" Padding="10" CornerRadius="12" Background="{DynamicResource SurfaceVariant}"
+                            IsVisible="{Binding Player.HasTrack}">
+                        <StackPanel>
+                            <Grid ColumnDefinitions="Auto,*">
+                                <Border Grid.Column="0" Width="44" Height="44" CornerRadius="8" ClipToBounds="True" Background="{DynamicResource Recess}">
+                                    <Panel>
+                                        <TextBlock Classes="icon" FontSize="22" Text="&#xE019;" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                   Foreground="{DynamicResource TextMuted}" IsVisible="{Binding !Player.HasArt}" />
+                                        <Image Source="{Binding Player.NowArt}" Stretch="UniformToFill" />
+                                    </Panel>
+                                </Border>
+                                <StackPanel Grid.Column="1" Margin="10,0,0,0" VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding Player.NowTitle}" FontSize="12.5" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" TextTrimming="CharacterEllipsis" />
+                                    <TextBlock Text="{Binding Player.NowSub}" FontSize="11" Foreground="{DynamicResource TextMuted}" TextTrimming="CharacterEllipsis" />
+                                </StackPanel>
+                            </Grid>
+                            <ProgressBar Margin="0,8,0,0" Minimum="0" Maximum="100" Value="{Binding Player.Progress}" Height="3" Background="{DynamicResource Recess}" Foreground="{DynamicResource Accent}" />
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="6" Margin="0,6,0,0">
+                                <Button Classes="ghost" Padding="8,4" Command="{Binding Player.PrevCommand}" ToolTip.Tip="Previous"><TextBlock Classes="icon" FontSize="18" Text="&#xE045;" /></Button>
+                                <Button Classes="primary" Padding="10,4" Command="{Binding Player.PlayPauseCommand}" ToolTip.Tip="Play / pause"><TextBlock Classes="icon" FontSize="18" Text="{Binding Player.PlayPauseIcon}" /></Button>
+                                <Button Classes="ghost" Padding="8,4" Command="{Binding Player.NextCommand}" ToolTip.Tip="Next"><TextBlock Classes="icon" FontSize="18" Text="&#xE044;" /></Button>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <Button Classes="nav" Tag="9" Click="OnNav"
+                            Classes.active="{Binding SelectedTabIndex, Converter={x:Static vm:IntEquals.Instance}, ConverterParameter=9}">
+                        <StackPanel Orientation="Horizontal"><TextBlock Classes="icon" FontSize="19" Width="28" Text="&#xE037;" /><TextBlock Text="Player" VerticalAlignment="Center" /></StackPanel>
+                    </Button>
                     <Button Classes="nav" Tag="4" Click="OnNav"
                             Classes.active="{Binding SelectedTabIndex, Converter={x:Static vm:IntEquals.Instance}, ConverterParameter=4}">
                         <StackPanel Orientation="Horizontal"><TextBlock Classes="icon" FontSize="19" Width="28" Text="&#xE8B8;" /><TextBlock Text="Settings" VerticalAlignment="Center" /></StackPanel>
@@ -1641,6 +1671,14 @@
                                             <StackPanel Orientation="Horizontal" Spacing="6"><TextBlock Classes="icon" FontSize="16" Text="&#xE2C8;" /><TextBlock Text="Finder" VerticalAlignment="Center" /></StackPanel>
                                         </Button>
                                     </Grid>
+                                    <Grid ColumnDefinitions="*,*" Margin="0,6,0,0">
+                                        <Button Grid.Column="0" Classes="ghost" Margin="0,0,3,0" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                                                Content="Queue album" Command="{Binding QueueAlbumCommand}"
+                                                ToolTip.Tip="Add all tracks of this album to the player queue." />
+                                        <Button Grid.Column="1" Classes="ghost" Margin="3,0,0,0" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                                                Content="Queue track" Command="{Binding QueueTrackCommand}"
+                                                ToolTip.Tip="Add the selected track to the player queue." />
+                                    </Grid>
 
                                     <TextBlock Classes="section" Text="TRACKS" Margin="0,16,0,8" />
                                     <ListBox MaxHeight="240" ItemsSource="{Binding SelectedTracks}" SelectedItem="{Binding SelectedTrack}"
@@ -1789,35 +1827,62 @@
                     </Grid>
                 </Grid>
             </TabItem>
-        </TabControl>
 
-            <!-- Mini-speler (ingebouwde music player) -->
-            <Border Grid.Row="2" Background="{DynamicResource SidebarBg}" BorderBrush="{DynamicResource CardBorder}"
-                    BorderThickness="0,1,0,0" Padding="24,7" IsVisible="{Binding Player.HasTrack}">
-                <Grid ColumnDefinitions="Auto,Auto,Auto,Auto,*,Auto">
-                    <Button Grid.Column="0" Classes="ghost" Padding="8,4" Command="{Binding Player.PrevCommand}" ToolTip.Tip="Previous">
-                        <TextBlock Classes="icon" FontSize="18" Text="&#xE045;" />
-                    </Button>
-                    <Button Grid.Column="1" Classes="primary" Padding="10,4" Margin="6,0,0,0" Command="{Binding Player.PlayPauseCommand}" ToolTip.Tip="Play/pause (space)">
-                        <TextBlock Classes="icon" FontSize="18" Text="{Binding Player.PlayPauseIcon}" Foreground="White" />
-                    </Button>
-                    <Button Grid.Column="2" Classes="ghost" Padding="8,4" Margin="6,0,0,0" Command="{Binding Player.NextCommand}" ToolTip.Tip="Next">
-                        <TextBlock Classes="icon" FontSize="18" Text="&#xE044;" />
-                    </Button>
-                    <Button Grid.Column="3" Classes="ghost" Padding="8,4" Margin="6,0,0,0" Command="{Binding Player.StopCommand}" ToolTip.Tip="Stop">
-                        <TextBlock Classes="icon" FontSize="18" Text="&#xE047;" />
-                    </Button>
-                    <StackPanel Grid.Column="4" Margin="14,0,0,0" VerticalAlignment="Center">
-                        <TextBlock Text="{Binding Player.NowTitle}" Classes="title" FontSize="13" TextTrimming="CharacterEllipsis" />
-                        <Grid ColumnDefinitions="*,Auto" Margin="0,3,0,0">
-                            <ProgressBar Grid.Column="0" Minimum="0" Maximum="100" Value="{Binding Player.Progress}" Height="4" CornerRadius="2"
+            <!-- ============ TAB: PLAYER ============ -->
+            <TabItem Header="Player">
+                <Grid x:CompileBindings="False" DataContext="{Binding Player}" ColumnDefinitions="Auto,*" Margin="0,12,0,0">
+                    <!-- Now playing -->
+                    <StackPanel Grid.Column="0" Width="320" VerticalAlignment="Top">
+                        <Border Width="320" Height="320" CornerRadius="14" ClipToBounds="True" Background="{DynamicResource SurfaceVariant}">
+                            <Panel>
+                                <TextBlock Classes="icon" FontSize="80" Text="&#xE019;" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                           Foreground="{DynamicResource TextMuted}" IsVisible="{Binding !HasArt}" />
+                                <Image Source="{Binding NowArt}" Stretch="UniformToFill" />
+                            </Panel>
+                        </Border>
+                        <TextBlock Text="{Binding NowTitle}" Classes="title" FontSize="18" Margin="0,14,0,0" TextWrapping="Wrap"
+                                   IsVisible="{Binding HasTrack}" />
+                        <TextBlock Text="{Binding NowSub}" Classes="body" Margin="0,2,0,0" IsVisible="{Binding HasTrack}" />
+                        <TextBlock Text="Nothing playing — queue tracks from the Library." Classes="caption" Margin="0,14,0,0"
+                                   IsVisible="{Binding !HasTrack}" />
+
+                        <Grid ColumnDefinitions="*,Auto" Margin="0,14,0,0" IsVisible="{Binding HasTrack}">
+                            <ProgressBar Grid.Column="0" Minimum="0" Maximum="100" Value="{Binding Progress}" Height="4" CornerRadius="2"
                                          Background="{DynamicResource SurfaceVariant}" Foreground="{DynamicResource Accent}" VerticalAlignment="Center" />
-                            <TextBlock Grid.Column="1" Margin="10,0,0,0" Classes="caption" Text="{Binding Player.TimeText}" VerticalAlignment="Center" />
+                            <TextBlock Grid.Column="1" Margin="10,0,0,0" Classes="caption" Text="{Binding TimeText}" VerticalAlignment="Center" />
                         </Grid>
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="10" Margin="0,14,0,0">
+                            <Button Classes="ghost" Padding="12,6" Command="{Binding PrevCommand}" ToolTip.Tip="Previous"><TextBlock Classes="icon" FontSize="22" Text="&#xE045;" /></Button>
+                            <Button Classes="primary" Padding="16,6" Command="{Binding PlayPauseCommand}" ToolTip.Tip="Play / pause"><TextBlock Classes="icon" FontSize="22" Text="{Binding PlayPauseIcon}" /></Button>
+                            <Button Classes="ghost" Padding="12,6" Command="{Binding NextCommand}" ToolTip.Tip="Next"><TextBlock Classes="icon" FontSize="22" Text="&#xE044;" /></Button>
+                            <Button Classes="ghost" Padding="12,6" Command="{Binding StopCommand}" ToolTip.Tip="Stop"><TextBlock Classes="icon" FontSize="22" Text="&#xE047;" /></Button>
+                        </StackPanel>
                     </StackPanel>
-                    <TextBlock Grid.Column="5" Margin="14,0,0,0" Classes="caption" Text="{Binding Player.NowSub}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" MaxWidth="280" />
+
+                    <!-- Queue -->
+                    <Grid Grid.Column="1" Margin="24,0,0,0" RowDefinitions="Auto,*">
+                        <TextBlock Grid.Row="0" Classes="h2" Text="Queue" />
+                        <ListBox Grid.Row="1" Margin="0,10,0,0" ItemsSource="{Binding Queue}" Background="Transparent" BorderThickness="0"
+                                 DoubleTapped="OnQueueItemDoubleTapped">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid ColumnDefinitions="Auto,*,Auto" Margin="0,2" Cursor="Hand">
+                                        <TextBlock Grid.Column="0" Classes="icon" FontSize="16" Text="&#xE037;" Foreground="{DynamicResource Accent}" VerticalAlignment="Center" Width="22" />
+                                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding Title}" FontSize="13" Foreground="{DynamicResource TextPrimary}" TextTrimming="CharacterEllipsis" />
+                                            <TextBlock Text="{Binding Sub}" Classes="caption" TextTrimming="CharacterEllipsis" />
+                                        </StackPanel>
+                                    </Grid>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                        <TextBlock Grid.Row="1" Classes="caption" VerticalAlignment="Top" Margin="2,4,0,0"
+                                   Text="Double-click a track to jump to it. Add tracks from the Library (Add to queue)."
+                                   IsVisible="{Binding !HasTrack}" />
+                    </Grid>
                 </Grid>
-            </Border>
+            </TabItem>
+        </TabControl>
 
             <!-- Globale statusbalk (fase 0): indexvoortgang + laatste actie -->
             <Border Grid.Row="3" Background="{DynamicResource SidebarBg}" BorderBrush="{DynamicResource CardBorder}"

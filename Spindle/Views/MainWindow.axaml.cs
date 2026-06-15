@@ -168,6 +168,14 @@ public partial class MainWindow : Window
 
     private MainViewModel? Vm => DataContext as MainViewModel;
 
+    // Player queue: double-click a track to jump to it.
+    private void OnQueueItemDoubleTapped(object? sender, TappedEventArgs e)
+    {
+        if (Vm == null || (sender as Control)?.DataContext is not PlayerItem it) return;
+        var i = Vm.Player.Queue.IndexOf(it);
+        if (i >= 0) Vm.Player.PlayAt(i);
+    }
+
     private bool _themeHooked;
 
     private void HookTheme()

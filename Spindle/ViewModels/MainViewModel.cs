@@ -27,7 +27,7 @@ public class MainViewModel : ViewModelBase
 
         Browser = new BrowserViewModel(Lib, () => MusicLibrary,
             (files, status) => { Meta.LoadFiles(files, status); SelectedTabIndex = 0; },
-            OpenAlbumsInMeta);
+            OpenAlbumsInMeta, Player.Enqueue);
 
         Galaxy = new GalaxyViewModel(Lib, () => MusicLibrary,
             onOpenAlbum: (artist, album) => { SelectedTabIndex = 6; Browser.FocusAlbum(artist, album); },
@@ -219,7 +219,7 @@ public class MainViewModel : ViewModelBase
     public string CurrentSection => SelectedTabIndex switch
     {
         0 => "Metadata", 1 => "Health", 2 => "Duplicates", 3 => "Transfer",
-        4 => "Settings", 5 => "Inbox", 6 => "Library", 7 => "Galaxy", 8 => "Wantlist", _ => "Spindle"
+        4 => "Settings", 5 => "Inbox", 6 => "Library", 7 => "Galaxy", 8 => "Wantlist", 9 => "Player", _ => "Spindle"
     };
 
     public string UserInitial => "S";
