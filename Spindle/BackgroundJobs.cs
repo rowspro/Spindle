@@ -20,11 +20,45 @@ public static class BackgroundJobs
     /// <summary>Raised (on a background thread) whenever progress or the running state changes.</summary>
     public static event Action? Changed;
 
-    public static bool Busy { get { lock (_gate) return _running > 0; } }
+    private static int _saving;
+
+    public static bool Busy { get { lock (_gate) return _running > 0 || _saving > 0; } }
 
     public static string Status
     {
-        get { lock (_gate) return _running > 0 ? $"Fetching lyrics… {_done}/{_total}" : string.Empty; }
+        get
+        {
+            lock (_gate)
+                return _running > 0 ? $"Fetching lyrics… {_done}/{_total}"
+                     : _saving > 0 ? "Saving changes…"
+                     : string.Empty;
+        }
+    }
+
+    /// <summary>Run background work (e.g. propagating album-level tag edits to the rest of the album) tracked
+    /// per folder, so the editor stays free and a later move-to-library waits for it. Non-blocking.</summary>
+    public static void RunTracked(IReadOnlyList<string> folders, Action work)
+    {
+        var fs = (folders ?? new List<string>()).Select(Norm).Where(s => s.Length > 0).Distinct().ToList();
+        lock (_gate) _saving++;
+        Raise();
+        var task = Task.Run(work);
+        lock (_gate)
+            foreach (var fo in fs)
+            {
+                if (!_byFolder.TryGetValue(fo, out var l)) _byFolder[fo] = l = new List<Task>();
+                l.Add(task);
+            }
+        _ = task.ContinueWith(_ =>
+        {
+            lock (_gate)
+            {
+                foreach (var fo in fs)
+                    if (_byFolder.TryGetValue(fo, out var l)) { l.Remove(task); if (l.Count == 0) _byFolder.Remove(fo); }
+                _saving--;
+            }
+            Raise();
+        });
     }
 
     /// <summary>Fetch + write lyrics for these files in the background, across multiple cores.</summary>

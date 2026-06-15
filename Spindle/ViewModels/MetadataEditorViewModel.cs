@@ -736,8 +736,7 @@ public class MetadataEditorViewModel : ViewModelBase
 
     private void Save()
     {
-        if (!HasFile || IsBusy) return;
-        IsBusy = true;   // drives the progress line while we write this track + propagate to the album
+        if (!HasFile) return;
         // Auto-clean stray spaces (opt-out in Personalisations).
         if (CleanupOptions.TrimSpaces)
         {
@@ -779,12 +778,14 @@ public class MetadataEditorViewModel : ViewModelBase
         bool cYear = !string.Equals((Year ?? "").Trim(), (_loadedYear ?? "").Trim());
         var path = _path; var art = _artData;
         var album = Album; var aa = AlbumArtist; var genre = Genre; var year = Year;
-        void Done() => Dispatcher.UIThread.Post(() => { IsBusy = false; Status = "Saved."; });
+        // Propagation to the rest of the album runs in the background (tracked per folder) so you can move
+        // straight to the next album; the Inbox approve waits for it before moving files into the library.
+        var folders = _allFiles.Select(f => System.IO.Path.GetDirectoryName(f) ?? "").Where(s => s.Length > 0).Distinct().ToList();
         if (cAlbum || cAa || cGenre || cYear)
-            Task.Run(() => { try { ApplyAlbumFieldsToSiblings(path, origAlbum, cAlbum, album, cAa, aa, cGenre, genre, cYear, year, artChangedNow, art); } finally { Done(); } });
+            BackgroundJobs.RunTracked(folders, () => ApplyAlbumFieldsToSiblings(path, origAlbum, cAlbum, album, cAa, aa, cGenre, genre, cYear, year, artChangedNow, art));
         else if (artChangedNow)
-            Task.Run(() => { try { ApplyArtToAlbum(path, art); } finally { Done(); } });
-        else { IsBusy = false; Status = "Saved."; }
+            BackgroundJobs.RunTracked(folders, () => ApplyArtToAlbum(path, art));
+        Status = "Saved.";
         _loadedAlbum = Album; _loadedAlbumArtist = AlbumArtist; _loadedGenre = Genre; _loadedYear = Year;
     }
 
