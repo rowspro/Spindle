@@ -554,6 +554,56 @@ public class SyncViewModel : ViewModelBase
         return made;
     }
 
+    /// <summary>Write the user's playlists as Rockbox .m3u files in iPod/Playlists, pointing at the
+    /// transferred tracks (/Music/Artist/Album/file, .m4a when ALAC conversion is on). Skips tracks not
+    /// present on the iPod.</summary>
+    public void WriteUserPlaylistsToIpod(IReadOnlyList<(string Name, IReadOnlyList<string> Paths)> lists)
+    {
+        if (IsBusy) return;
+        var ipod = IpodFolder;
+        if (string.IsNullOrWhiteSpace(ipod) || !Directory.Exists(ipod)) { Status = "Connect the iPod first."; return; }
+        if (lists == null || lists.Count == 0) { Status = "No playlists to sync."; return; }
+        var convert = ConvertToAlac;
+        var libRoot = LibraryFolder;
+        IsBusy = true;
+        Status = "Writing playlists to the iPod…";
+        Task.Run(() =>
+        {
+            var map = new Dictionary<string, IndexedTrack>(StringComparer.Ordinal);
+            try { if (_libSvc != null) foreach (var r in _libSvc.Index.AllTracks(libRoot)) map[r.Path] = r; } catch { }
+            var dir = Path.Combine(ipod, "Playlists");
+            int made = 0, skipped = 0;
+            try
+            {
+                Directory.CreateDirectory(dir);
+                foreach (var pl in lists)
+                {
+                    var lines = new List<string>();
+                    foreach (var path in pl.Paths)
+                    {
+                        if (!map.TryGetValue(path, out var r)) { skipped++; continue; }
+                        var artist = r.AlbumArtist.Length > 0 ? r.AlbumArtist : r.Artist;
+                        var file = Path.GetFileName(path);
+                        var ext = Path.GetExtension(file).ToLowerInvariant();
+                        if (convert && ConvertExt.Contains(ext)) file = Path.ChangeExtension(file, ".m4a");
+                        var rel = $"Music/{Clean(artist)}/{AlbumFolder(r.Album)}/{file}";
+                        if (!File.Exists(Path.Combine(ipod, rel.Replace('/', Path.DirectorySeparatorChar)))) { skipped++; continue; }
+                        lines.Add("/" + rel);
+                    }
+                    if (lines.Count == 0) continue;
+                    File.WriteAllLines(Path.Combine(dir, Clean(pl.Name) + ".m3u"), lines);
+                    made++;
+                }
+            }
+            catch { }
+            Dispatcher.UIThread.Post(() =>
+            {
+                IsBusy = false;
+                Status = $"{made} playlist(s) written to iPod/Playlists" + (skipped > 0 ? $" · {skipped} track(s) not on the iPod yet (transfer them first)." : ".");
+            });
+        });
+    }
+
     // Delete macOS AppleDouble junk (._*) the copy may have left on the FAT volume — the vangnet
     // against Rockbox indexing them as phantom duplicate tracks (see docs/IPOD_BEHAVIOR.md).
     private static int RemoveDotUnderscoreFiles(string root)

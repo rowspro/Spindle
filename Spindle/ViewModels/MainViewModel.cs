@@ -35,6 +35,7 @@ public class MainViewModel : ViewModelBase
             setAlbumLevel: v => GalaxyAlbumLevel = v);
 
         Wantlist = new WantlistViewModel(Lib, () => MusicLibrary, () => DownloadFilePath);
+        Playlists = new PlaylistsViewModel(Lib, () => MusicLibrary, Player, SaveSettings);
         _mirror.Status += msg => Avalonia.Threading.Dispatcher.UIThread.Post(() => MirrorStatus = msg);
 
         WireBusyIndicator();
@@ -92,6 +93,16 @@ public class MainViewModel : ViewModelBase
     public LibraryService Lib { get; } = new();
     public UndoJournal Undo { get; } = new();
     public PlayerViewModel Player { get; } = new();
+    public PlaylistsViewModel Playlists { get; }
+
+    /// <summary>Export the user playlists to the iPod as .m3u (Transfer / Playlists tab button).</summary>
+    public void SyncPlaylistsToIpod()
+    {
+        var lists = Playlists.Playlists
+            .Select(p => (p.Name, (IReadOnlyList<string>)p.Tracks.Select(t => t.Path).ToList()))
+            .ToList();
+        Sync.WriteUserPlaylistsToIpod(lists);
+    }
 
     /// <summary>Known album artists from the library — feeds the autocomplete boxes.</summary>
     public System.Collections.ObjectModel.ObservableCollection<string> ArtistSuggestions { get; } = new();
@@ -219,7 +230,7 @@ public class MainViewModel : ViewModelBase
     public string CurrentSection => SelectedTabIndex switch
     {
         0 => "Metadata", 1 => "Health", 2 => "Duplicates", 3 => "Transfer",
-        4 => "Settings", 5 => "Inbox", 6 => "Library", 7 => "Galaxy", 8 => "Wantlist", 9 => "Player", _ => "Spindle"
+        4 => "Settings", 5 => "Inbox", 6 => "Library", 7 => "Galaxy", 8 => "Wantlist", 9 => "Player", 10 => "Playlists", _ => "Spindle"
     };
 
     public string UserInitial => "S";
@@ -597,6 +608,7 @@ public class MainViewModel : ViewModelBase
         RemoveDotUnderscoreAfterTransfer = RemoveDotUnderscoreAfterTransfer,
         SetCompilationFlag = SetCompilationFlag,
         StandardGenres = StandardGenres.Select(g => g.Name).ToList(),
+        Playlists = Playlists.Snapshot(),
     };
 
     private void LoadFromConfig(SpindleConfig c)
@@ -609,6 +621,7 @@ public class MainViewModel : ViewModelBase
         Wantlist.Load(c.Watchlist, c.Wantlist);
         Sync.LoadWanted(c.TransferWanted);
         Library.Doctor.LoadDupIgnores(c.DuplicateIgnores);
+        Playlists.Load(c.Playlists);
         _itunesMode = c.ItunesMode;
         _alacMirrorFolder = c.AlacMirrorFolder;
         OnPropertyChanged(nameof(ItunesMode));

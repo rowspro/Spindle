@@ -1,8 +1,17 @@
 namespace Spindle;
 
+/// <summary>One saved playlist: a name and the ordered library paths of its tracks.</summary>
+public sealed class PlaylistDto
+{
+    public string Name { get; set; } = "";
+    public List<string> Paths { get; set; } = new();
+}
+
 /// <summary>Persisted app settings (folders, tokens, modes), stored as settings.json in App Support.</summary>
 public class SpindleConfig
 {
+    public List<PlaylistDto> Playlists { get; set; } = new();
+
     public string DownloadFilePath { get; set; } = string.Empty;   // de "New music"-inbox-map
     public string MusicLibrary { get; set; } = string.Empty;
 

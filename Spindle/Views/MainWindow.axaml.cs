@@ -168,6 +168,10 @@ public partial class MainWindow : Window
 
     private MainViewModel? Vm => DataContext as MainViewModel;
 
+    // Playlists: persist a rename when the name box loses focus; export playlists to the iPod.
+    private void OnPlaylistNameChanged(object? sender, RoutedEventArgs e) => Vm?.Playlists.Persist();
+    private void OnSyncPlaylists(object? sender, RoutedEventArgs e) => Vm?.SyncPlaylistsToIpod();
+
     // Player queue: double-click a track to jump to it.
     private void OnQueueItemDoubleTapped(object? sender, TappedEventArgs e)
     {

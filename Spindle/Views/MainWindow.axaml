@@ -535,6 +535,10 @@
                             Classes.active="{Binding SelectedTabIndex, Converter={x:Static vm:IntEquals.Instance}, ConverterParameter=9}">
                         <StackPanel Orientation="Horizontal"><TextBlock Classes="icon" FontSize="19" Width="28" Text="&#xE037;" /><TextBlock Text="Player" VerticalAlignment="Center" /></StackPanel>
                     </Button>
+                    <Button Classes="nav" Tag="10" Click="OnNav"
+                            Classes.active="{Binding SelectedTabIndex, Converter={x:Static vm:IntEquals.Instance}, ConverterParameter=10}">
+                        <StackPanel Orientation="Horizontal"><TextBlock Classes="icon" FontSize="19" Width="28" Text="&#xE03D;" /><TextBlock Text="Playlists" VerticalAlignment="Center" /></StackPanel>
+                    </Button>
                     <Button Classes="nav" Tag="4" Click="OnNav"
                             Classes.active="{Binding SelectedTabIndex, Converter={x:Static vm:IntEquals.Instance}, ConverterParameter=4}">
                         <StackPanel Orientation="Horizontal"><TextBlock Classes="icon" FontSize="19" Width="28" Text="&#xE8B8;" /><TextBlock Text="Settings" VerticalAlignment="Center" /></StackPanel>
@@ -1875,6 +1879,61 @@
                                    Text="Double-click a track to jump to it. Add tracks from the Library (Add to queue)."
                                    IsVisible="{Binding !HasTrack}" />
                     </Grid>
+                </Grid>
+            </TabItem>
+
+            <!-- ============ TAB: PLAYLISTS ============ -->
+            <TabItem Header="Playlists">
+                <Grid x:CompileBindings="False" DataContext="{Binding Playlists}" ColumnDefinitions="280,*" Margin="0,12,0,0">
+                    <Grid Grid.Column="0" RowDefinitions="Auto,*,Auto">
+                        <TextBlock Grid.Row="0" Classes="h2" Text="Playlists" />
+                        <ListBox Grid.Row="1" Margin="0,10,0,0" ItemsSource="{Binding Playlists}" SelectedItem="{Binding Selected}"
+                                 Background="Transparent" BorderThickness="0">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel Margin="0,2">
+                                        <TextBlock Text="{Binding Name}" FontSize="13" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" TextTrimming="CharacterEllipsis" />
+                                        <TextBlock Text="{Binding Summary}" Classes="caption" />
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                        <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="6" Margin="0,8,0,0">
+                            <Button Classes="primary" Content="New from queue" Command="{Binding NewFromQueueCommand}"
+                                    ToolTip.Tip="Create a playlist from the current player queue. Queue tracks from the Library first." />
+                            <Button Classes="ghost" Content="Delete" Command="{Binding DeleteCommand}" />
+                        </StackPanel>
+                    </Grid>
+
+                    <Grid Grid.Column="1" Margin="20,0,0,0" RowDefinitions="Auto,Auto,*" IsVisible="{Binding HasSelection}">
+                        <Grid Grid.Row="0" ColumnDefinitions="*,Auto,Auto,Auto">
+                            <TextBox Grid.Column="0" Text="{Binding Selected.Name}" LostFocus="OnPlaylistNameChanged" FontSize="15" FontWeight="SemiBold" />
+                            <Button Grid.Column="1" Classes="primary" Margin="8,0,0,0" Content="Play" Command="{Binding PlayCommand}" />
+                            <Button Grid.Column="2" Classes="ghost" Margin="6,0,0,0" Content="Append queue" Command="{Binding AppendQueueCommand}"
+                                    ToolTip.Tip="Add the current player queue to this playlist." />
+                            <Button Grid.Column="3" Classes="ghost" Margin="6,0,0,0" Content="Sync to iPod" Click="OnSyncPlaylists"
+                                    ToolTip.Tip="Write all playlists to the iPod as .m3u (Rockbox). Transfer the tracks first." />
+                        </Grid>
+                        <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="6" Margin="0,10,0,0">
+                            <Button Classes="ghost" Content="Remove" Command="{Binding RemoveTrackCommand}" />
+                            <Button Classes="ghost" Content="Up" Command="{Binding MoveUpCommand}" />
+                            <Button Classes="ghost" Content="Down" Command="{Binding MoveDownCommand}" />
+                        </StackPanel>
+                        <ListBox Grid.Row="2" Margin="0,10,0,0" ItemsSource="{Binding Selected.Tracks}" SelectedItem="{Binding SelectedTrack}"
+                                 Background="Transparent" BorderThickness="0">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel Margin="0,2">
+                                        <TextBlock Text="{Binding Title}" FontSize="13" Foreground="{DynamicResource TextPrimary}" TextTrimming="CharacterEllipsis" />
+                                        <TextBlock Text="{Binding Sub}" Classes="caption" TextTrimming="CharacterEllipsis" />
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </Grid>
+                    <TextBlock Grid.Column="1" Margin="20,40,0,0" VerticalAlignment="Top" Classes="caption" TextWrapping="Wrap" MaxWidth="420"
+                               IsVisible="{Binding !HasSelection}"
+                               Text="No playlist yet. Queue tracks from the Library (Queue album / Queue track), then click 'New from queue'." />
                 </Grid>
             </TabItem>
         </TabControl>
