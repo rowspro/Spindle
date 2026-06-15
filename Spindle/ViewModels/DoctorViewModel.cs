@@ -244,8 +244,8 @@ public sealed class DoctorViewModel : ViewModelBase
 
                 // Non-standard genres that don't already canonicalize to a standard (those are check 3).
                 foreach (var g in tracks.Where(t => t.Genre.Length > 0
-                                && !Genres.IsStandard(t.Genre)
-                                && !Genres.IsStandard(GenreFormat.Normalize(t.Genre)))
+                                && !Genres.AllStandard(t.Genre)
+                                && !Genres.AllStandard(GenreFormat.Normalize(t.Genre)))
                             .GroupBy(t => t.Genre, StringComparer.Ordinal))
                     found.Add(MakeGenreStd($"{g.Key}  →  ?", $"{g.Count()} tracks · non-standard genre",
                         g.Select(t => t.Path).ToList()));

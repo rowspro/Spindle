@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Text.RegularExpressions;
 
 namespace Spindle;
@@ -34,4 +35,12 @@ public static class Genres
     }
 
     public static bool IsStandard(string? genre) => Match(genre) != null;
+
+    /// <summary>True when every part of a (possibly multi-) genre tag is standard, e.g. "Rock, Pop".
+    /// Splits on the multi-genre separators only, so "Hip-Hop/Rap" stays one part.</summary>
+    public static bool AllStandard(string? genre)
+    {
+        var parts = GenreFormat.SplitGenres(genre);
+        return parts.Count > 0 && parts.All(IsStandard);
+    }
 }

@@ -671,7 +671,7 @@ public class StagingViewModel : ViewModelBase
                 else if (g.Cover.Length == 0) g.Cover = r.Path;
                 if (r.Year <= 0) g.MissingYear++;
                 if (string.IsNullOrWhiteSpace(r.Genre)) g.MissingGenre++;
-                else if (!Genres.IsStandard(r.Genre)) g.NonStdGenre = true;   // genre niet conform de standaardlijst
+                else if (!Genres.AllStandard(r.Genre)) g.NonStdGenre = true;   // elk deel moet conform de standaardlijst (multi-genre OK)
                 if (r.TrackNo > 0) { if (!g.Tracks.Add((r.Disc, r.TrackNo))) g.DupTrack = true; }   // disc-aware
                 if (string.IsNullOrEmpty(g.Year) && r.Year > 0) g.Year = r.Year.ToString();
                 g.BrSum += r.Bitrate;

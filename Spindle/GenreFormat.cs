@@ -23,6 +23,17 @@ public static class GenreFormat
         _ => ", ",
     };
 
+    /// <summary>Split a genre tag into its parts on the multi-genre separators, leaving a lone '/' intact
+    /// (it's part of canonical names like Hip-Hop/Rap). "Rock, Pop" → ["Rock","Pop"]; "Hip-Hop/Rap" → ["Hip-Hop/Rap"].</summary>
+    public static List<string> SplitGenres(string? s)
+    {
+        if (string.IsNullOrWhiteSpace(s)) return new List<string>();
+        const char sentinel = '\u0001';
+        var tmp = s;
+        foreach (var o in MultiSeparators) tmp = tmp.Replace(o, sentinel.ToString());
+        return tmp.Split(sentinel, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
+    }
+
     /// <summary>
     /// Unify the multi-genre separators in a tag to the user's chosen one — without canonicalizing the
     /// names and without touching a lone '/' (part of names like Hip-Hop/Rap). Used on save so tagging
