@@ -510,31 +510,26 @@
 
                 <!-- Bottom: settings -->
                 <StackPanel Grid.Row="2">
-                    <!-- Mini player: fills the empty sidebar space with now-playing + controls. -->
-                    <Border Margin="0,0,0,8" Padding="10" CornerRadius="12" Background="{DynamicResource SurfaceVariant}"
-                            IsVisible="{Binding Player.HasTrack}">
-                        <StackPanel>
-                            <Grid ColumnDefinitions="Auto,*">
-                                <Border Grid.Column="0" Width="44" Height="44" CornerRadius="8" ClipToBounds="True" Background="{DynamicResource Recess}">
-                                    <Panel>
-                                        <TextBlock Classes="icon" FontSize="22" Text="&#xE019;" HorizontalAlignment="Center" VerticalAlignment="Center"
-                                                   Foreground="{DynamicResource TextMuted}" IsVisible="{Binding !Player.HasArt}" />
-                                        <Image Source="{Binding Player.NowArt}" Stretch="UniformToFill" />
-                                    </Panel>
-                                </Border>
-                                <StackPanel Grid.Column="1" Margin="10,0,0,0" VerticalAlignment="Center">
-                                    <TextBlock Text="{Binding Player.NowTitle}" FontSize="12.5" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" TextTrimming="CharacterEllipsis" />
-                                    <TextBlock Text="{Binding Player.NowSub}" FontSize="11" Foreground="{DynamicResource TextMuted}" TextTrimming="CharacterEllipsis" />
-                                </StackPanel>
-                            </Grid>
-                            <ProgressBar Margin="0,8,0,0" Minimum="0" Maximum="100" Value="{Binding Player.Progress}" Height="3" Background="{DynamicResource Recess}" Foreground="{DynamicResource Accent}" />
-                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="6" Margin="0,6,0,0">
-                                <Button Classes="ghost" Padding="8,4" Command="{Binding Player.PrevCommand}" ToolTip.Tip="Previous"><TextBlock Classes="icon" FontSize="18" Text="&#xE045;" /></Button>
-                                <Button Classes="primary" Padding="10,4" Command="{Binding Player.PlayPauseCommand}" ToolTip.Tip="Play / pause"><TextBlock Classes="icon" FontSize="18" Text="{Binding Player.PlayPauseIcon}" /></Button>
-                                <Button Classes="ghost" Padding="8,4" Command="{Binding Player.NextCommand}" ToolTip.Tip="Next"><TextBlock Classes="icon" FontSize="18" Text="&#xE044;" /></Button>
-                            </StackPanel>
+                    <!-- Mini player: full-width album art + now-playing + controls. -->
+                    <StackPanel Margin="0,0,0,8" IsVisible="{Binding Player.HasTrack}">
+                        <Border Height="216" HorizontalAlignment="Stretch" CornerRadius="12" ClipToBounds="True" Background="{DynamicResource Recess}">
+                            <Panel>
+                                <TextBlock Classes="icon" FontSize="56" Text="&#xE019;" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                           Foreground="{DynamicResource TextMuted}" IsVisible="{Binding !Player.HasArt}" />
+                                <Image Source="{Binding Player.NowArt}" Stretch="UniformToFill" />
+                            </Panel>
+                        </Border>
+                        <TextBlock Text="{Binding Player.NowTitle}" FontSize="13" FontWeight="SemiBold" Margin="2,8,2,0"
+                                   Foreground="{DynamicResource TextPrimary}" TextTrimming="CharacterEllipsis" />
+                        <TextBlock Text="{Binding Player.NowSub}" FontSize="11" Margin="2,1,2,0"
+                                   Foreground="{DynamicResource TextMuted}" TextTrimming="CharacterEllipsis" />
+                        <ProgressBar Margin="2,8,2,0" Minimum="0" Maximum="100" Value="{Binding Player.Progress}" Height="3" Background="{DynamicResource SurfaceVariant}" Foreground="{DynamicResource Accent}" />
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="8" Margin="0,8,0,0">
+                            <Button Classes="ghost" Padding="8,4" Command="{Binding Player.PrevCommand}" ToolTip.Tip="Previous"><TextBlock Classes="icon" FontSize="18" Text="&#xE045;" /></Button>
+                            <Button Classes="primary" Padding="12,4" Command="{Binding Player.PlayPauseCommand}" ToolTip.Tip="Play / pause"><TextBlock Classes="icon" FontSize="18" Text="{Binding Player.PlayPauseIcon}" /></Button>
+                            <Button Classes="ghost" Padding="8,4" Command="{Binding Player.NextCommand}" ToolTip.Tip="Next"><TextBlock Classes="icon" FontSize="18" Text="&#xE044;" /></Button>
                         </StackPanel>
-                    </Border>
+                    </StackPanel>
 
                     <Button Classes="nav" Tag="9" Click="OnNav"
                             Classes.active="{Binding SelectedTabIndex, Converter={x:Static vm:IntEquals.Instance}, ConverterParameter=9}">

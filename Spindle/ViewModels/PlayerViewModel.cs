@@ -7,10 +7,11 @@ namespace Spindle.ViewModels;
 
 public sealed class PlayerItem
 {
-    public string Path = "";
-    public string Title = "";
-    public string Sub = "";
-    public int Duration;   // seconden (0 = onbekend)
+    // Properties (not fields) so the queue list can bind to Title/Sub.
+    public string Path { get; set; } = "";
+    public string Title { get; set; } = "";
+    public string Sub { get; set; } = "";
+    public int Duration { get; set; }   // seconden (0 = onbekend)
 }
 
 /// <summary>
