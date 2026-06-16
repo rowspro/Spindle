@@ -206,7 +206,44 @@ public class BrowserViewModel : ViewModelBase
     }
 
     private BrowserTrackViewModel? _selectedTrack;
-    public BrowserTrackViewModel? SelectedTrack { get => _selectedTrack; set { if (SetField(ref _selectedTrack, value)) QueueTrackCommand.RaiseCanExecuteChanged(); } }
+    public BrowserTrackViewModel? SelectedTrack
+    {
+        get => _selectedTrack;
+        set
+        {
+            if (!SetField(ref _selectedTrack, value)) return;
+            QueueTrackCommand.RaiseCanExecuteChanged();
+            var st = value != null ? (StatsOf?.Invoke(value.Path) ?? default) : default;
+            _selectedTrackRating = st.Rating;
+            OnPropertyChanged(nameof(SelectedTrackRating));
+            OnPropertyChanged(nameof(SelectedTrackStats));
+        }
+    }
+
+    // Ratings + stats hooks (wired to the library index by MainViewModel).
+    public Func<string, (int Rating, int Play, long Last)>? StatsOf;
+    public Action<string, int>? OnRate;
+    private int _selectedTrackRating;
+    public int SelectedTrackRating { get => _selectedTrackRating; private set => SetField(ref _selectedTrackRating, value); }
+    public string SelectedTrackStats
+    {
+        get
+        {
+            if (SelectedTrack == null || StatsOf == null) return "";
+            var s = StatsOf(SelectedTrack.Path);
+            return s.Play > 0 ? $"{s.Play} play{(s.Play == 1 ? "" : "s")}" : "not played yet";
+        }
+    }
+
+    /// <summary>Rate the selected track (click the same star to clear). Writes to the index + file tag.</summary>
+    public void RateSelectedTrack(int stars)
+    {
+        var t = SelectedTrack;
+        if (t == null) return;
+        if (stars == SelectedTrackRating) stars = 0;
+        OnRate?.Invoke(t.Path, stars);
+        SelectedTrackRating = stars;
+    }
 
     private void SetFilter(string f)
     {

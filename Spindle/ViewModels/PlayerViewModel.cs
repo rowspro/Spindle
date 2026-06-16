@@ -57,6 +57,23 @@ public sealed class PlayerViewModel : ViewModelBase
     private Bitmap? _nowArt;
     public Bitmap? NowArt { get => _nowArt; private set { if (SetField(ref _nowArt, value)) OnPropertyChanged(nameof(HasArt)); } }
     public bool HasArt => _nowArt != null;
+
+    // Ratings + stats hooks (wired to the library index by MainViewModel).
+    public Func<string, int>? RatingOf;
+    public Action<string, int>? OnRate;
+    public Action<string>? OnPlayed;
+
+    private int _nowRating;
+    public int NowRating { get => _nowRating; private set => SetField(ref _nowRating, value); }
+
+    /// <summary>Rate the now-playing track (0 clears). Writes to the index + the file tag.</summary>
+    public void SetNowRating(int stars)
+    {
+        if (!HasTrack) return;
+        if (stars == _nowRating) stars = 0;   // click the current star again to clear
+        OnRate?.Invoke(CurrentPath, stars);
+        NowRating = stars;
+    }
     public string PlayPauseIcon => _paused ? "" : ""; // play_arrow : pause
 
     private double _progress;
@@ -137,6 +154,7 @@ public sealed class PlayerViewModel : ViewModelBase
         KillProc();
         _paused = false;
         LoadArtFor(_queue[_idx].Path);
+        NowRating = RatingOf?.Invoke(_queue[_idx].Path) ?? 0;
         OnPropertyChanged(nameof(NowIndex));
         try
         {
@@ -173,6 +191,7 @@ public sealed class PlayerViewModel : ViewModelBase
         // Alleen het natuurlijke einde van het HUIDIGE proces telt. Een gekild proces is
         // op dat moment al uit _proc gehaald (KillProc nult eerst), dus die exits vallen hier af.
         if (!ReferenceEquals(proc, _proc)) return;
+        if (HasTrack) OnPlayed?.Invoke(_queue[_idx].Path);   // a track that finished naturally counts as a play
         if (_idx < _queue.Count - 1) { _idx++; StartCurrent(); }   // natuurlijk einde → volgende
         else Stop();
     }

@@ -36,6 +36,14 @@ public class MainViewModel : ViewModelBase
 
         Wantlist = new WantlistViewModel(Lib, () => MusicLibrary, () => DownloadFilePath);
         Playlists = new PlaylistsViewModel(Lib, () => MusicLibrary, Player, SaveSettings);
+
+        // Ratings (→ index + portable file tag) and play stats (→ index only; never touches the source).
+        Player.RatingOf = p => Lib.Index.GetRating(p);
+        Player.OnRate = (p, s) => { Lib.Index.SetRating(p, s); Ratings.WriteTag(p, s); };
+        Player.OnPlayed = p => Lib.Index.BumpPlay(p, System.DateTime.UtcNow.Ticks);
+        Browser.StatsOf = p => Lib.Index.GetStats(p);
+        Browser.OnRate = (p, s) => { Lib.Index.SetRating(p, s); Ratings.WriteTag(p, s); };
+
         _mirror.Status += msg => Avalonia.Threading.Dispatcher.UIThread.Post(() => MirrorStatus = msg);
 
         WireBusyIndicator();

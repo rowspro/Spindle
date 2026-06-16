@@ -75,6 +75,74 @@ public sealed class LibraryIndex : IDisposable
         Exec("CREATE INDEX IF NOT EXISTS idx_tracks_album ON tracks(album_artist, album);");
         Exec("CREATE INDEX IF NOT EXISTS idx_tracks_root ON tracks(root);");
         Exec("CREATE TABLE IF NOT EXISTS meta(key TEXT PRIMARY KEY, value TEXT);");
+        // Spindle-managed listening stats (kept out of the source files; rating is also written to the
+        // file tag separately so it travels). Survives rescans because the scan never touches this table.
+        Exec(@"CREATE TABLE IF NOT EXISTS track_stats(
+                 path TEXT PRIMARY KEY, rating INTEGER DEFAULT 0,
+                 playcount INTEGER DEFAULT 0, lastplayed INTEGER DEFAULT 0);");
+    }
+
+    public int GetRating(string path)
+    {
+        lock (_dbLock)
+        {
+            using var c = _db.CreateCommand();
+            c.CommandText = "SELECT rating FROM track_stats WHERE path = $p";
+            c.Parameters.AddWithValue("$p", path);
+            return c.ExecuteScalar() is long l ? (int)l : 0;
+        }
+    }
+
+    public void SetRating(string path, int rating)
+    {
+        lock (_dbLock)
+        {
+            using var c = _db.CreateCommand();
+            c.CommandText = "INSERT INTO track_stats(path, rating) VALUES($p, $r) " +
+                            "ON CONFLICT(path) DO UPDATE SET rating = $r";
+            c.Parameters.AddWithValue("$p", path);
+            c.Parameters.AddWithValue("$r", rating);
+            c.ExecuteNonQuery();
+        }
+    }
+
+    public (int Rating, int Play, long Last) GetStats(string path)
+    {
+        lock (_dbLock)
+        {
+            using var c = _db.CreateCommand();
+            c.CommandText = "SELECT rating, playcount, lastplayed FROM track_stats WHERE path = $p";
+            c.Parameters.AddWithValue("$p", path);
+            using var r = c.ExecuteReader();
+            return r.Read() ? ((int)r.GetInt64(0), (int)r.GetInt64(1), r.GetInt64(2)) : (0, 0, 0);
+        }
+    }
+
+    public void BumpPlay(string path, long whenTicks)
+    {
+        lock (_dbLock)
+        {
+            using var c = _db.CreateCommand();
+            c.CommandText = "INSERT INTO track_stats(path, playcount, lastplayed) VALUES($p, 1, $t) " +
+                            "ON CONFLICT(path) DO UPDATE SET playcount = playcount + 1, lastplayed = $t";
+            c.Parameters.AddWithValue("$p", path);
+            c.Parameters.AddWithValue("$t", whenTicks);
+            c.ExecuteNonQuery();
+        }
+    }
+
+    /// <summary>All listening stats keyed by path (for smart playlists / sorting).</summary>
+    public Dictionary<string, (int Rating, int Play, long Last)> AllStats()
+    {
+        var d = new Dictionary<string, (int, int, long)>(StringComparer.Ordinal);
+        lock (_dbLock)
+        {
+            using var c = _db.CreateCommand();
+            c.CommandText = "SELECT path, rating, playcount, lastplayed FROM track_stats";
+            using var r = c.ExecuteReader();
+            while (r.Read()) d[r.GetString(0)] = ((int)r.GetInt64(1), (int)r.GetInt64(2), r.GetInt64(3));
+        }
+        return d;
     }
 
     public void Dispose() { lock (_dbLock) _db.Dispose(); }

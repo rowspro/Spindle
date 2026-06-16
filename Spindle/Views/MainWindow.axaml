@@ -1694,6 +1694,17 @@
                                         </ListBox.ItemTemplate>
                                     </ListBox>
                                     <TextBlock Classes="caption" Margin="0,4,0,0" Text="Space = play / pause (plays the album)" />
+                                    <StackPanel Margin="0,10,0,0" IsVisible="{Binding SelectedTrack, Converter={x:Static ObjectConverters.IsNotNull}}">
+                                        <TextBlock Classes="section" Text="RATING" Margin="0,0,0,4" />
+                                        <StackPanel Orientation="Horizontal" Spacing="2" VerticalAlignment="Center">
+                                            <Button Tag="1" Click="OnRateTrackStar" Classes="ghost" Padding="3,1"><TextBlock FontSize="20" Foreground="{DynamicResource Accent}" Text="{Binding SelectedTrackRating, Converter={x:Static vm:StarConverter.Instance}, ConverterParameter=1}" /></Button>
+                                            <Button Tag="2" Click="OnRateTrackStar" Classes="ghost" Padding="3,1"><TextBlock FontSize="20" Foreground="{DynamicResource Accent}" Text="{Binding SelectedTrackRating, Converter={x:Static vm:StarConverter.Instance}, ConverterParameter=2}" /></Button>
+                                            <Button Tag="3" Click="OnRateTrackStar" Classes="ghost" Padding="3,1"><TextBlock FontSize="20" Foreground="{DynamicResource Accent}" Text="{Binding SelectedTrackRating, Converter={x:Static vm:StarConverter.Instance}, ConverterParameter=3}" /></Button>
+                                            <Button Tag="4" Click="OnRateTrackStar" Classes="ghost" Padding="3,1"><TextBlock FontSize="20" Foreground="{DynamicResource Accent}" Text="{Binding SelectedTrackRating, Converter={x:Static vm:StarConverter.Instance}, ConverterParameter=4}" /></Button>
+                                            <Button Tag="5" Click="OnRateTrackStar" Classes="ghost" Padding="3,1"><TextBlock FontSize="20" Foreground="{DynamicResource Accent}" Text="{Binding SelectedTrackRating, Converter={x:Static vm:StarConverter.Instance}, ConverterParameter=5}" /></Button>
+                                            <TextBlock Classes="caption" VerticalAlignment="Center" Margin="10,0,0,0" Text="{Binding SelectedTrackStats}" />
+                                        </StackPanel>
+                                    </StackPanel>
                                 </StackPanel>
                             </Panel>
                         </ScrollViewer>
@@ -1857,6 +1868,13 @@
                             <Button Classes="primary" Padding="16,6" Command="{Binding PlayPauseCommand}" ToolTip.Tip="Play / pause"><TextBlock Classes="icon" FontSize="22" Text="{Binding PlayPauseIcon}" /></Button>
                             <Button Classes="ghost" Padding="12,6" Command="{Binding NextCommand}" ToolTip.Tip="Next"><TextBlock Classes="icon" FontSize="22" Text="&#xE044;" /></Button>
                             <Button Classes="ghost" Padding="12,6" Command="{Binding StopCommand}" ToolTip.Tip="Stop"><TextBlock Classes="icon" FontSize="22" Text="&#xE047;" /></Button>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="2" Margin="0,12,0,0" IsVisible="{Binding HasTrack}">
+                            <Button Tag="1" Click="OnRateNowStar" Classes="ghost" Padding="3,1"><TextBlock FontSize="22" Foreground="{DynamicResource Accent}" Text="{Binding NowRating, Converter={x:Static vm:StarConverter.Instance}, ConverterParameter=1}" /></Button>
+                            <Button Tag="2" Click="OnRateNowStar" Classes="ghost" Padding="3,1"><TextBlock FontSize="22" Foreground="{DynamicResource Accent}" Text="{Binding NowRating, Converter={x:Static vm:StarConverter.Instance}, ConverterParameter=2}" /></Button>
+                            <Button Tag="3" Click="OnRateNowStar" Classes="ghost" Padding="3,1"><TextBlock FontSize="22" Foreground="{DynamicResource Accent}" Text="{Binding NowRating, Converter={x:Static vm:StarConverter.Instance}, ConverterParameter=3}" /></Button>
+                            <Button Tag="4" Click="OnRateNowStar" Classes="ghost" Padding="3,1"><TextBlock FontSize="22" Foreground="{DynamicResource Accent}" Text="{Binding NowRating, Converter={x:Static vm:StarConverter.Instance}, ConverterParameter=4}" /></Button>
+                            <Button Tag="5" Click="OnRateNowStar" Classes="ghost" Padding="3,1"><TextBlock FontSize="22" Foreground="{DynamicResource Accent}" Text="{Binding NowRating, Converter={x:Static vm:StarConverter.Instance}, ConverterParameter=5}" /></Button>
                         </StackPanel>
                     </StackPanel>
 

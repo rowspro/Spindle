@@ -172,6 +172,16 @@ public partial class MainWindow : Window
     private void OnPlaylistNameChanged(object? sender, RoutedEventArgs e) => Vm?.Playlists.Persist();
     private void OnSyncPlaylists(object? sender, RoutedEventArgs e) => Vm?.SyncPlaylistsToIpod();
 
+    // Star raters: Tag (1–5) → set the rating on the now-playing track or the selected library track.
+    private void OnRateNowStar(object? sender, RoutedEventArgs e)
+    {
+        if (Vm != null && sender is Control c && c.Tag is string s && int.TryParse(s, out var n)) Vm.Player.SetNowRating(n);
+    }
+    private void OnRateTrackStar(object? sender, RoutedEventArgs e)
+    {
+        if (Vm != null && sender is Control c && c.Tag is string s && int.TryParse(s, out var n)) Vm.Browser.RateSelectedTrack(n);
+    }
+
     // Player queue: double-click a track to jump to it.
     private void OnQueueItemDoubleTapped(object? sender, TappedEventArgs e)
     {
