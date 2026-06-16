@@ -37,9 +37,6 @@ public class MainViewModel : ViewModelBase
         Wantlist = new WantlistViewModel(Lib, () => MusicLibrary, () => DownloadFilePath);
         Playlists = new PlaylistsViewModel(Lib, () => MusicLibrary, Player, SaveSettings);
         SmartPlaylists = new SmartPlaylistsViewModel(Lib, () => MusicLibrary, Player, SaveSettings);
-        TagActions = new TagActionsViewModel(SaveSettings);
-        Meta.TagActions = TagActions;
-        Staging.DetailEditor.TagActions = TagActions;
 
         // Ratings (→ index + portable file tag) and play stats (→ index only; never touches the source).
         Player.RatingOf = p => Lib.Index.GetRating(p);
@@ -107,7 +104,6 @@ public class MainViewModel : ViewModelBase
     public PlayerViewModel Player { get; } = new();
     public PlaylistsViewModel Playlists { get; }
     public SmartPlaylistsViewModel SmartPlaylists { get; }
-    public TagActionsViewModel TagActions { get; }
 
     /// <summary>Export the user playlists (manual + evaluated smart) to the iPod as .m3u.</summary>
     public void SyncPlaylistsToIpod()
@@ -663,7 +659,6 @@ public class MainViewModel : ViewModelBase
         StandardGenres = StandardGenres.Select(g => g.Name).ToList(),
         Playlists = Playlists.Snapshot(),
         SmartPlaylists = SmartPlaylists.Snapshot(),
-        TagActions = TagActions.Snapshot(),
     };
 
     private void LoadFromConfig(SpindleConfig c)
@@ -678,7 +673,6 @@ public class MainViewModel : ViewModelBase
         Library.Doctor.LoadDupIgnores(c.DuplicateIgnores);
         Playlists.Load(c.Playlists);
         SmartPlaylists.Load(c.SmartPlaylists);
-        TagActions.Load(c.TagActions);
         _itunesMode = c.ItunesMode;
         _alacMirrorFolder = c.AlacMirrorFolder;
         OnPropertyChanged(nameof(ItunesMode));

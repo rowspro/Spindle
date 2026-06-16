@@ -234,9 +234,7 @@ public sealed class TagGridViewModel : ViewModelBase
         SaveCommand.RaiseCanExecuteChanged();
     }
 
-    /// <summary>Apply a mutation to every row as a pending change (review + Save afterwards). Public so saved
-    /// tag actions can run over the table.</summary>
-    public void Mutate(Action<TagRowViewModel> fn)
+    private void Mutate(Action<TagRowViewModel> fn)
     {
         foreach (var r in Rows) fn(r);
         OnPropertyChanged(nameof(DirtyText));

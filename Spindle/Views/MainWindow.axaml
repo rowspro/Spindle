@@ -1197,45 +1197,6 @@
 
                         <Border Classes="card">
                             <StackPanel Spacing="6">
-                                <TextBlock Classes="section" Text="TAG ACTIONS" />
-                                <TextBlock Classes="caption" TextWrapping="Wrap" Margin="0,0,0,2"
-                                           Text="Saved cleanup recipes (title-case, trim, find &amp; replace, set, clear). Run them over the track-metadata table from the 'Tag action' dropdown there; review and Save (undoable)." />
-                                <Grid ColumnDefinitions="*,Auto,Auto">
-                                    <ComboBox Grid.Column="0" HorizontalAlignment="Stretch" ItemsSource="{Binding TagActions.Actions}" SelectedItem="{Binding TagActions.Selected}" PlaceholderText="Pick an action to edit…">
-                                        <ComboBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding Name}" /></DataTemplate></ComboBox.ItemTemplate>
-                                    </ComboBox>
-                                    <Button Grid.Column="1" Classes="ghost" Content="New" Margin="6,0,0,0" Command="{Binding TagActions.NewCommand}" />
-                                    <Button Grid.Column="2" Classes="ghost" Content="Delete" Margin="6,0,0,0" Command="{Binding TagActions.DeleteCommand}" />
-                                </Grid>
-                                <StackPanel IsVisible="{Binding TagActions.HasSelection}" Spacing="6" Margin="0,4,0,0">
-                                    <TextBox Text="{Binding TagActions.Selected.Name}" LostFocus="OnTagActionNameChanged" Watermark="Action name" FontWeight="SemiBold" />
-                                    <ListBox MaxHeight="220" ItemsSource="{Binding TagActions.Selected.Steps}" SelectedItem="{Binding TagActions.SelectedStep}"
-                                             Background="Transparent" BorderThickness="0">
-                                        <ListBox.ItemTemplate>
-                                            <DataTemplate>
-                                                <Grid ColumnDefinitions="130,120,*" Margin="0,2">
-                                                    <ComboBox Grid.Column="0" HorizontalAlignment="Stretch" ItemsSource="{Binding Types}" SelectedItem="{Binding Type}" />
-                                                    <ComboBox Grid.Column="1" HorizontalAlignment="Stretch" Margin="6,0,0,0" ItemsSource="{Binding FieldOptions}" SelectedItem="{Binding Field}" />
-                                                    <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="6,0,0,0">
-                                                        <TextBox Width="120" Text="{Binding Find}" Watermark="find" IsVisible="{Binding ShowFindReplace}" />
-                                                        <TextBox Width="120" Margin="4,0,0,0" Text="{Binding Replace}" Watermark="replace" IsVisible="{Binding ShowFindReplace}" />
-                                                        <CheckBox Content="regex" Margin="6,0,0,0" VerticalAlignment="Center" IsChecked="{Binding Regex}" IsVisible="{Binding ShowFindReplace}" />
-                                                        <TextBox Width="180" Text="{Binding Value}" Watermark="value" IsVisible="{Binding ShowValue}" />
-                                                    </StackPanel>
-                                                </Grid>
-                                            </DataTemplate>
-                                        </ListBox.ItemTemplate>
-                                    </ListBox>
-                                    <StackPanel Orientation="Horizontal" Spacing="6">
-                                        <Button Classes="ghost" Content="Add step" Command="{Binding TagActions.AddStepCommand}" />
-                                        <Button Classes="ghost" Content="Remove step" Command="{Binding TagActions.RemoveStepCommand}" />
-                                    </StackPanel>
-                                </StackPanel>
-                            </StackPanel>
-                        </Border>
-
-                        <Border Classes="card">
-                            <StackPanel Spacing="6">
                                 <TextBlock Classes="section" Text="GALAXY" />
                                 <TextBlock Classes="caption" TextWrapping="Wrap" Margin="0,0,0,2"
                                            Text="The visual star-map of your collection. Album level plots one point per album instead of per track — much faster to render on big libraries." />
