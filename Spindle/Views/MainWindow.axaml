@@ -1162,8 +1162,8 @@
                                           ToolTip.Tip="On (default): leading/trailing/double spaces in tag fields are collapsed automatically when you save. Off: tags are written exactly as typed." />
                                 <CheckBox Content="Fetch lyrics when approving from Inbox" IsChecked="{Binding FetchLyricsOnApprove}"
                                           ToolTip.Tip="Look up lyrics online (LRCLIB) for albums you approve: synced → .lrc sidecar, plain → embedded tag. Needs internet." />
-                                <CheckBox Content="Auto-fetch lyrics for the whole library (LRCLIB, background)" IsChecked="{Binding AutoFetchLyrics}"
-                                          ToolTip.Tip="When on, Spindle fills missing lyrics across your library in the background via LRCLIB (synced → .lrc next to the track, plain → embedded tag). Transfers then carry the .lrc to the iPod. Runs on launch and when you turn it on." />
+                                <CheckBox Content="Add lyrics to lyric-less tracks automatically (background)" IsChecked="{Binding AutoFetchLyrics}"
+                                          ToolTip.Tip="When on, Spindle keeps adding lyrics in the background to every track in your library that has none (via LRCLIB): synced → .lrc next to the track, plain → embedded tag. Transfers then carry the .lrc to the iPod. Runs on launch and when you turn it on." />
 
                                 <TextBlock Classes="label" Text="Filename template (Sort &amp; Organize)" Margin="0,8,0,0" />
                                 <TextBox Text="{Binding FilenameTemplate}" Watermark="{}{artist} - {album} - {track} {title}"
