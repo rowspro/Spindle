@@ -23,11 +23,30 @@ public sealed class SmartPlaylistDto
     public List<SmartRuleDto> Rules { get; set; } = new();
 }
 
+/// <summary>One step of a saved tag action (e.g. Title-case the Title, or replace text in a field).</summary>
+public sealed class TagActionStepDto
+{
+    public string Type { get; set; } = "";   // "Title case" | "Trim spaces" | "Find & replace" | "Set value" | "Clear"
+    public string Field { get; set; } = "";   // Title | Artist | Album artist | Album | Genre
+    public string Find { get; set; } = "";
+    public string Replace { get; set; } = "";
+    public string Value { get; set; } = "";
+    public bool Regex { get; set; }
+}
+
+/// <summary>A named, reusable cleanup recipe applied to the track-metadata table.</summary>
+public sealed class TagActionDto
+{
+    public string Name { get; set; } = "";
+    public List<TagActionStepDto> Steps { get; set; } = new();
+}
+
 /// <summary>Persisted app settings (folders, tokens, modes), stored as settings.json in App Support.</summary>
 public class SpindleConfig
 {
     public List<PlaylistDto> Playlists { get; set; } = new();
     public List<SmartPlaylistDto> SmartPlaylists { get; set; } = new();
+    public List<TagActionDto> TagActions { get; set; } = new();
 
     public string DownloadFilePath { get; set; } = string.Empty;   // de "New music"-inbox-map
     public string MusicLibrary { get; set; } = string.Empty;

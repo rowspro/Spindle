@@ -171,6 +171,7 @@ public partial class MainWindow : Window
     // Playlists: persist a rename when the name box loses focus; export playlists to the iPod.
     private void OnPlaylistNameChanged(object? sender, RoutedEventArgs e) => Vm?.Playlists.Persist();
     private void OnSmartNameChanged(object? sender, RoutedEventArgs e) => Vm?.SmartPlaylists.Persist();
+    private void OnTagActionNameChanged(object? sender, RoutedEventArgs e) => Vm?.TagActions.Persist();
     private void OnSyncPlaylists(object? sender, RoutedEventArgs e) => Vm?.SyncPlaylistsToIpod();
 
     // Star raters: Tag (1–5) → set the rating on the now-playing track or the selected library track.

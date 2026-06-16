@@ -17,6 +17,14 @@ public class MetadataEditorViewModel : ViewModelBase
 
     public TagGridViewModel Grid { get; }
 
+    // Saved tag actions (shared list, set by MainViewModel) runnable over the track table.
+    private TagActionsViewModel? _tagActions;
+    public TagActionsViewModel? TagActions { get => _tagActions; set { _tagActions = value; OnPropertyChanged(nameof(ActionList)); } }
+    public System.Collections.ObjectModel.ObservableCollection<TagActionVM>? ActionList => _tagActions?.Actions;
+    private TagActionVM? _selectedActionToRun;
+    public TagActionVM? SelectedActionToRun { get => _selectedActionToRun; set { if (SetField(ref _selectedActionToRun, value)) RunActionCommand.RaiseCanExecuteChanged(); } }
+    public RelayCommand RunActionCommand { get; }
+
     /// <summary>Album-artist autocomplete suggestions (fed by MainViewModel), bound by the editor view.</summary>
     public ObservableCollection<string> ArtistSuggestions { get; } = new();
 
@@ -40,6 +48,8 @@ public class MetadataEditorViewModel : ViewModelBase
         _undo = undo;
         Grid = new TagGridViewModel(lib, undo);
         Grid.PropertyChanged += (_, e) => { if (e.PropertyName == nameof(TagGridViewModel.IsBusy)) OnPropertyChanged(nameof(AnyBusy)); };
+        RunActionCommand = new RelayCommand(() => { if (SelectedActionToRun != null) TagActions?.Apply(SelectedActionToRun, Grid); },
+            () => SelectedActionToRun != null);
         Versions.CollectionChanged += (_, _) => OnPropertyChanged(nameof(HasVersions));
         Duplicates.CollectionChanged += (_, _) => OnPropertyChanged(nameof(HasDuplicates));
         ModeFormCommand = new RelayCommand(() => EditorMode = "form");
