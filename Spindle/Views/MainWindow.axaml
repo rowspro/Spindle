@@ -1081,13 +1081,13 @@
             <!-- ============ TAB: INSTELLINGEN ============ -->
             <TabItem Header="Settings">
                 <TabControl Classes="subtabs" Background="Transparent" Margin="0,8,0,0">
-                  <TabItem Header="General">
+                  <TabItem Header="Incoming">
                     <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="0,8,0,0">
                       <StackPanel Spacing="12" Margin="0,0,6,0">
 
                         <StackPanel Margin="0,0,0,2">
-                            <TextBlock Classes="h2" Text="General" />
-                            <TextBlock Classes="body" Margin="0,4,0,0" Text="Sources, folders and device mode. Cleanup preferences live under Personalisations." />
+                            <TextBlock Classes="h2" Text="Incoming" />
+                            <TextBlock Classes="body" Margin="0,4,0,0" Text="Where new music comes in and how it's matched on the way to your library." />
                         </StackPanel>
 
                         <Border Classes="card">
@@ -1099,36 +1099,6 @@
                                 </Grid>
                                 <TextBlock Classes="caption" Margin="0,8,0,0" TextWrapping="Wrap"
                                            Text="Album match uses Apple/iTunes (no key needed) + MusicBrainz. A Discogs token adds vinyl/electronic editions." />
-                            </StackPanel>
-                        </Border>
-
-                        <Border Classes="card">
-                            <StackPanel Spacing="6">
-                                <TextBlock Classes="section" Text="GALAXY" />
-                                <TextBlock Classes="caption" TextWrapping="Wrap" Margin="0,0,0,2"
-                                           Text="The visual star-map of your collection. Album level plots one point per album instead of per track — much faster to render on big libraries." />
-                                <CheckBox Content="Album level (faster for large collections)" IsChecked="{Binding GalaxyAlbumLevel}"
-                                          ToolTip.Tip="One point per album instead of per track. Recommended above ±20,000 tracks (≈ 1 TB)." />
-                            </StackPanel>
-                        </Border>
-
-                        <Border Classes="card">
-                            <StackPanel>
-                                <TextBlock Classes="title" Text="IPOD MODE" />
-                                <ToggleSwitch Margin="0,8,0,0" IsChecked="{Binding ItunesMode}" OnContent="iTunes / stock iPod" OffContent="Rockbox" />
-                                <TextBlock Classes="caption" TextWrapping="Wrap" Margin="0,6,0,0" IsVisible="{Binding RockboxMode}"
-                                           Text="Rockbox: the Transfer tab copies straight from your music library — no conversion needed (Rockbox plays FLAC natively)." />
-                                <StackPanel IsVisible="{Binding ItunesMode}">
-                                    <TextBlock Classes="caption" TextWrapping="Wrap" Margin="0,6,0,0"
-                                               Text="iTunes / stock iPod: Spindle keeps an ALAC mirror of your library in sync automatically, in the background — FLAC/WAV become iPod-ready ALAC (Artist = Album artist), MP3/AAC are copied as-is, removed albums are cleaned up. Point iTunes/Finder at this folder and sync; no manual converting, no waiting." />
-                                    <Grid ColumnDefinitions="Auto,*,Auto" Margin="0,8,0,0">
-                                        <TextBlock Grid.Column="0" Classes="label" Text="ALAC mirror" />
-                                        <TextBox Grid.Column="1" Text="{Binding AlacMirrorFolder}" Watermark="Folder for the ALAC copy (outside your library)" />
-                                        <Button Grid.Column="2" Classes="ghost" Content="Browse…" Margin="8,0,0,0" Click="OnBrowseAlacMirror" />
-                                    </Grid>
-                                    <TextBlock Classes="caption" Margin="0,6,0,0" Text="{Binding MirrorStatus}"
-                                               IsVisible="{Binding MirrorStatus, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
-                                </StackPanel>
                             </StackPanel>
                         </Border>
 
@@ -1154,14 +1124,14 @@
                     </ScrollViewer>
                   </TabItem>
 
-                  <TabItem Header="Personalisations">
+                  <TabItem Header="Library">
                     <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="0,8,0,0">
                       <StackPanel Spacing="12" Margin="0,0,6,0">
 
                         <StackPanel Margin="0,0,0,2">
-                            <TextBlock Classes="h2" Text="Personalisations" />
+                            <TextBlock Classes="h2" Text="Library" />
                             <TextBlock Classes="body" Margin="0,4,0,0" TextWrapping="Wrap"
-                                       Text="How Spindle cleans your library (Database) and prepares music for the iPod. Database changes are only applied when you run a cleanup action or approve from the Inbox; your source is never touched silently." />
+                                       Text="How Spindle parses, cleans and organizes your collection. Changes are only applied when you run a cleanup action or approve from the Inbox; your source is never touched silently." />
                         </StackPanel>
 
                         <Border Classes="card">
@@ -1220,10 +1190,51 @@
 
                         <Border Classes="card">
                             <StackPanel Spacing="6">
-                                <TextBlock Classes="section" Text="IPOD" />
+                                <TextBlock Classes="section" Text="GALAXY" />
                                 <TextBlock Classes="caption" TextWrapping="Wrap" Margin="0,0,0,2"
-                                           Text="How tracks are prepared when transferring to the iPod. The source library is never modified — only the copy on the device." />
+                                           Text="The visual star-map of your collection. Album level plots one point per album instead of per track — much faster to render on big libraries." />
+                                <CheckBox Content="Album level (faster for large collections)" IsChecked="{Binding GalaxyAlbumLevel}"
+                                          ToolTip.Tip="One point per album instead of per track. Recommended above ±20,000 tracks (≈ 1 TB)." />
+                            </StackPanel>
+                        </Border>
 
+                      </StackPanel>
+                    </ScrollViewer>
+                  </TabItem>
+
+                  <TabItem Header="Transfer">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="0,8,0,0">
+                      <StackPanel Spacing="12" Margin="0,0,6,0">
+
+                        <StackPanel Margin="0,0,0,2">
+                            <TextBlock Classes="h2" Text="Transfer" />
+                            <TextBlock Classes="body" Margin="0,4,0,0" TextWrapping="Wrap"
+                                       Text="How your library is prepared for the iPod. The source library is never modified — only the copy on the device." />
+                        </StackPanel>
+
+                        <Border Classes="card">
+                            <StackPanel>
+                                <TextBlock Classes="title" Text="IPOD MODE" />
+                                <ToggleSwitch Margin="0,8,0,0" IsChecked="{Binding ItunesMode}" OnContent="iTunes / stock iPod" OffContent="Rockbox" />
+                                <TextBlock Classes="caption" TextWrapping="Wrap" Margin="0,6,0,0" IsVisible="{Binding RockboxMode}"
+                                           Text="Rockbox: the Transfer tab copies straight from your music library — no conversion needed (Rockbox plays FLAC natively)." />
+                                <StackPanel IsVisible="{Binding ItunesMode}">
+                                    <TextBlock Classes="caption" TextWrapping="Wrap" Margin="0,6,0,0"
+                                               Text="iTunes / stock iPod: Spindle keeps an ALAC mirror of your library in sync automatically, in the background — FLAC/WAV become iPod-ready ALAC (Artist = Album artist), MP3/AAC are copied as-is, removed albums are cleaned up. Point iTunes/Finder at this folder and sync; no manual converting, no waiting." />
+                                    <Grid ColumnDefinitions="Auto,*,Auto" Margin="0,8,0,0">
+                                        <TextBlock Grid.Column="0" Classes="label" Text="ALAC mirror" />
+                                        <TextBox Grid.Column="1" Text="{Binding AlacMirrorFolder}" Watermark="Folder for the ALAC copy (outside your library)" />
+                                        <Button Grid.Column="2" Classes="ghost" Content="Browse…" Margin="8,0,0,0" Click="OnBrowseAlacMirror" />
+                                    </Grid>
+                                    <TextBlock Classes="caption" Margin="0,6,0,0" Text="{Binding MirrorStatus}"
+                                               IsVisible="{Binding MirrorStatus, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Classes="card">
+                            <StackPanel Spacing="6">
+                                <TextBlock Classes="section" Text="IPOD PREP" />
                                 <CheckBox Content="Flatten artist on sync" IsChecked="{Binding FlattenArtistOnSync}"
                                           ToolTip.Tip="Write only the primary artist on the iPod copy, so Rockbox's artist list doesn't fill up with 'A; B' collab strings." />
                                 <CheckBox Content="Convert lossless to ALAC by default" IsChecked="{Binding ConvertToAlacDefault}"
