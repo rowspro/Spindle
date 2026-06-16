@@ -1904,6 +1904,8 @@
 
             <!-- ============ TAB: PLAYLISTS ============ -->
             <TabItem Header="Playlists">
+              <TabControl Classes="subtabs" Margin="0,8,0,0">
+                <TabItem Header="Manual">
                 <Grid x:CompileBindings="False" DataContext="{Binding Playlists}" ColumnDefinitions="280,*" Margin="0,12,0,0">
                     <Grid Grid.Column="0" RowDefinitions="Auto,*,Auto">
                         <TextBlock Grid.Row="0" Classes="h2" Text="Playlists" />
@@ -1955,6 +1957,63 @@
                                IsVisible="{Binding !HasSelection}"
                                Text="No playlist yet. Queue tracks from the Library (Queue album / Queue track), then click 'New from queue'." />
                 </Grid>
+                </TabItem>
+
+                <TabItem Header="Smart">
+                  <Grid x:CompileBindings="False" DataContext="{Binding SmartPlaylists}" ColumnDefinitions="280,*" Margin="0,12,0,0">
+                    <Grid Grid.Column="0" RowDefinitions="Auto,*,Auto">
+                        <TextBlock Grid.Row="0" Classes="h2" Text="Smart playlists" />
+                        <ListBox Grid.Row="1" Margin="0,10,0,0" ItemsSource="{Binding Playlists}" SelectedItem="{Binding Selected}"
+                                 Background="Transparent" BorderThickness="0">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel Margin="0,2">
+                                        <TextBlock Text="{Binding Name}" FontSize="13" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" TextTrimming="CharacterEllipsis" />
+                                        <TextBlock Text="{Binding Summary}" Classes="caption" />
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                        <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="6" Margin="0,8,0,0">
+                            <Button Classes="primary" Content="New" Command="{Binding NewCommand}" ToolTip.Tip="A rule-based playlist (e.g. Rating ≥ 4)." />
+                            <Button Classes="ghost" Content="Delete" Command="{Binding DeleteCommand}" />
+                        </StackPanel>
+                    </Grid>
+
+                    <Grid Grid.Column="1" Margin="20,0,0,0" RowDefinitions="Auto,Auto,Auto,*" IsVisible="{Binding HasSelection}">
+                        <Grid Grid.Row="0" ColumnDefinitions="*,Auto,Auto,Auto">
+                            <TextBox Grid.Column="0" Text="{Binding Selected.Name}" LostFocus="OnSmartNameChanged" FontSize="15" FontWeight="SemiBold" />
+                            <Button Grid.Column="1" Classes="primary" Margin="8,0,0,0" Content="Play" Command="{Binding PlayCommand}" />
+                            <Button Grid.Column="2" Classes="ghost" Margin="6,0,0,0" Content="Refresh" Command="{Binding RefreshCommand}" ToolTip.Tip="Re-evaluate and update the track count." />
+                            <Button Grid.Column="3" Classes="ghost" Margin="6,0,0,0" Content="Sync to iPod" Click="OnSyncPlaylists" ToolTip.Tip="Write all playlists (incl. smart) to the iPod as .m3u." />
+                        </Grid>
+                        <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="10" Margin="0,10,0,0">
+                            <CheckBox Content="Match all rules" IsChecked="{Binding Selected.MatchAll}" ToolTip.Tip="On = every rule must match (AND). Off = any rule (OR)." />
+                            <TextBlock Classes="caption" VerticalAlignment="Center" Text="{Binding Selected.Summary}" />
+                        </StackPanel>
+                        <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="6" Margin="0,10,0,0">
+                            <Button Classes="ghost" Content="Add rule" Command="{Binding AddRuleCommand}" />
+                            <Button Classes="ghost" Content="Remove rule" Command="{Binding RemoveRuleCommand}" />
+                        </StackPanel>
+                        <ListBox Grid.Row="3" Margin="0,10,0,0" ItemsSource="{Binding Selected.Rules}" SelectedItem="{Binding SelectedRule}"
+                                 Background="Transparent" BorderThickness="0">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid ColumnDefinitions="150,90,*" Margin="0,3">
+                                        <ComboBox Grid.Column="0" ItemsSource="{Binding Fields}" SelectedItem="{Binding Field}" HorizontalAlignment="Stretch" />
+                                        <ComboBox Grid.Column="1" ItemsSource="{Binding Ops}" SelectedItem="{Binding Op}" HorizontalAlignment="Stretch" Margin="6,0,0,0" />
+                                        <TextBox Grid.Column="2" Text="{Binding Value}" Margin="6,0,0,0" Watermark="value (e.g. Rock, 2010, 4, FLAC, yes)" />
+                                    </Grid>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </Grid>
+                    <TextBlock Grid.Column="1" Margin="20,40,0,0" VerticalAlignment="Top" Classes="caption" TextWrapping="Wrap" MaxWidth="420"
+                               IsVisible="{Binding !HasSelection}"
+                               Text="No smart playlist yet. Click New — a rule-based list (genre, year, rating, plays, format, recently added) that updates itself." />
+                  </Grid>
+                </TabItem>
+              </TabControl>
             </TabItem>
         </TabControl>
 

@@ -7,10 +7,27 @@ public sealed class PlaylistDto
     public List<string> Paths { get; set; } = new();
 }
 
+/// <summary>One rule of a smart playlist (e.g. Rating ≥ 4).</summary>
+public sealed class SmartRuleDto
+{
+    public string Field { get; set; } = "";
+    public string Op { get; set; } = "";
+    public string Value { get; set; } = "";
+}
+
+/// <summary>A rule-based playlist that's evaluated live against the index.</summary>
+public sealed class SmartPlaylistDto
+{
+    public string Name { get; set; } = "";
+    public bool MatchAll { get; set; } = true;
+    public List<SmartRuleDto> Rules { get; set; } = new();
+}
+
 /// <summary>Persisted app settings (folders, tokens, modes), stored as settings.json in App Support.</summary>
 public class SpindleConfig
 {
     public List<PlaylistDto> Playlists { get; set; } = new();
+    public List<SmartPlaylistDto> SmartPlaylists { get; set; } = new();
 
     public string DownloadFilePath { get; set; } = string.Empty;   // de "New music"-inbox-map
     public string MusicLibrary { get; set; } = string.Empty;

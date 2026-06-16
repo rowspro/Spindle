@@ -36,6 +36,7 @@ public class MainViewModel : ViewModelBase
 
         Wantlist = new WantlistViewModel(Lib, () => MusicLibrary, () => DownloadFilePath);
         Playlists = new PlaylistsViewModel(Lib, () => MusicLibrary, Player, SaveSettings);
+        SmartPlaylists = new SmartPlaylistsViewModel(Lib, () => MusicLibrary, Player, SaveSettings);
 
         // Ratings (→ index + portable file tag) and play stats (→ index only; never touches the source).
         Player.RatingOf = p => Lib.Index.GetRating(p);
@@ -102,12 +103,15 @@ public class MainViewModel : ViewModelBase
     public UndoJournal Undo { get; } = new();
     public PlayerViewModel Player { get; } = new();
     public PlaylistsViewModel Playlists { get; }
+    public SmartPlaylistsViewModel SmartPlaylists { get; }
 
-    /// <summary>Export the user playlists to the iPod as .m3u (Transfer / Playlists tab button).</summary>
+    /// <summary>Export the user playlists (manual + evaluated smart) to the iPod as .m3u.</summary>
     public void SyncPlaylistsToIpod()
     {
         var lists = Playlists.Playlists
             .Select(p => (p.Name, (IReadOnlyList<string>)p.Tracks.Select(t => t.Path).ToList()))
+            .Concat(SmartPlaylists.Playlists
+                .Select(p => (p.Name, (IReadOnlyList<string>)SmartPlaylists.Evaluate(p).Select(t => t.Path).ToList())))
             .ToList();
         Sync.WriteUserPlaylistsToIpod(lists);
     }
@@ -646,6 +650,7 @@ public class MainViewModel : ViewModelBase
         SetCompilationFlag = SetCompilationFlag,
         StandardGenres = StandardGenres.Select(g => g.Name).ToList(),
         Playlists = Playlists.Snapshot(),
+        SmartPlaylists = SmartPlaylists.Snapshot(),
     };
 
     private void LoadFromConfig(SpindleConfig c)
@@ -659,6 +664,7 @@ public class MainViewModel : ViewModelBase
         Sync.LoadWanted(c.TransferWanted);
         Library.Doctor.LoadDupIgnores(c.DuplicateIgnores);
         Playlists.Load(c.Playlists);
+        SmartPlaylists.Load(c.SmartPlaylists);
         _itunesMode = c.ItunesMode;
         _alacMirrorFolder = c.AlacMirrorFolder;
         OnPropertyChanged(nameof(ItunesMode));
