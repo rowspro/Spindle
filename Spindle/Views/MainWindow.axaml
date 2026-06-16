@@ -524,7 +524,14 @@
                         <TextBlock Text="{Binding Player.NowSub}" FontSize="11" Margin="2,1,2,0"
                                    Foreground="{DynamicResource TextMuted}" TextTrimming="CharacterEllipsis" />
                         <ProgressBar Margin="2,8,2,0" Minimum="0" Maximum="100" Value="{Binding Player.Progress}" Height="3" Background="{DynamicResource SurfaceVariant}" Foreground="{DynamicResource Accent}" />
-                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="8" Margin="0,8,0,0">
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="0" Margin="0,6,0,0">
+                            <Button Tag="1" Click="OnRateNowStar" Classes="ghost" Padding="2,0"><TextBlock FontSize="15" Foreground="{DynamicResource Accent}" Text="{Binding Player.NowRating, Converter={x:Static vm:StarConverter.Instance}, ConverterParameter=1}" /></Button>
+                            <Button Tag="2" Click="OnRateNowStar" Classes="ghost" Padding="2,0"><TextBlock FontSize="15" Foreground="{DynamicResource Accent}" Text="{Binding Player.NowRating, Converter={x:Static vm:StarConverter.Instance}, ConverterParameter=2}" /></Button>
+                            <Button Tag="3" Click="OnRateNowStar" Classes="ghost" Padding="2,0"><TextBlock FontSize="15" Foreground="{DynamicResource Accent}" Text="{Binding Player.NowRating, Converter={x:Static vm:StarConverter.Instance}, ConverterParameter=3}" /></Button>
+                            <Button Tag="4" Click="OnRateNowStar" Classes="ghost" Padding="2,0"><TextBlock FontSize="15" Foreground="{DynamicResource Accent}" Text="{Binding Player.NowRating, Converter={x:Static vm:StarConverter.Instance}, ConverterParameter=4}" /></Button>
+                            <Button Tag="5" Click="OnRateNowStar" Classes="ghost" Padding="2,0"><TextBlock FontSize="15" Foreground="{DynamicResource Accent}" Text="{Binding Player.NowRating, Converter={x:Static vm:StarConverter.Instance}, ConverterParameter=5}" /></Button>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="8" Margin="0,6,0,0">
                             <Button Classes="ghost" Padding="8,4" Command="{Binding Player.PrevCommand}" ToolTip.Tip="Previous"><TextBlock Classes="icon" FontSize="18" Text="&#xE045;" /></Button>
                             <Button Classes="primary" Padding="12,4" Command="{Binding Player.PlayPauseCommand}" ToolTip.Tip="Play / pause"><TextBlock Classes="icon" FontSize="18" Text="{Binding Player.PlayPauseIcon}" /></Button>
                             <Button Classes="ghost" Padding="8,4" Command="{Binding Player.NextCommand}" ToolTip.Tip="Next"><TextBlock Classes="icon" FontSize="18" Text="&#xE044;" /></Button>
@@ -2054,7 +2061,9 @@
                                     <Grid ColumnDefinitions="150,90,*" Margin="0,3">
                                         <ComboBox Grid.Column="0" ItemsSource="{Binding Fields}" SelectedItem="{Binding Field}" HorizontalAlignment="Stretch" />
                                         <ComboBox Grid.Column="1" ItemsSource="{Binding Ops}" SelectedItem="{Binding Op}" HorizontalAlignment="Stretch" Margin="6,0,0,0" />
-                                        <TextBox Grid.Column="2" Text="{Binding Value}" Margin="6,0,0,0" Watermark="value (e.g. Rock, 2010, 4, FLAC, yes)" />
+                                        <ComboBox Grid.Column="2" Margin="6,0,0,0" HorizontalAlignment="Stretch" ItemsSource="{Binding GenreOptions}" SelectedItem="{Binding Value}"
+                                                  PlaceholderText="pick a genre" IsVisible="{Binding IsGenre}" />
+                                        <TextBox Grid.Column="2" Text="{Binding Value}" Margin="6,0,0,0" Watermark="value (e.g. 2010, 4, FLAC, yes)" IsVisible="{Binding IsText}" />
                                     </Grid>
                                 </DataTemplate>
                             </ListBox.ItemTemplate>

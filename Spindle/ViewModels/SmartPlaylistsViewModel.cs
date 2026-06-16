@@ -16,8 +16,20 @@ public sealed class SmartRuleVM : ViewModelBase
     public string Field
     {
         get => _field;
-        set { if (SetField(ref _field, value)) { OnPropertyChanged(nameof(Ops)); if (!Ops.Contains(Op)) Op = Ops[0]; } }
+        set
+        {
+            if (!SetField(ref _field, value)) return;
+            OnPropertyChanged(nameof(Ops));
+            if (!Ops.Contains(Op)) Op = Ops[0];
+            OnPropertyChanged(nameof(IsGenre));
+            OnPropertyChanged(nameof(IsText));
+        }
     }
+
+    // Genre picks from the standard list (dropdown); other fields are free text.
+    public bool IsGenre => Field == "Genre";
+    public bool IsText => Field != "Genre";
+    public IReadOnlyList<string> GenreOptions => Spindle.Genres.Standard;
 
     public string[] Ops => Field switch
     {
