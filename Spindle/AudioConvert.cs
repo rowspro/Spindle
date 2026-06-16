@@ -96,7 +96,14 @@ public static class AudioConvert
                 Year = s.Year
             };
             foreach (var pic in s.EmbeddedPictures)
+            {
+                if (CleanupOptions.MaxArtPx > 0)
+                {
+                    var rz = ArtResize.Fit(pic.PictureData, CleanupOptions.MaxArtPx);
+                    if (rz != null) { d.EmbeddedPictures.Add(ATL.PictureInfo.fromBinaryData(rz)); continue; }
+                }
                 d.EmbeddedPictures.Add(pic);
+            }
             d.Save();
         }
         catch { }

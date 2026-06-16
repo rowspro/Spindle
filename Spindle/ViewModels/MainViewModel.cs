@@ -450,6 +450,13 @@ public class MainViewModel : ViewModelBase
         set { if (SetField(ref _autoFetchLyrics, value)) { CleanupOptions.AutoFetchLyrics = value; if (value) StartAutoLyricsFill(); } }
     }
 
+    /// <summary>Shrink oversized album art on the iPod copy (fixes hangs on huge covers). 500px when on.</summary>
+    public bool ResizeIpodArt
+    {
+        get => CleanupOptions.MaxArtPx > 0;
+        set { CleanupOptions.MaxArtPx = value ? 500 : 0; OnPropertyChanged(nameof(ResizeIpodArt)); }
+    }
+
     /// <summary>When opted in, fill missing lyrics across the whole library in the background (LRCLIB).
     /// "Missing" = no .lrc sidecar next to the track. Transfers then carry the .lrc to the iPod.</summary>
     public void StartAutoLyricsFill()
@@ -643,6 +650,7 @@ public class MainViewModel : ViewModelBase
         TrimSpaces = TrimSpaces,
         FetchLyricsOnApprove = FetchLyricsOnApprove,
         AutoFetchLyrics = AutoFetchLyrics,
+        MaxArtPx = CleanupOptions.MaxArtPx,
         FlattenArtistOnSync = FlattenArtistOnSync,
         ConvertToAlacDefault = ConvertToAlacDefault,
         AutoCreatePlaylists = AutoCreatePlaylists,
@@ -682,6 +690,8 @@ public class MainViewModel : ViewModelBase
         TrimSpaces = c.TrimSpaces;
         FetchLyricsOnApprove = c.FetchLyricsOnApprove;
         AutoFetchLyrics = c.AutoFetchLyrics;   // setter kicks off the background fill if enabled
+        CleanupOptions.MaxArtPx = c.MaxArtPx;
+        OnPropertyChanged(nameof(ResizeIpodArt));
         FlattenArtistOnSync = c.FlattenArtistOnSync;
         ConvertToAlacDefault = c.ConvertToAlacDefault;
         AutoCreatePlaylists = c.AutoCreatePlaylists;

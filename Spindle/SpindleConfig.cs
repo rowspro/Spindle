@@ -56,6 +56,7 @@ public class SpindleConfig
     public bool FlattenArtistOnSync { get; set; }                   // primary artist on the iPod copy (source untouched)
     public bool ConvertToAlacDefault { get; set; }                  // default the Transfer "Convert to ALAC" toggle on
     public bool AutoCreatePlaylists { get; set; }                   // write a .m3u per album after transfer
+    public int MaxArtPx { get; set; } = 500;                        // shrink iPod-copy album art to this long edge (0 = off)
     public bool RemoveDotUnderscoreAfterTransfer { get; set; } = true; // delete macOS ._* junk after transfer
     public bool SetCompilationFlag { get; set; }                    // tag various-artist albums as compilations
 

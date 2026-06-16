@@ -976,6 +976,7 @@ public class SyncViewModel : ViewModelBase
                                     else
                                         File.Copy(job.File, part, true);   // extreem groot bestand: stream
                                     File.Move(part, dest, true);
+                                    if (CleanupOptions.MaxArtPx > 0) ArtResize.ShrinkInFile(dest, CleanupOptions.MaxArtPx);
                                     if (flatten) AudioConvert.FlattenArtist(dest);
                                     if (job.Compilation) AudioConvert.SetCompilation(dest);
                                     CopyLrc(job.File, dest);

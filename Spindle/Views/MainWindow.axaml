@@ -1234,6 +1234,8 @@
                                           ToolTip.Tip="Delete AppleDouble sidecar files on the iPod after transfer, so Rockbox doesn't index them as phantom duplicate tracks." />
                                 <CheckBox Content="Tag various-artist albums as compilations" IsChecked="{Binding SetCompilationFlag}"
                                           ToolTip.Tip="Set the compilation flag on 'Various Artists' albums so the stock iPod groups them under Compilations." />
+                                <CheckBox Content="Shrink large album art for the iPod (max 500px)" IsChecked="{Binding ResizeIpodArt}"
+                                          ToolTip.Tip="Downscale oversized embedded covers on the iPod copy (both Rockbox and the ALAC mirror). Some iPods/Rockbox hang on huge artwork. Your library files are never changed." />
                             </StackPanel>
                         </Border>
 

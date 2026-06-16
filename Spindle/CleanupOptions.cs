@@ -31,4 +31,7 @@ public static class CleanupOptions
 
     // Opt-in: keep the whole library's lyrics filled in the background (LRCLIB). Transfers carry the .lrc.
     public static bool AutoFetchLyrics { get; set; }
+
+    // Max album-art edge (px) on the iPod copy; 0 = don't resize. Some iPods/Rockbox hang on huge covers.
+    public static int MaxArtPx { get; set; } = 500;
 }
